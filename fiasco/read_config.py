@@ -10,7 +10,7 @@ except ImportError:
     # Python 2
     import ConfigParser as configparser
 
-__all__=['defaults']
+__all__ = ['defaults']
 
 # parse config file
 defaults = {}
