@@ -1,8 +1,10 @@
 """
 Source classes for CHIANTI filetypes
 """
+import os
 import numpy as np
 import astropy.units as u
+import fiasco
 
 from .generic import GenericParser
 
@@ -10,7 +12,7 @@ __all__ = ['ElvlcParser', 'FblvlParser', 'ScupsParser',
            'PsplupsParser', 'EasplomParser', 'EasplupsParser',
            'WgfaParser', 'CilvlParser', 'ReclvlParser',
            'RrparamsParser', 'TrparamsParser', 'DrparamsParser',
-           'DiparamsParser']
+           'DiparamsParser','AbundParser','IoneqParser']
 
 
 class ElvlcParser(GenericParser):
@@ -216,3 +218,47 @@ class DiparamsParser(GenericParser):
     
     def preprocessor(self,table,line,index):
         raise NotImplementedError('Parser for .diparams files not yet implemented.')
+
+
+class AbundParser(GenericParser):
+    dtypes = [int,float,str]
+    units = [None,u.dimensionless_unscaled,None]
+    headings = ['atomic number','abundance relative to H','element']
+
+    def __init__(self,abundance_filename):
+        self.abundance_filename = abundance_filename
+        self.full_path = os.path.join(fiasco.defaults['chianti_dbase_root'],
+                                      'abundance', self.abundance_filename)
+
+    def preprocessor(self,table,line,index):
+        line[-1] = line[-1].strip()
+        super().preprocessor(table,line,index)
+
+    def postprocessor(self,df):
+        df['abundance relative to H'] = 10.**(df['abundance relative to H'] 
+                                              - df['abundance relative to H'][df['element']=='H'])
+        df.meta['abundance_filename'] = self.abundance_filename
+        return df
+
+
+class IoneqParser(GenericParser):
+    dtypes = [int,int,float,float]
+    units = [None,None,u.K,u.dimensionless_unscaled]
+    headings = ['atomic number','ion','temperature','ionization fraction']
+
+    def __init__(self,ioneq_filename):
+        self.ioneq_filename = ioneq_filename
+        self.full_path = os.path.join(fiasco.defaults['chianti_dbase_root'],
+                                      'ioneq', self.ioneq_filename)
+
+    def preprocessor(self,table,line,index):
+        if index == 0:
+            pass
+        elif index == 1:
+            self.temperature = 10.**np.array(line,dtype=float)
+        else:
+            ioneq = np.array(line[2:],dtype=float)
+            table.append(line[:2] + [self.temperature,ioneq])
+
+    def postprocessor(self,df):
+        df.meta['ioneq_filename'] = self.ioneq_filename
