@@ -10,7 +10,11 @@ class ParserFactory(type):
     Metaclass for creating source classes for different CHIANTI filetypes
     """
 
-    def __call__(cls,*args,**kwargs):
+    def __call__(cls, *args, **kwargs):
+        custom_parser = kwargs['custom_parser']
+        del kwargs['custom_parser']
+        if custom_parser is not None:
+            return custom_parser(*args,**kwargs)
         filetype = args[0].split('.')[-1]
         if filetype == 'elvlc':
             return ElvlcParser(*args,**kwargs)
@@ -38,10 +42,14 @@ class ParserFactory(type):
             return DrparamsParser(*args,**kwargs)
         elif filetype == 'diparams':
             return DiparamsParser(*args,**kwargs)
+        elif filetype == 'abund':
+            return AbundParser(*args,**kwargs)
+        elif filetype == 'ioneq':
+            return IoneqParser(*args,**kwargs)
         else:
             return type.__call__(cls,*args,**kwargs)
 
 
 class Parser(GenericParser, metaclass=ParserFactory):
-    def __init__(self, ion_filename):
-        super().__init__(ion_filename)
+    def __init__(self, ion_filename, custom_parser=None, **kwargs):
+        super().__init__(ion_filename, **kwargs)
