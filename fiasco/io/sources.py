@@ -251,14 +251,33 @@ class IoneqParser(GenericParser):
         self.full_path = os.path.join(fiasco.defaults['chianti_dbase_root'],
                                       'ioneq', self.ioneq_filename)
 
+    def _format_filter(self,line):
+        new_line = []
+        for i,l in enumerate(line):
+            splits = [j for j,char in enumerate(l) if char=='.']
+            if len(splits)==1:
+                filtered_line = [l]
+            else:
+                splits = np.hstack([splits,len(l)+1]) - 1
+                filtered_line = [l[splits[j]:splits[j+1]] for j,_ in enumerate(splits[:-1])]
+            for fl in filtered_line:
+                new_line.append(fl)
+                
+        return new_line
+    
     def preprocessor(self,table,line,index):
         if index == 0:
             pass
         elif index == 1:
             self.temperature = 10.**np.array(line,dtype=float)
         else:
-            ioneq = np.array(line[2:],dtype=float)
-            table.append(line[:2] + [self.temperature,ioneq])
+            line = ' '.join(line).split()
+            el = line[0]
+            ion = line[1]
+            ioneq = self._format_filter(line[2:])
+            ioneq = np.array(ioneq,dtype=float)
+            table.append([el,ion,self.temperature,ioneq])
 
     def postprocessor(self,df):
         df.meta['ioneq_filename'] = self.ioneq_filename
+        return df
