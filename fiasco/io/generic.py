@@ -63,6 +63,10 @@ class GenericParser(object):
         """
         df.meta['element'] = self.element
         df.meta['ion'] = self.ion_name
+        with open(os.path.join(fiasco.defaults['chianti_dbase_root'],'VERSION'),'r') as f:
+            lines = f.readlines()
+            version = lines[0].strip()
+        df.meta['chianti_version'] = version
         return df
     
     def to_hdf5(self,hf):
