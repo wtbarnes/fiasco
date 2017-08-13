@@ -11,10 +11,14 @@ class ParserFactory(type):
     """
 
     def __call__(cls, *args, **kwargs):
-        custom_parser = kwargs['custom_parser']
-        del kwargs['custom_parser']
-        if custom_parser is not None:
+        # Use custom parser if desired
+        custom_parser = None
+        if 'custom_parser' in kwargs:
+            custom_parser = kwargs['custom_parser']
+            del kwargs['custom_parser']
+        if custom_parser is not None:   
             return custom_parser(*args,**kwargs)
+        # Create parser based on file extension
         filetype = args[0].split('.')[-1]
         if filetype == 'elvlc':
             return ElvlcParser(*args,**kwargs)
@@ -51,5 +55,5 @@ class ParserFactory(type):
 
 
 class Parser(GenericParser, metaclass=ParserFactory):
-    def __init__(self, ion_filename, custom_parser=None, **kwargs):
-        super().__init__(ion_filename, **kwargs)
+    def __init__(self, filename, custom_parser=None, **kwargs):
+        super().__init__(filename, **kwargs)
