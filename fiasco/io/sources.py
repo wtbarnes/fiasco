@@ -238,6 +238,7 @@ class AbundParser(GenericParser):
         df['abundance relative to H'] = 10.**(df['abundance relative to H'] 
                                               - df['abundance relative to H'][df['element']=='H'])
         df.meta['abundance_filename'] = self.abundance_filename
+        df = super().postprocessor(df)
         return df
 
 
@@ -280,4 +281,5 @@ class IoneqParser(GenericParser):
 
     def postprocessor(self,df):
         df.meta['ioneq_filename'] = self.ioneq_filename
+        df = super().postprocessor(df)
         return df
