@@ -3,7 +3,9 @@ Source classes for CHIANTI filetypes
 """
 import os
 import numpy as np
+import h5py
 import astropy.units as u
+import fortranformat
 import fiasco
 
 from .generic import GenericParser
@@ -16,11 +18,12 @@ __all__ = ['ElvlcParser', 'FblvlParser', 'ScupsParser',
 
 
 class ElvlcParser(GenericParser):
-    dtypes = [int,str,int,str,float,float,float]
-    units = [None,None,None,None,u.dimensionless_unscaled,1/u.cm,1/u.cm]
-    headings = ['level index','configuration','multiplicity',
+    dtypes = [int,str,str,int,str,float,float,float]
+    units = [None,None,None,None,None,u.dimensionless_unscaled,1/u.cm,1/u.cm]
+    headings = ['level index','configuration','level label','multiplicity',
                 'orbital angular momentum','total angular momentum',
                 'observed energy','theoretical energy']
+    fformat = fortranformat.FortranRecordReader('(I7,A30,A5,I5,A5,F5.1,F15.3,F15.3)')
 
     
 class FblvlParser(GenericParser):
@@ -29,6 +32,7 @@ class FblvlParser(GenericParser):
     headings = ['level index','configuration','principal quantum number',
                 'azimuthal quantum number','orbital angular momentum',
                 'multiplicity','observed energy','theoretical energy']
+    fformat = fortranformat.FortranRecordReader('(I5,A20,2I5,A3,I5,2F20.3)')
 
     
 class ScupsParser(GenericParser): 
@@ -40,15 +44,25 @@ class ScupsParser(GenericParser):
                 'high-temperature limit','number of scaled temperatures','Burgess-Tully scaling type',
                 'Burgess-Tully scaling parameter','Burgess-Tully scaled temperatures',
                 'Burgess-Tully scaled effective collision strengths']
+    fformat = fortranformat.FortranRecordReader('(2I7,3E12.3,2I5,E12.4)')
     
     def preprocessor(self,table,line,index):
         if index%3 == 0:
             # main data
+            line = self.fformat.read(line)
+            line = [-1 if item < 0 else item for item in line]
             table.append(line)
         else:
             # scaled temperature or collision strengths
-            scaled = np.array(line,dtype=float)
+            scaled = np.array(line.strip().split(),dtype=float)
             table[-1].append(scaled)
+
+    def _write_to_hdf5(self,grp,name,data):
+        if data.dtype is np.dtype('O'):
+            ragged_dtype = h5py.special_dtype(vlen=np.dtype(data[0].dtype.str))
+            return grp.create_dataset(name,data=data,dtype=ragged_dtype)
+        else:
+            return grp.create_dataset(name,data=data,dtype=data.dtype)
 
 
 class PsplupsParser(GenericParser):
@@ -209,7 +223,7 @@ class TrparamsParser(GenericParser):
             
             
 class DrparamsParser(GenericParser):
-    
+      
     def preprocessor(self,table,line,index):
         raise NotImplementedError('Parser for .drparams files not yet implemented.')
         

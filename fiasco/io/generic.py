@@ -2,7 +2,10 @@
 Base class for file parser
 """
 import os
+import h5py
+import numpy as np
 from astropy.table import QTable
+import astropy.units as u
 import fiasco
 
 
@@ -33,8 +36,7 @@ class GenericParser(object):
             lines = f.readlines()
         table = []
         for i,line in enumerate(lines):
-            line = list(filter(None, line.strip().split('  ')))
-            if line[0] == '-1':
+            if line.strip() == '-1':
                 comment = ''.join(lines[i+1:len(lines)])
                 break
             else:
@@ -59,6 +61,11 @@ class GenericParser(object):
         """
         Default preprocessor method run on each line ingested 
         """
+        if hasattr(self,'fformat'):
+            line = self.fformat.read(line)
+        else:
+            line = line.strip().split()
+        line = [item.strip() if type(item) is str else item for item in line]
         table.append(line)
         
     def postprocessor(self,df):
@@ -69,8 +76,36 @@ class GenericParser(object):
         df.meta['ion'] = self.ion_name
         return df
     
-    def to_hdf5(self,hf):
+    def to_hdf5(self,hf,df):
         """
         Add datasets to a group for an HDF5 file handler
         """
-        pass
+        grp_name = '/'.join([self.element,self.ion_name,self.filetype])
+        if grp_name not in hf:
+            grp = hf.create_group(grp_name)
+            grp.attrs['chianti_version'] = df.meta['chianti_version']
+            grp.attrs['footer'] = df.meta['footer']
+        else:
+            grp = hf[grp_name]
+        hf['/'.join([self.element,self.ion_name])].attrs['element'] = self.element
+        hf['/'.join([self.element,self.ion_name])].attrs['ion'] = self.ion_name
+        for name in df.colnames:
+            col = df[name]
+            if type(col) == u.Quantity:
+                data = col.value
+            else:
+                data = col.data
+            if '<U' in data.dtype.str:
+                numchar = data.dtype.str[2:]
+                data = data.astype('|S{}'.format(numchar))
+            ds = self._write_to_hdf5(grp,name,data)
+            if col.unit is None:
+                ds.attrs['unit'] = ''
+            else:
+                ds.attrs['unit'] = col.unit.to_string()
+
+    def _write_to_hdf5(self,grp,name,data):
+        return grp.create_dataset(name,data=data,dtype=data.dtype)
+        
+        
+        
