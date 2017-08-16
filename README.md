@@ -5,6 +5,7 @@ Prototype for Python interface to the CHIANTI atomic database
 * NumPy
 * Astropy
 * h5py
+* fortranformat (pip only)
 
 ## Install
 ```shell
