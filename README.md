@@ -15,8 +15,7 @@ $ cd fiasco && python setup.py install
 ## Example
 
 ## Why *fiasco*?
-*fiasco*, or flask, is the typical style of bottle used to hold the *Chianti Classico* wine. It is typically larger and rounder at the bottom and is covered by a straw basket.
-<img src="https://upload.wikimedia.org/wikipedia/commons/a/ae/Fiasco_di_chianti_monteriggioni.jpg" style="width:250px;">
+*fiasco*, or flask, is [the typical style of bottle](https://en.wikipedia.org/wiki/Fiasco_(bottle)) used to serve the *Chianti Classico* wine. It is typically larger and rounder at the bottom and is covered by a straw basket. In the same way, the fiasco package serves up the CHIANTI atomic database.
 
 ## Develop
 See the [wiki](https://github.com/wtbarnes/fiasco/wiki) for notes on the development of this package.
