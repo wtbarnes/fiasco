@@ -44,14 +44,10 @@ class ScupsParser(GenericParser):
                 'high-temperature limit','number of scaled temperatures','Burgess-Tully scaling type',
                 'Burgess-Tully scaling parameter','Burgess-Tully scaled temperatures',
                 'Burgess-Tully scaled effective collision strengths']
-    fformat = fortranformat.FortranRecordReader('(2I7,3E12.3,2I5,E12.4)')
     
     def preprocessor(self,table,line,index):
         if index%3 == 0:
-            # main data
-            line = self.fformat.read(line)
-            line = [-1 if item < 0 else item for item in line]
-            table.append(line)
+            super().preprocessor(table,line,index)
         else:
             # scaled temperature or collision strengths
             scaled = np.array(line.strip().split(),dtype=float)
@@ -66,7 +62,7 @@ class ScupsParser(GenericParser):
 
 
 class PsplupsParser(GenericParser):
-    dtypes = [int,int,int,float,float,float,float]
+    dtypes = [int,int,int,float,float,float,'object']
     units = [None,None,None,u.dimensionless_unscaled,u.Ry,u.dimensionless_unscaled,
              u.dimensionless_unscaled]
     headings = ['lower level index','upper level index','Burgess-Tully scaling type',
@@ -74,20 +70,21 @@ class PsplupsParser(GenericParser):
                 'Burgess-Tully scaled effective collision strengths']
     
     def preprocessor(self,table,line,index):
-        line = list(filter(None,('      '.join(line)).split()))
-        row = line[:5]
-        tmp = line[5]
-        i_split = [i for i,char in enumerate(tmp) if char=='-' and tmp[i-1]!='e'][0]
-        row += [tmp[:i_split]]
-        scups = [tmp[i_split+1:]] 
-        tmp_scups = line[6:]
-        if len(tmp_scups[-1].split('-')) > 2:
-            tmp = tmp_scups[-1]
-            i_split = [i for i,char in enumerate(tmp) if char=='-' and tmp[i-1]!='e'][0]
-            tmp_scups = tmp_scups[:-1] + [tmp[:i_split],tmp[i_split+1:]]
-        scups = np.array(scups+tmp_scups,dtype=float)
-        row += [scups]
-        table.append(row)
+        line = line.strip().split()
+        new_line = []
+        for i,item in enumerate(line):
+            dot_splits = [j for j,char in enumerate(item) if char=='.']
+            if len(dot_splits) > 1:
+                dot_splits = np.hstack([dot_splits,len(item)+3])
+                split_items = [item[dot_splits[j]-1:dot_splits[j+1]-2] 
+                               for j,_ in enumerate(dot_splits[:-1])]
+                new_line += split_items
+            else:
+                new_line.append(item)
+        
+        array = np.array(new_line[6:],dtype=float)
+        new_line = new_line[:6] + [array]
+        table.append(new_line)
         
             
 class EasplomParser(GenericParser):
@@ -115,48 +112,16 @@ class EasplupsParser(EasplomParser):
     
     
 class WgfaParser(GenericParser):
-    dtypes = [np.int,np.int,np.float,np.float,np.float,
-              str,np.int,str,np.float,
-              str,np.int,str,np.float]
-    units = [None,None,u.angstrom,u.dimensionless_unscaled,1/u.s,None,None,None,None,
-             None,None,None,None]
+    dtypes = [np.int,np.int,np.float,np.float,np.float,str,str]
+    units = [None,None,u.angstrom,u.dimensionless_unscaled,1/u.s,None,None]
     headings = ['lower level index','upper level index',
                 'transition wavelength','oscillator strength','radiative decay rate',
-                'lower level configuration','lower level multiplicity',
-                'lower level orbital angular momentum',
-                'lower level total angular momentum',
-                'upper level configuration','upper level multiplicity',
-                'upper level orbital angular momentum',
-                'upper level total angular momentum']
+                'lower level label','upper level label']
+    fformat = fortranformat.FortranRecordReader('(2I5,F15.3,2E15.3,A30,A30)')
     
     def preprocessor(self,table,line,index):
-        ### lower ###
-        tmp = line[-2].strip().split()
-        del tmp[-1] # delete rogue dash
-        tmp_pretty = tmp[-1]
-        config = ' '.join(tmp[:-1])
-        mult = tmp_pretty[0]
-        orb = tmp_pretty[1]
-        frac = tmp_pretty[2:]
-        if len(frac) == 1:
-            frac = frac[0]
-        else:
-            frac = float(frac.split('/')[0])/float(frac.split('/')[-1])
-        lower = [config,mult,orb,frac] 
-        ### upper ###
-        tmp = line[-1].strip().split()
-        tmp_pretty = tmp[-1]
-        config = ' '.join(tmp[:-1])
-        mult = tmp_pretty[0]
-        orb = tmp_pretty[1]
-        frac = tmp_pretty[2:]
-        if len(frac) == 1:
-            frac = frac[0]
-        else:
-            frac = float(frac.split('/')[0])/float(frac.split('/')[-1])
-        upper = [config,mult,orb,frac] 
-        ### recombine and assemble ###
-        table.append(line[:-2] + lower + upper)
+        super().preprocessor(table,line,index)
+        table[-1][-2] = table[-1][-2].split('-')[0].strip() 
         
         
 class CilvlParser(GenericParser):
