@@ -96,7 +96,7 @@ class EasplomParser(GenericParser):
                 'Burgess-Tully scaled cross-section']
     
     def preprocessor(self,table,line,index):
-        line = list(filter(None,('      '.join(line)).split()))
+        line = line.strip().split()
         scaled_cs = np.array(line[8:],dtype=float)
         row = line[2:8] + [scaled_cs]
         table.append(row)
@@ -131,7 +131,7 @@ class CilvlParser(GenericParser):
                 'ionization rate coefficient']
     
     def preprocessor(self,table,line,index):
-        line = (' '.join(line)).split()
+        line = line.strip().split()
         if index%2 == 0:
             row = line[2:4]
             temperature = 10.**np.array(line[4:],dtype=float)
@@ -150,6 +150,7 @@ class ReclvlParser(CilvlParser):
 class RrparamsParser(GenericParser):
     
     def preprocessor(self,table,line,index):
+        line = line.strip().split()
         if index == 0:
             filetype = int(line[0])
             table.append([filetype])
@@ -172,9 +173,9 @@ class RrparamsParser(GenericParser):
                 raise ValueError('Unrecognized .rrparams filetype {}'.format(filetype))
         else:
             if table[0][0] == 1 or table[0][0] == 2:
-                table[0] += (' '.join(line[3:])).split()
+                table[0] += line[3:]
             else:
-                table[0] += (' '.join(line[2:])).split()
+                table[0] += line[2:]
                 
                 
 class TrparamsParser(GenericParser):
@@ -203,19 +204,16 @@ class AbundParser(GenericParser):
     dtypes = [int,float,str]
     units = [None,u.dimensionless_unscaled,None]
     headings = ['atomic number','abundance relative to H','element']
+    fformat = fortranformat.FortranRecordReader('(I3,F7.3,A5)')
 
     def __init__(self,abundance_filename):
         self.abundance_filename = abundance_filename
         self.full_path = os.path.join(fiasco.defaults['chianti_dbase_root'],
                                       'abundance', self.abundance_filename)
 
-    def preprocessor(self,table,line,index):
-        line[-1] = line[-1].strip()
-        super().preprocessor(table,line,index)
-
     def postprocessor(self,df):
         df['abundance relative to H'] = 10.**(df['abundance relative to H'] 
-                                              - df['abundance relative to H'][df['element']=='H'])
+                                              - df['abundance relative to H'][df['atomic number']==1])
         df.meta['abundance_filename'] = self.abundance_filename
         return df
 
@@ -229,34 +227,19 @@ class IoneqParser(GenericParser):
         self.ioneq_filename = ioneq_filename
         self.full_path = os.path.join(fiasco.defaults['chianti_dbase_root'],
                                       'ioneq', self.ioneq_filename)
-
-    def _format_filter(self,line):
-        new_line = []
-        for i,l in enumerate(line):
-            splits = [j for j,char in enumerate(l) if char=='.']
-            if len(splits)==1:
-                filtered_line = [l]
-            else:
-                splits = np.hstack([splits,len(l)+1]) - 1
-                filtered_line = [l[splits[j]:splits[j+1]] for j,_ in enumerate(splits[:-1])]
-            for fl in filtered_line:
-                new_line.append(fl)
-                
-        return new_line
-    
+        
     def preprocessor(self,table,line,index):
-        if index == 0:
-            pass
-        elif index == 1:
-            self.temperature = 10.**np.array(line,dtype=float)
+        if index==0:
+            num_entries = int(line.strip().split()[0])
+            self.fformat_temperature = fortranformat.FortranRecordReader('{}F6.2'.format(num_entries))
+            self.fformat_ioneq = fortranformat.FortranRecordReader('2I3,{}E10.2'.format(num_entries))
+        elif index==1:
+            self.temperature = 10.**np.array(self.fformat_temperature.read(line),dtype=float)
         else:
-            line = ' '.join(line).split()
-            el = line[0]
-            ion = line[1]
-            ioneq = self._format_filter(line[2:])
-            ioneq = np.array(ioneq,dtype=float)
-            table.append([el,ion,self.temperature,ioneq])
-
+            line = self.fformat_ioneq.read(line)
+            line = line[:2] + [self.temperature,np.array(line[2:],dtype=float)] 
+            table.append(line)
+        
     def postprocessor(self,df):
         df.meta['ioneq_filename'] = self.ioneq_filename
         return df
