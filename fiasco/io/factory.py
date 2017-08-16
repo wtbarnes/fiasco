@@ -20,40 +20,17 @@ class ParserFactory(type):
             return custom_parser(*args,**kwargs)
         # Create parser based on file extension
         filetype = args[0].split('.')[-1]
-        if filetype == 'elvlc':
-            return ElvlcParser(*args,**kwargs)
-        elif filetype == 'wgfa':
-            return WgfaParser(*args,**kwargs)
-        elif filetype == 'fblvl':
-            return FblvlParser(*args,**kwargs)
-        elif filetype == 'scups':
-            return ScupsParser(*args,**kwargs)
-        elif filetype == 'easplom':
-            return EasplomParser(*args,**kwargs)
-        elif filetype == 'easplups':
-            return EasplupsParser(*args,**kwargs)
-        elif filetype == 'psplups':
-            return PsplupsParser(*args,**kwargs)
-        elif filetype == 'cilvl':
-            return CilvlParser(*args,**kwargs)
-        elif filetype == 'reclvl':
-            return ReclvlParser(*args,**kwargs)
-        elif filetype == 'rrparams':
-            return RrparamsParser(*args,**kwargs)
-        elif filetype == 'trparams':
-            return TrparamsParser(*args,**kwargs)
-        elif filetype == 'drparams':
-            return DrparamsParser(*args,**kwargs)
-        elif filetype == 'diparams':
-            return DiparamsParser(*args,**kwargs)
-        elif filetype == 'abund':
-            return AbundParser(*args,**kwargs)
-        elif filetype == 'ioneq':
-            return IoneqParser(*args,**kwargs)
-        elif filetype == 'ip':
-            return IpParser(*args,**kwargs)
+        subclass_dict = {c.__name__:c for c in all_subclasses(GenericParser)}
+        parser_name = '{}Parser'.format(filetype.capitalize())
+        if parser_name in subclass_dict:
+            return subclass_dict[parser_name](*args,**kwargs)
         else:
+            # Issue a warning here?
             return type.__call__(cls,*args,**kwargs)
+
+
+def all_subclasses(cls):
+    return cls.__subclasses__() + [g for s in cls.__subclasses__() for g in all_subclasses(s)]
 
 
 class Parser(GenericParser, metaclass=ParserFactory):
