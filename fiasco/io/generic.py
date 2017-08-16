@@ -2,6 +2,8 @@
 Base class for file parser
 """
 import os
+import warnings
+
 import h5py
 import numpy as np
 from astropy.table import QTable
@@ -76,7 +78,7 @@ class GenericParser(object):
         df.meta['ion'] = self.ion_name
         return df
     
-    def to_hdf5(self,hf,df):
+    def to_hdf5(self,hf,df,**kwargs):
         """
         Add datasets to a group for an HDF5 file handler
         """
@@ -98,14 +100,18 @@ class GenericParser(object):
             if '<U' in data.dtype.str:
                 numchar = data.dtype.str[2:]
                 data = data.astype('|S{}'.format(numchar))
-            ds = self._write_to_hdf5(grp,name,data)
+            ds = self._write_to_hdf5(grp,name,data,**kwargs)
             if col.unit is None:
-                ds.attrs['unit'] = ''
+                ds.attrs['unit'] = 'SKIP'
             else:
                 ds.attrs['unit'] = col.unit.to_string()
 
-    def _write_to_hdf5(self,grp,name,data):
-        return grp.create_dataset(name,data=data,dtype=data.dtype)
+    def _write_to_hdf5(self,grp,name,data,**kwargs):
+        if name in grp:
+            #warnings.warn('Dataset {} already exists in group {}. Not overwriting.'.format(name,grp.name))
+            return grp[name]
+        else:
+            return grp.create_dataset(name,data=data,dtype=data.dtype)
         
         
         
