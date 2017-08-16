@@ -14,7 +14,7 @@ __all__ = ['ElvlcParser', 'FblvlParser', 'ScupsParser',
            'PsplupsParser', 'EasplomParser', 'EasplupsParser',
            'WgfaParser', 'CilvlParser', 'ReclvlParser',
            'RrparamsParser', 'TrparamsParser', 'DrparamsParser',
-           'DiparamsParser','AbundParser','IoneqParser']
+           'DiparamsParser','AbundParser','IoneqParser','IpParser']
 
 
 class ElvlcParser(GenericParser):
@@ -242,4 +242,18 @@ class IoneqParser(GenericParser):
         
     def postprocessor(self,df):
         df.meta['ioneq_filename'] = self.ioneq_filename
+        return df
+
+class IpParser(GenericParser):
+    dtypes = [int,int,float]
+    units = [None,None,1/u.cm]
+    headings = ['atomic number','ion','ionization potential']
+
+    def __init__(self,ip_filename):
+        self.ip_filename = ip_filename
+        self.full_path = os.path.join(fiasco.defaults['chianti_dbase_root'],
+                                      'ip',self.ip_filename)
+
+    def postprocessor(self,df):
+        df.meta['ip_filename'] = self.ip_filename
         return df

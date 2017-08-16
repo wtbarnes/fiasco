@@ -50,6 +50,8 @@ class ParserFactory(type):
             return AbundParser(*args,**kwargs)
         elif filetype == 'ioneq':
             return IoneqParser(*args,**kwargs)
+        elif filetype == 'ip':
+            return IpParser(*args,**kwargs)
         else:
             return type.__call__(cls,*args,**kwargs)
 
