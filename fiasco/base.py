@@ -28,7 +28,7 @@ class DataIndexer(object):
             if ds.attrs['unit'] == 'SKIP':
                 data = np.array(ds,dtype=ds.dtype)
             else:
-                data = u.Quantity(ds,ds.attrs['unit'],dtype=ds.dtype)
+                data = u.Quantity(np.array(ds),ds.attrs['unit'],dtype=ds.dtype)
             if '|S' in data.dtype.str:
                 data = data.astype(str)
         return data

@@ -28,7 +28,24 @@ class AbundParser(GenericParser):
                                       'abundance', self.abundance_filename)
 
     def to_hdf5(self,hf,df):
-        super().to_hdf5(hf,df)
+        dataset_name = os.path.splitext(os.path.basename(self.abundance_filename))[0]
+        footer = """
+{}
+------------------
+{}
+
+        """.format(dataset_name,df.meta['footer'])
+        for row in df:
+            grp_name = '/'.join([row['element'].lower(),'abundance'])
+            if grp_name not in hf:
+                grp = hf.create_group('/'.join([row['element'].lower(),'abundance']))
+                grp.attrs['footer'] = ''
+            else:
+                grp = hf['/'.join([row['element'].lower(),'abundance'])]
+            grp.attrs['footer'] += footer
+            if dataset_name not in grp:
+                ds = grp.create_dataset(dataset_name,data=row['abundance relative to H'])
+                ds.attrs['unit'] = df['abundance relative to H'].unit.to_string()
 
     def postprocessor(self,df):
         df['abundance relative to H'] = 10.**(df['abundance relative to H'] 
