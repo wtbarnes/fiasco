@@ -22,7 +22,6 @@ class GenericParser(object):
     
     def __init__(self,ion_filename,**kwargs):
         self.ion_filename = ion_filename
-        self.filetype = self.ion_filename.split('.')[-1]
         self.ion_name = self.ion_filename.split('.')[0]
         self.element = self.ion_name.split('_')[0]
         self.full_path = os.path.join(fiasco.defaults['chianti_dbase_root'],
