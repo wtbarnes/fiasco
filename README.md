@@ -6,6 +6,7 @@ Prototype for Python interface to the CHIANTI atomic database
 * Astropy
 * h5py
 * fortranformat (pip only)
+* mendeleev (pip only)
 
 ## Install
 ```shell
