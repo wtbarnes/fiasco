@@ -17,14 +17,17 @@ defaults = {}
 if os.path.isfile(os.path.join(os.environ['HOME'], '.fiasco', 'fiascorc')):
     config = configparser.ConfigParser()
     config.read(os.path.join(os.environ['HOME'], '.fiasco', 'fiascorc'))
-    if 'database' in config and 'dbase_root' in config['database']:
-        defaults['chianti_dbase_root'] = config['database']['dbase_root']
-    else:
-        defaults['chianti_dbase_root'] = None
-
+    if 'database' in config:
+        if 'dbase_root' in config['database']:
+            defaults['chianti_dbase_root'] = config['database']['dbase_root']
+        if 'hdf5_dbase_root' in config['database']:
+            defaults['chianti_hdf5_dbase_root'] = config['database']['hdf5_dbase_root']
+    
 # set defaults
-if defaults['chianti_dbase_root'] is None:
+if 'chianti_dbase_root' not in defaults:
     try:
         defaults['chianti_dbase_root'] = os.environ['XUVTOP']
     except KeyError:
         defaults['chianti_dbase_root'] = ''
+if 'chianti_hdf5_dbase_root' not in defaults:
+    defaults['chianti_hdf5_dbase_root'] = os.path.join(os.environ['HOME'],'.fiasco','chianti_dbase.h5')
