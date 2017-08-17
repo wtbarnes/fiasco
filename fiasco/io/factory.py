@@ -20,10 +20,9 @@ class ParserFactory(type):
             return custom_parser(*args,**kwargs)
         # Create parser based on file extension
         filetype = args[0].split('.')[-1]
-        subclass_dict = {c.__name__:c for c in all_subclasses(GenericParser)}
-        parser_name = '{}Parser'.format(filetype.capitalize())
-        if parser_name in subclass_dict:
-            return subclass_dict[parser_name](*args,**kwargs)
+        subclass_dict = {c.filetype:c for c in all_subclasses(GenericParser) if hasattr(c,'filetype')}
+        if filetype in subclass_dict:
+            return subclass_dict[filetype](*args,**kwargs)
         else:
             # Issue a warning here?
             return type.__call__(cls,*args,**kwargs)
