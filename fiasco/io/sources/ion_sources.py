@@ -112,7 +112,7 @@ class EasplupsParser(EasplomParser):
     
 class WgfaParser(GenericParser):
     filetype = 'wgfa'
-    dtypes = [np.int,np.int,np.float,np.float,np.float,str,str]
+    dtypes = [int,int,float,float,float,str,str]
     units = [None,None,u.angstrom,u.dimensionless_unscaled,1/u.s,None,None]
     headings = ['lower level index','upper level index',
                 'transition wavelength','oscillator strength','radiative decay rate',
@@ -121,6 +121,7 @@ class WgfaParser(GenericParser):
     
     def preprocessor(self,table,line,index):
         super().preprocessor(table,line,index)
+        # remove the dash in the second-to-last entry
         table[-1][-2] = table[-1][-2].split('-')[0].strip() 
         
         
