@@ -99,18 +99,16 @@ class GenericParser(object):
             if '<U' in data.dtype.str:
                 numchar = data.dtype.str[2:]
                 data = data.astype('|S{}'.format(numchar))
-            ds = self._write_to_hdf5(grp,name,data,**kwargs)
+            if name in grp:
+                ds = grp[name]
+            else:
+                if data.dtype == np.dtype('O'):
+                    ragged_dtype = h5py.special_dtype(vlen=np.dtype('float64'))
+                    ds = grp.create_dataset(name,data=data,dtype=ragged_dtype)
+                else:
+                    ds = grp.create_dataset(name,data=data,dtype=data.dtype)
             if col.unit is None:
                 ds.attrs['unit'] = 'SKIP'
             else:
                 ds.attrs['unit'] = col.unit.to_string()
-
-    def _write_to_hdf5(self,grp,name,data,**kwargs):
-        if name in grp:
-            #warnings.warn('Dataset {} already exists in group {}. Not overwriting.'.format(name,grp.name))
-            return grp[name]
-        else:
-            return grp.create_dataset(name,data=data,dtype=data.dtype)
-        
-        
         

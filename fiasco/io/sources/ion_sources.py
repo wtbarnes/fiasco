@@ -56,13 +56,6 @@ class ScupsParser(GenericParser):
             scaled = np.array(line.strip().split(),dtype=float)
             table[-1].append(scaled)
 
-    def _write_to_hdf5(self,grp,name,data):
-        if data.dtype is np.dtype('O'):
-            ragged_dtype = h5py.special_dtype(vlen=np.dtype(data[0].dtype.str))
-            return grp.create_dataset(name,data=data,dtype=ragged_dtype)
-        else:
-            return grp.create_dataset(name,data=data,dtype=data.dtype)
-
 
 class PsplupsParser(GenericParser):
     filetype = 'psplups'
