@@ -20,24 +20,29 @@ class DataIndexer(object):
                                     fiasco.defaults['chianti_hdf5_dbase_root'])
     
     def __getitem__(self,key):
+        if type(key) is int:
+            raise NotImplementedError('Iteration not supported.')
         with h5py.File(self.hdf5_path,'r') as hf:
             grp = hf[self.top_level_path]
             if key not in grp:
-                raise IndexError('{} not a valid dataset for {}'.format(key,self.top_level_path))
+                raise IndexError('{} not found in {} filetype'.format(key,self.top_level_path))
             ds = grp[key]
-            if ds.attrs['unit'] == 'SKIP':
-                data = np.array(ds,dtype=ds.dtype)
+            if isinstance(ds,h5py.Group):
+                data = DataIndexer('/'.join([self.top_level_path,key]))
             else:
-                data = u.Quantity(np.array(ds),ds.attrs['unit'],dtype=ds.dtype)
-            if '|S' in data.dtype.str:
-                data = data.astype(str)
+                if ds.attrs['unit'] == 'SKIP':
+                    data = np.array(ds,dtype=ds.dtype)
+                else:
+                    data = u.Quantity(np.array(ds),ds.attrs['unit'],dtype=ds.dtype)
+                if '|S' in data.dtype.str:
+                    data = data.astype(str)
         return data
     
     def __repr__(self):
         with h5py.File(self.hdf5_path,'r') as hf:
             grp = hf[self.top_level_path]
             var_names = [(key,'')
-                         if grp[key].attrs['unit'] == 'SKIP' or grp[key].attrs['unit'] == ''
+                         if 'unit' not in grp[key].attrs or grp[key].attrs['unit'] == 'SKIP' or grp[key].attrs['unit'] == ''
                          else (key,'({})'.format(grp[key].attrs['unit'])) 
                          for key in grp]
             footer = grp.attrs['footer']
@@ -69,10 +74,6 @@ class IonBase(object):
     @property
     def abundance(self):
         return DataIndexer('/'.join([self.element,'abundance']))
-   
-    @property
-    def ionization_potential(self):
-        return DataIndexer('/'.join([self.element,'ionization_potential']))
         
 
 def add_property(cls,filetype):
@@ -87,6 +88,6 @@ def add_property(cls,filetype):
     
 # Collect the filetypes and add the methods
 all_ext = [cls.filetype for cls in all_subclasses(GenericParser) 
-           if hasattr(cls,'filetype') and cls.filetype not in ['abund','ip']]
+           if hasattr(cls,'filetype') and cls.filetype not in ['abund']]
 for filetype in all_ext:
     add_property(IonBase,filetype)
