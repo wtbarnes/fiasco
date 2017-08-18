@@ -56,8 +56,17 @@ class ScupsParser(GenericParser):
             scaled = np.array(line.strip().split(),dtype=float)
             table[-1].append(scaled)
 
+    def postprocessor(self,df):
+        for cn in df.colnames:
+            all_equal = np.all(np.array([row.size for row in df[cn]]) == df[cn][0].size)
+            if df[cn].dtype == np.dtype('O') and all_equal:
+                df[cn] = df[cn].astype(np.dtype('float64'))
 
-class PsplupsParser(GenericParser):
+        df = super().postprocessor(df)
+        return df
+
+
+class PsplupsParser(ScupsParser):
     filetype = 'psplups'
     dtypes = [int,int,int,float,float,float,'object']
     units = [None,None,None,u.dimensionless_unscaled,u.Ry,u.dimensionless_unscaled,
@@ -79,7 +88,7 @@ class PsplupsParser(GenericParser):
             else:
                 new_line.append(item)
         
-        array = np.array(new_line[6:],dtype=float)
+        array = np.array(new_line[6:],dtype=np.dtype('float64'))
         new_line = new_line[:6] + [array]
         table.append(new_line)
         
