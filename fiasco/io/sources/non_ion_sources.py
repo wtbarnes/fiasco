@@ -7,7 +7,7 @@ import h5py
 import astropy.units as u
 from astropy.table import Column
 import fortranformat
-import mendeleev
+import periodictable
 import fiasco
 
 from ..generic import GenericParser
@@ -27,26 +27,6 @@ class AbundParser(GenericParser):
         self.full_path = os.path.join(fiasco.defaults['chianti_dbase_root'],
                                       'abundance', self.abundance_filename)
 
-    def to_hdf5(self,hf,df):
-        dataset_name = os.path.splitext(os.path.basename(self.abundance_filename))[0]
-        footer = """
-{}
-------------------
-{}
-
-        """.format(dataset_name,df.meta['footer'])
-        for row in df:
-            grp_name = '/'.join([row['element'].lower(),'abundance'])
-            if grp_name not in hf:
-                grp = hf.create_group('/'.join([row['element'].lower(),'abundance']))
-                grp.attrs['footer'] = ''
-            else:
-                grp = hf['/'.join([row['element'].lower(),'abundance'])]
-            grp.attrs['footer'] += footer
-            if dataset_name not in grp:
-                ds = grp.create_dataset(dataset_name,data=row['abundance relative to H'])
-                ds.attrs['unit'] = df['abundance relative to H'].unit.to_string()
-
     def postprocessor(self,df):
         df['abundance relative to H'] = 10.**(df['abundance relative to H'] 
                                               - df['abundance relative to H'][df['atomic number']==1])
@@ -54,10 +34,28 @@ class AbundParser(GenericParser):
         if df['element'][0] == '':
             col = []
             for atomic_number in df['atomic number']:
-                col.append(mendeleev.element(int(atomic_number)).symbol)
+                col.append(periodictable.elements[int(atomic_number)].symbol.lower())
             df['element'] = Column(col) 
         df.meta['abundance_filename'] = self.abundance_filename
         return df
+
+    def to_hdf5(self,hf,df):
+        dataset_name = os.path.splitext(os.path.basename(self.abundance_filename))[0]
+        footer = """{}
+------------------
+{}
+        """.format(dataset_name,df.meta['footer'])
+        for row in df:
+            grp_name = '/'.join([row['element'].lower(),'abundance'])
+            if grp_name not in hf:
+                grp = hf.create_group(grp_name)
+                grp.attrs['footer'] = ''
+            else:
+                grp = hf[grp_name]
+            grp.attrs['footer'] += footer
+            if dataset_name not in grp:
+                ds = grp.create_dataset(dataset_name,data=row['abundance relative to H'])
+                ds.attrs['unit'] = df['abundance relative to H'].unit.to_string()
 
 
 class IoneqParser(GenericParser):
@@ -87,6 +85,25 @@ class IoneqParser(GenericParser):
         df.meta['ioneq_filename'] = self.ioneq_filename
         return df
 
+    def to_hdf5(self,hf,df):
+        dataset_name = os.path.splitext(os.path.basename(self.ioneq_filename))[0]
+        for row in df:
+            el = periodictable.elements[int(row['atomic number'])].symbol.lower()
+            ion = int(row['ion'])
+            grp_name = '/'.join([el,'{}_{}'.format(el,ion),'ioneq'])
+            if grp_name not in hf:
+                grp = hf.create_group(grp_name)
+                grp.attrs['footer'] = ''
+            else:
+                grp = hf[grp_name]
+            if dataset_name not in grp:
+                sub_grp = grp.create_group(dataset_name)
+                sub_grp.attrs['footer'] = df.meta['footer']
+                ds = sub_grp.create_dataset('temperature',data=row['temperature'])
+                ds.attrs['unit'] = df['temperature'].unit.to_string()
+                ds = sub_grp.create_dataset('ionization fraction',data=row['ionization fraction'])
+                ds.attrs['unit'] = df['ionization fraction'].unit.to_string()
+
 
 class IpParser(GenericParser):
     filetype = 'ip'
@@ -102,3 +119,25 @@ class IpParser(GenericParser):
     def postprocessor(self,df):
         df.meta['ip_filename'] = self.ip_filename
         return df
+
+    def to_hdf5(self,hf,df):
+        dataset_name = os.path.splitext(os.path.basename(self.ip_filename))[0]
+        footer = """{}
+------------------
+{}
+        """.format(dataset_name,df.meta['footer'])
+        for row in df:
+            el = periodictable.elements[int(row['atomic number'])].symbol.lower()
+            ion = int(row['ion'])
+            grp_name = '/'.join([el,'{}_{}'.format(el,ion),'ip'])
+            if grp_name not in hf:
+                grp = hf.create_group(grp_name)
+                grp.attrs['footer'] = ''
+            else:
+                grp = hf[grp_name]
+            grp.attrs['footer'] += footer
+            if dataset_name not in grp:
+                ds = grp.create_dataset(dataset_name,data=row['ionization potential'])
+                ds.attrs['unit'] = df['ionization potential'].unit.to_string()
+
+
