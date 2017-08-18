@@ -39,16 +39,14 @@ class DataIndexer(object):
         return data
     
     def __repr__(self):
+        ufilter = lambda x: 'unit' not in x.attrs or x.attrs['unit'] == 'SKIP' or x.attrs['unit'] == ''
         with h5py.File(self.hdf5_path,'r') as hf:
             grp = hf[self.top_level_path]
-            var_names = [(key,'')
-                         if 'unit' not in grp[key].attrs or grp[key].attrs['unit'] == 'SKIP' or grp[key].attrs['unit'] == ''
-                         else (key,'({})'.format(grp[key].attrs['unit'])) 
+            var_names = [(key,'') if ufilter(grp[key]) else (key,'({})'.format(grp[key].attrs['unit'])) 
                          for key in grp]
             footer = grp.attrs['footer']
             
-        name_strs = '\n'.join(['{} {} -- [description]'.format(v[0],v[1]) 
-                               for v in var_names])
+        name_strs = '\n'.join(['{} {} -- [description]'.format(v[0],v[1]) for v in var_names])
         return '''{top_level_path}
         
 Fields
