@@ -206,11 +206,60 @@ class DrparamsParser(GenericParser):
     filetype = 'drparams'
       
     def preprocessor(self,table,line,index):
-        raise NotImplementedError('Parser for .drparams files not yet implemented.')
-        
+        line = line.strip().split()
+        if index == 0:
+            self._drparams_filetype = int(line[0])
+            if self._drparams_filetype == 1:
+                # Badnell type
+                self.dtypes = [float,float]
+                self.units = [u.K,(u.cm**3)/u.s*(u.K**(3/2))]
+                self.headings = ['E fit parameter','c fit parameter']
+            elif self._drparams_filetype == 2:
+                # Shull type
+                self.dtypes = [float,float,float,float]
+                self.units = [(u.cm**3)/u.s*(u.K**(3/2)),u.dimensionless_unscaled,u.K,u.K]
+                self.headings = ['A fit coefficient','B fit coefficient',
+                                 'T0 fit coefficient','T1 fit coefficient']
+            else:
+                raise ValueError('Unrecognized drparams filetype {}'.format(self._drparams_filetype))
+        else:
+            if self._drparams_filetype == 1:
+                tmp = np.array(line[2:],dtype=float)
+                if index%2 == 0:
+                    table[-1].append(tmp)
+                else:
+                    table.append([tmp])
+            else:
+                table.append(line[2:])
+
         
 class DiparamsParser(GenericParser):
     filetype = 'diparams'
+    dtypes = [float,float,float,float]
+    units = [1/u.cm,u.dimensionless_unscaled,u.dimensionless_unscaled,
+             u.dimensionless_unscaled]
+    headings = ['ionization potential','Burgess-Tully scaling factor',
+                'scaled energy','scaled cross-section']
     
     def preprocessor(self,table,line,index):
-        raise NotImplementedError('Parser for .diparams files not yet implemented.')
+        tmp = line.strip().split()
+        if index == 0:
+            self._num_fits = int(tmp[2])
+            self._num_lines = int(tmp[3])
+            self._has_excitation_autoionization = bool(int(tmp[4]))
+        elif index==self._num_lines*2 + 1 and self._has_excitation_autoionization:
+            self._excitation_autoionization = float(tmp[0])
+        elif index%2 != 0:
+            bt_factor = tmp[0]
+            u_spline = np.array(tmp[1:],dtype=float)
+            table.append([bt_factor,u_spline])
+        else:
+            ionization_potential = tmp[0]
+            cs_spline = np.array(tmp[1:],dtype=float)
+            table[-1] = [ionization_potential]+table[-1]+[cs_spline]
+            
+    def postprocessor(self,df):
+        if hasattr(self,'_excitation_autoionization'):
+            df['excitation autoionization'] = len(df['ionization potential'])*[self._excitation_autoionization]
+        df = super().postprocessor(df)
+        return df
