@@ -1,6 +1,8 @@
 """
 Factory and interface for file parser
 """
+import warnings
+
 from .sources import *
 from .generic import GenericParser
 
@@ -24,7 +26,7 @@ class ParserFactory(type):
         if filetype in subclass_dict:
             return subclass_dict[filetype](*args,**kwargs)
         else:
-            # Issue a warning here?
+            warnings.warn('Unrecognized file extension'.format(filetype))
             return type.__call__(cls,*args,**kwargs)
 
 
