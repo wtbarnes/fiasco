@@ -14,10 +14,9 @@ from .io.generic import GenericParser
 
 class DataIndexer(object):
     
-    def __init__(self,top_level_path,**kwargs):
+    def __init__(self,hdf5_path,top_level_path):
         self.top_level_path = top_level_path
-        self.hdf5_path = kwargs.get('hdf5_path',
-                                    fiasco.defaults['chianti_hdf5_dbase_root'])
+        self.hdf5_path = hdf5_path
     
     def __getitem__(self,key):
         if type(key) is int:
@@ -28,7 +27,7 @@ class DataIndexer(object):
                 raise IndexError('{} not found in {} filetype'.format(key,self.top_level_path))
             ds = grp[key]
             if isinstance(ds,h5py.Group):
-                data = DataIndexer('/'.join([self.top_level_path,key]))
+                data = DataIndexer(self.hdf5_path,'/'.join([self.top_level_path,key]))
             else:
                 if ds.attrs['unit'] == 'SKIP':
                     data = np.array(ds,dtype=ds.dtype)
@@ -64,14 +63,18 @@ class IonBase(object):
     Base class for accessing CHIANTI data attached to a particular ion
     """
     
-    def __init__(self,ion_name):
+    def __init__(self,ion_name,hdf5_path=None):
         self.ion_name = ion_name
         self.element = ion_name.split('_')[0]
         self.stage = ion_name.split('_')[-1]
+        if hdf5_path is None:
+            self.hdf5_path = fiasco.defaults['chianti_hdf5_dbase_root']
+        else:
+            self.hdf5_path = hdf5_path
        
     @property
     def abundance(self):
-        return DataIndexer('/'.join([self.element,'abundance']))
+        return DataIndexer(self.hdf5_path,'/'.join([self.element,'abundance']))
         
 
 def add_property(cls,filetype):
@@ -79,7 +82,11 @@ def add_property(cls,filetype):
     Dynamically add filetype properties to base data access class
     """
     def property_template(self):
-        return DataIndexer('/'.join([self.element,self.ion_name,filetype]))
+        with h5py.File(self.hdf5_path,'r') as hf:
+            if '/'.join([self.element,self.ion_name,filetype]) not in hf:
+                return None
+        return DataIndexer(self.hdf5_path,'/'.join([self.element,self.ion_name,filetype]))
+
     property_template.__doc__ = 'Data in {} type file'.format(filetype)
     property_template.__name__ = filetype
     setattr(cls,property_template.__name__,property(property_template))
