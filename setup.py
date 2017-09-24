@@ -11,5 +11,5 @@ setup(
     author='Will Barnes',
     url='https://github.com/wtbarnes/fiasco',
     #package_data={'fiasco':[]},
-    packages=['fiasco','fiasco.io','fiasco.io.sources']
+    packages=['fiasco', 'fiasco.io', 'fiasco.io.sources', 'fiasco.util']
 )
