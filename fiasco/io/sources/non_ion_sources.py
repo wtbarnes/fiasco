@@ -24,8 +24,7 @@ class AbundParser(GenericParser):
 
     def __init__(self,abundance_filename):
         self.abundance_filename = abundance_filename
-        self.full_path = os.path.join(fiasco.defaults['chianti_dbase_root'],
-                                      'abundance', self.abundance_filename)
+        self.full_path = os.path.join(fiasco.defaults['ascii_dbase_root'],'abundance',self.abundance_filename)
 
     def postprocessor(self,df):
         df['abundance relative to H'] = 10.**(df['abundance relative to H'] 
@@ -66,8 +65,7 @@ class IoneqParser(GenericParser):
 
     def __init__(self,ioneq_filename):
         self.ioneq_filename = ioneq_filename
-        self.full_path = os.path.join(fiasco.defaults['chianti_dbase_root'],
-                                      'ioneq', self.ioneq_filename)
+        self.full_path = os.path.join(fiasco.defaults['ascii_dbase_root'],'ioneq', self.ioneq_filename)
         
     def preprocessor(self,table,line,index):
         if index==0:
@@ -113,8 +111,7 @@ class IpParser(GenericParser):
 
     def __init__(self,ip_filename):
         self.ip_filename = ip_filename
-        self.full_path = os.path.join(fiasco.defaults['chianti_dbase_root'],
-                                      'ip',self.ip_filename)
+        self.full_path = os.path.join(fiasco.defaults['ascii_dbase_root'],'ip',self.ip_filename)
 
     def postprocessor(self,df):
         df.meta['ip_filename'] = self.ip_filename

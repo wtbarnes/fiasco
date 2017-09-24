@@ -24,7 +24,7 @@ class GenericParser(object):
         self.ion_filename = ion_filename
         self.ion_name = self.ion_filename.split('.')[0]
         self.element = self.ion_name.split('_')[0]
-        self.full_path = os.path.join(fiasco.defaults['chianti_dbase_root'],
+        self.full_path = os.path.join(fiasco.defaults['ascii_dbase_root'],
                                       self.element,self.ion_name,self.ion_filename)
         
     def parse(self):
@@ -49,7 +49,7 @@ class GenericParser(object):
             df[name] = df[name].astype(dtype)
         
         df.meta['footer'] = comment
-        with open(os.path.join(fiasco.defaults['chianti_dbase_root'],'VERSION'),'r') as f:
+        with open(os.path.join(fiasco.defaults['ascii_dbase_root'],'VERSION'),'r') as f:
             lines = f.readlines()
             version = lines[0].strip()
         df.meta['chianti_version'] = version
