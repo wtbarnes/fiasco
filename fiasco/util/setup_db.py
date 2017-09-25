@@ -17,7 +17,7 @@ from astropy.utils.data import download_file
 
 from .yes_no import query_yes_no
 
-__all__ = ['setup_paths', 'download_dbase']
+__all__ = ['setup_paths', 'download_dbase', 'get_masterlist']
 
 FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
 CHIANTI_URL = 'http://www.chiantidatabase.org/download/CHIANTI_{version}_data.tar.gz'
@@ -74,3 +74,36 @@ def build_hdf5_dbase():
     Assemble HDF5 file from raw ASCII CHIANTI database
     """
     pass
+
+
+def get_masterlist(ascii_dbase_path):
+    """
+    Parse CHIANTI filetree and return several useful lists for indexing the database.
+
+    Note
+    -----
+    This will be only be useful when dealing with the raw ASCII data.
+    """
+    skip_dirs = ['version_3', 'deprecated', 'masterlist', 'ioneq', 'dem', 'ancillary_data', 'ip', 'abundance',
+                 'continuum', 'instrument_responses']
+    # List of all files associated with ions
+    ion_files = []
+    for root, sub, files in os.walk(ascii_dbase_path):
+        if not any([sd in root for sd in skip_dirs]) and not any([sd in sub for sd in skip_dirs]):
+            ion_files += files
+
+    # List all of the non-ion files
+    def walk_sub_dir(subdir):
+        subdir_files = []
+        subdir_root = os.path.join(ascii_dbase_path, subdir)
+        for root, _, files in os.walk(subdir_root):
+            subdir_files += [os.path.relpath(os.path.join(root, f), subdir_root) for f in files]
+        
+        return subdir_files
+
+    non_ion_subdirs = ['abundance', 'ioneq', 'ip']
+    all_files = {'{}_files'.format(sd): walk_sub_dir(sd) for sd in non_ion_subdirs}
+    all_files['ion_files'] = ion_files
+
+    return all_files
+    
