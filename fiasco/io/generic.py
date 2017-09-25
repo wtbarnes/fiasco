@@ -33,6 +33,7 @@ class GenericParser(object):
         Generate Astropy QTable from a CHIANTI ion file
         """
         if not os.path.isfile(self.full_path):
+            warnings.warn('Could not find file {}'.format(self.full_path))
             return None
         with open(self.full_path, 'r') as f:
             lines = f.readlines()
