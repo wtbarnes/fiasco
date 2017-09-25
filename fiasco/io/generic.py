@@ -8,7 +8,8 @@ import h5py
 import numpy as np
 from astropy.table import QTable
 import astropy.units as u
-import fiasco
+
+from fiasco.util import setup_paths
 
 
 class GenericParser(object):
@@ -20,16 +21,16 @@ class GenericParser(object):
     units = []
     headings = []
     
-    def __init__(self,ion_filename,**kwargs):
+    def __init__(self, ion_filename, **kwargs):
         self.ion_filename = ion_filename
         self.ion_name = self.ion_filename.split('.')[0]
         self.element = self.ion_name.split('_')[0]
-        self.full_path = os.path.join(fiasco.defaults['ascii_dbase_root'],
-                                      self.element,self.ion_name,self.ion_filename)
+        self.ascii_dbase_root = setup_paths()['ascii_dbase_root']
+        self.full_path = os.path.join(self.ascii_dbase_root, self.element, self.ion_name, self.ion_filename)
         
     def parse(self):
         """
-        Generate Astropy QTable from a CHIANTI ion file 
+        Generate Astropy QTable from a CHIANTI ion file
         """
         if not os.path.isfile(self.full_path):
             return None
@@ -49,7 +50,7 @@ class GenericParser(object):
             df[name] = df[name].astype(dtype)
         
         df.meta['footer'] = comment
-        with open(os.path.join(fiasco.defaults['ascii_dbase_root'],'VERSION'),'r') as f:
+        with open(os.path.join(self.ascii_dbase_root, 'VERSION'), 'r') as f:
             lines = f.readlines()
             version = lines[0].strip()
         df.meta['chianti_version'] = version

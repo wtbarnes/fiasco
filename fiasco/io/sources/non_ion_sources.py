@@ -2,14 +2,15 @@
 Source classes for CHIANTI filetypes not attached to ions
 """
 import os
+
 import numpy as np
 import h5py
 import astropy.units as u
 from astropy.table import Column
 import fortranformat
 import periodictable
-import fiasco
 
+from fiasco.util import setup_paths
 from ..generic import GenericParser
 
 __all__ = ['AbundParser','IoneqParser','IpParser']
@@ -22,9 +23,10 @@ class AbundParser(GenericParser):
     headings = ['atomic number','abundance relative to H','element']
     fformat = fortranformat.FortranRecordReader('(I3,F7.3,A5)')
 
-    def __init__(self,abundance_filename):
+    def __init__(self, abundance_filename):
         self.abundance_filename = abundance_filename
-        self.full_path = os.path.join(fiasco.defaults['ascii_dbase_root'],'abundance',self.abundance_filename)
+        self.ascii_dbase_root = setup_paths()['ascii_dbase_root']
+        self.full_path = os.path.join(self.ascii_dbase_root, 'abundance', self.abundance_filename)
 
     def postprocessor(self,df):
         df['abundance relative to H'] = 10.**(df['abundance relative to H'] 
@@ -63,9 +65,10 @@ class IoneqParser(GenericParser):
     units = [None,None,u.K,u.dimensionless_unscaled]
     headings = ['atomic number','ion','temperature','ionization fraction']
 
-    def __init__(self,ioneq_filename):
+    def __init__(self, ioneq_filename):
         self.ioneq_filename = ioneq_filename
-        self.full_path = os.path.join(fiasco.defaults['ascii_dbase_root'],'ioneq', self.ioneq_filename)
+        self.ascii_dbase_root = setup_paths()['ascii_dbase_root']
+        self.full_path = os.path.join(self.ascii_dbase_root, 'ioneq', self.ioneq_filename)
         
     def preprocessor(self,table,line,index):
         if index==0:
@@ -109,9 +112,10 @@ class IpParser(GenericParser):
     units = [None,None,1/u.cm]
     headings = ['atomic number','ion','ionization potential']
 
-    def __init__(self,ip_filename):
+    def __init__(self, ip_filename):
         self.ip_filename = ip_filename
-        self.full_path = os.path.join(fiasco.defaults['ascii_dbase_root'],'ip',self.ip_filename)
+        self.ascii_dbase_root = setup_paths()['ascii_dbase_root']
+        self.full_path = os.path.join(self.ascii_dbase_root, 'ip', self.ip_filename)
 
     def postprocessor(self,df):
         df.meta['ip_filename'] = self.ip_filename
