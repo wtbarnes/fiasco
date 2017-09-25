@@ -71,11 +71,11 @@ def download_dbase(ascii_dbase_root, version=None):
             tar.extractall(path=ascii_dbase_root)
 
 
-def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root):
+def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, force_update=False):
     """
     Assemble HDF5 file from raw ASCII CHIANTI database
     """
-    if os.path.isfile(hdf5_dbase_root):
+    if os.path.isfile(hdf5_dbase_root) and not force_update:
         return None
     question = """No HDF5 database found at {}. Build it now?"""
     answer = query_yes_no(question.format(hdf5_dbase_root), default='yes')
