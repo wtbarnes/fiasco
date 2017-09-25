@@ -7,17 +7,19 @@ import tarfile
 try:
     # Python 3
     import configparser
-    from urllib.request import urlretrieve
 except ImportError:
     # Python 2
     import ConfigParser as configparser
-    from urllib import urlretrieve
+    
+import h5py
 from astropy.config import set_temp_cache
 from astropy.utils.data import download_file
+from astropy.utils.console import ProgressBar
 
 from .yes_no import query_yes_no
+import fiasco.io
 
-__all__ = ['setup_paths', 'download_dbase', 'get_masterlist']
+__all__ = ['setup_paths', 'download_dbase', 'get_masterlist', 'build_hdf5_dbase']
 
 FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
 CHIANTI_URL = 'http://www.chiantidatabase.org/download/CHIANTI_{version}_data.tar.gz'
@@ -43,13 +45,13 @@ def setup_paths():
     return paths
 
 
-def download_dbase(ascii_dbase_path, version=None):
+def download_dbase(ascii_dbase_root, version=None):
     """
     Download the database if it does not exist locally.
     """
     # VERSION file as a proxy for whether whole dbase exists
     # TODO: version checking, download newest version if installed version is out of date
-    if os.path.isfile(os.path.join(ascii_dbase_path, 'VERSION')):
+    if os.path.isfile(os.path.join(ascii_dbase_root, 'VERSION')):
         return None
     if version is None:
         dbase_url = CHIANTI_URL.format(version=LATEST_VERSION)
@@ -57,7 +59,7 @@ def download_dbase(ascii_dbase_path, version=None):
         dbase_url = CHIANTI_URL.format(version=version)
     # TODO: need a way to override this in "headless" situations, e.g. Travis CI
     question = "No CHIANTI database found at {}. Download it from the internet?"
-    answer = query_yes_no(question.format(ascii_dbase_path), default='no')
+    answer = query_yes_no(question.format(ascii_dbase_root), default='no')
     if not answer:
         return None
     tar_tmp_dir = os.path.join(FIASCO_HOME, 'tmp')
@@ -66,17 +68,33 @@ def download_dbase(ascii_dbase_path, version=None):
     with set_temp_cache(path=tar_tmp_dir, delete=True):
         tmp_tar = download_file(dbase_url, cache=True, show_progress=True)
         with tarfile.open(tmp_tar) as tar:
-            tar.extractall(path=ascii_dbase_path)
+            tar.extractall(path=ascii_dbase_root)
 
 
-def build_hdf5_dbase():
+def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root):
     """
     Assemble HDF5 file from raw ASCII CHIANTI database
     """
-    pass
+    if os.path.isfile(hdf5_dbase_root):
+        return None
+    question = """No HDF5 database found at {}. Build it now?"""
+    answer = query_yes_no(question.format(hdf5_dbase_root), default='yes')
+    if not answer:
+        return None
+    all_files = []
+    tmp = get_masterlist(ascii_dbase_root)
+    for k in tmp:
+        all_files += tmp[k]
+    with ProgressBar(len(all_files)) as progress:
+        with h5py.File(hdf5_dbase_root, 'a') as hf:
+            for af in all_files:
+                parser = fiasco.io.Parser(af)
+                df = parser.parse()
+                parser.to_hdf5(hf, df)
+                progress.update()
 
 
-def get_masterlist(ascii_dbase_path):
+def get_masterlist(ascii_dbase_root):
     """
     Parse CHIANTI filetree and return several useful lists for indexing the database.
 
@@ -88,14 +106,14 @@ def get_masterlist(ascii_dbase_path):
                  'continuum', 'instrument_responses']
     # List of all files associated with ions
     ion_files = []
-    for root, sub, files in os.walk(ascii_dbase_path):
+    for root, sub, files in os.walk(ascii_dbase_root):
         if not any([sd in root for sd in skip_dirs]) and not any([sd in sub for sd in skip_dirs]):
             ion_files += files
 
     # List all of the non-ion files
     def walk_sub_dir(subdir):
         subdir_files = []
-        subdir_root = os.path.join(ascii_dbase_path, subdir)
+        subdir_root = os.path.join(ascii_dbase_root, subdir)
         for root, _, files in os.walk(subdir_root):
             subdir_files += [os.path.relpath(os.path.join(root, f), subdir_root) for f in files]
         
