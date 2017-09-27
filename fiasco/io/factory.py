@@ -26,7 +26,7 @@ class ParserFactory(type):
         if filetype in subclass_dict:
             return subclass_dict[filetype](*args,**kwargs)
         else:
-            warnings.warn('Unrecognized file extension'.format(filetype))
+            warnings.warn('Unrecognized file extension'.format(filetype), stacklevel=2)
             return type.__call__(cls,*args,**kwargs)
 
 
