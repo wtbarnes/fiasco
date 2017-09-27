@@ -2,11 +2,11 @@
 Source classes for CHIANTI filetypes attached to ions
 """
 import os
+
 import numpy as np
 import h5py
 import astropy.units as u
 import fortranformat
-import fiasco
 
 from ..generic import GenericParser
 
