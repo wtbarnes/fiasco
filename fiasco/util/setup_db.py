@@ -3,6 +3,7 @@ Various functions for downloading and setting up the database
 """
 
 import os
+import warnings
 import tarfile
 try:
     # Python 3
@@ -45,7 +46,7 @@ def setup_paths():
     return paths
 
 
-def download_dbase(ascii_dbase_root, version=None):
+def download_dbase(ascii_dbase_root, version=None, ask_before=True):
     """
     Download the database if it does not exist locally.
     """
@@ -57,11 +58,13 @@ def download_dbase(ascii_dbase_root, version=None):
         dbase_url = CHIANTI_URL.format(version=LATEST_VERSION)
     else:
         dbase_url = CHIANTI_URL.format(version=version)
-    # TODO: need a way to override this in "headless" situations, e.g. Travis CI
-    question = "No CHIANTI database found at {}. Download it from the internet?"
-    answer = query_yes_no(question.format(ascii_dbase_root), default='no')
-    if not answer:
-        return None
+    if ask_before:
+        question = "No CHIANTI database found at {}. Download it from the internet?"
+        answer = query_yes_no(question.format(ascii_dbase_root), default='no')
+        if not answer:
+            return None
+    
+    # Download and extract
     tar_tmp_dir = os.path.join(FIASCO_HOME, 'tmp')
     if not os.path.exists(tar_tmp_dir):
         os.makedirs(tar_tmp_dir)
@@ -71,16 +74,22 @@ def download_dbase(ascii_dbase_root, version=None):
             tar.extractall(path=ascii_dbase_root)
 
 
-def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, force_update=False):
+def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, ask_before=True):
     """
     Assemble HDF5 file from raw ASCII CHIANTI database
     """
-    if os.path.isfile(hdf5_dbase_root) and not force_update:
+    # Check and ask
+    if os.path.isfile(hdf5_dbase_root):
         return None
-    question = """No HDF5 database found at {}. Build it now?"""
-    answer = query_yes_no(question.format(hdf5_dbase_root), default='yes')
-    if not answer:
-        return None
+    if not os.path.isfile(os.path.join(ascii_dbase_root, 'VERSION')):
+        raise FileNotFoundError('No CHIANTI database found at {}'.format(ascii_dbase_root))
+    if ask_before:
+        question = """No HDF5 database found at {}. Build it now?"""
+        answer = query_yes_no(question.format(hdf5_dbase_root), default='yes')
+        if not answer:
+            return None
+    
+    # Build database
     all_files = []
     tmp = get_masterlist(ascii_dbase_root)
     for k in tmp:
@@ -90,7 +99,10 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, force_update=False):
             for af in all_files:
                 parser = fiasco.io.Parser(af)
                 df = parser.parse()
-                parser.to_hdf5(hf, df)
+                if df is None:
+                    warnings.warn('Not including {} in {}'.format(af, hdf5_dbase_root), stacklevel=2)
+                else:
+                    parser.to_hdf5(hf, df)
                 progress.update()
 
 
