@@ -45,7 +45,7 @@ class AbundParser(GenericParser):
         footer = """{}
 ------------------
 {}
-        """.format(dataset_name,df.meta['footer'])
+""".format(dataset_name,df.meta['footer'])
         for row in df:
             grp_name = '/'.join([row['element'].lower(),'abundance'])
             if grp_name not in hf:

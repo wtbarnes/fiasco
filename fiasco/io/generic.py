@@ -54,7 +54,7 @@ class GenericParser(object):
             df[name].unit = unit
             df[name] = df[name].astype(dtype)
         
-        df.meta['footer'] = comment
+        df.meta['footer'] = '\n'.join([l for l in comment.split('\n') if l.strip() != '-1' and l.strip()])
         with open(os.path.join(self.ascii_dbase_root, 'VERSION'), 'r') as f:
             lines = f.readlines()
             version = lines[0].strip()

@@ -49,15 +49,14 @@ class DataIndexer(object):
             
         name_strs = '\n'.join(['{} {} -- [description]'.format(v[0],v[1]) for v in var_names])
         return '''{top_level_path}
-        
+
 Fields
 ------
 {vars_and_units}
 
 Footer
 ------
-{footer}
-        '''.format(top_level_path=self.top_level_path, vars_and_units=name_strs, footer=footer)
+{footer}'''.format(top_level_path=self.top_level_path, vars_and_units=name_strs, footer=footer)
 
 
 class IonBase(object):
