@@ -15,7 +15,7 @@ from .util import download_dbase, build_hdf5_dbase
 
 class DataIndexer(object):
     
-    def __init__(self,hdf5_path, top_level_path):
+    def __init__(self, hdf5_path, top_level_path):
         self.top_level_path = top_level_path
         self.hdf5_dbase_root = hdf5_path
     
@@ -47,7 +47,7 @@ class DataIndexer(object):
                          for key in grp]
             footer = grp.attrs['footer']
             
-        name_strs = '\n'.join(['{} {} -- [description]'.format(v[0],v[1]) for v in var_names])
+        name_strs = '\n'.join(['{} {} -- [description]'.format(*v) for v in var_names])
         return '''{top_level_path}
 
 Fields
