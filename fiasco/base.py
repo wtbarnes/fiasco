@@ -19,6 +19,11 @@ class DataIndexer(object):
         self.top_level_path = top_level_path
         self.hdf5_dbase_root = hdf5_path
     
+    def __contains__(self, key):
+        with h5py.File(self.hdf5_dbase_root, 'r') as hf:
+            key_in_grp = key in hf[self.top_level_path]
+        return key_in_grp
+    
     def __getitem__(self, key):
         if type(key) is int:
             raise NotImplementedError('Iteration not supported.')
@@ -43,11 +48,12 @@ class DataIndexer(object):
             return 'unit' not in x.attrs or x.attrs['unit'] == 'SKIP' or x.attrs['unit'] == ''
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
             grp = hf[self.top_level_path]
-            var_names = [(key, '') if ufilter(grp[key]) else (key, '({})'.format(grp[key].attrs['unit'])) 
+            var_names = [(key, '', '{}'.format(grp[key].attrs['description'])) if ufilter(grp[key]) 
+                         else (key, '({})'.format(grp[key].attrs['unit']), '{}'.format(grp[key].attrs['description'])) 
                          for key in grp]
             footer = grp.attrs['footer']
             
-        name_strs = '\n'.join(['{} {} -- [description]'.format(*v) for v in var_names])
+        name_strs = '\n'.join(['{} {} -- {}'.format(*v) for v in var_names])
         return '''{top_level_path}
 
 Fields
