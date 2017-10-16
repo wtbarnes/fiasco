@@ -20,7 +20,8 @@ class AbundParser(GenericParser):
     filetype = 'abund'
     dtypes = [int,float,str]
     units = [None,u.dimensionless_unscaled,None]
-    headings = ['atomic number','abundance relative to H','element']
+    headings = ['Z', 'abundance', 'element']
+    descriptions = ['atomic number', 'abundance relative to H', 'element']
     fformat = fortranformat.FortranRecordReader('(I3,F7.3,A5)')
 
     def __init__(self, abundance_filename):
@@ -29,15 +30,15 @@ class AbundParser(GenericParser):
         self.full_path = os.path.join(self.ascii_dbase_root, 'abundance', self.abundance_filename)
 
     def postprocessor(self, df):
-        df['abundance relative to H'] = 10.**(df['abundance relative to H'] 
-                                              - df['abundance relative to H'][df['atomic number']==1])
+        df['abundance'] = 10.**(df['abundance'] - df['abundance'][df['Z']==1])
         # repair missing data
         if df['element'][0] == '':
             col = []
-            for atomic_number in df['atomic number']:
+            for atomic_number in df['Z']:
                 col.append(periodictable.elements[int(atomic_number)].symbol.lower())
             df['element'] = Column(col) 
         df.meta['abundance_filename'] = self.abundance_filename
+        df.meta['descriptions'] = {h: d for h, d in zip(self.headings, self.descriptions)}
         return df
 
     def to_hdf5(self, hf, df):
@@ -55,15 +56,17 @@ class AbundParser(GenericParser):
                 grp = hf[grp_name]
             grp.attrs['footer'] += footer
             if dataset_name not in grp:
-                ds = grp.create_dataset(dataset_name, data=row['abundance relative to H'])
-                ds.attrs['unit'] = df['abundance relative to H'].unit.to_string()
+                ds = grp.create_dataset(dataset_name, data=row['abundance'])
+                ds.attrs['unit'] = df['abundance'].unit.to_string()
+                ds.attrs['description'] = df.meta['descriptions']['abundance']
 
 
 class IoneqParser(GenericParser):
     filetype = 'ioneq'
     dtypes = [int,int,float,float]
     units = [None,None,u.K,u.dimensionless_unscaled]
-    headings = ['atomic number','ion','temperature','ionization fraction']
+    headings = ['Z', 'ion', 'temperature', 'ionization_fraction']
+    descriptions = ['atomic number', 'ion', 'temperature', 'ionization fraction']
 
     def __init__(self, ioneq_filename):
         self.ioneq_filename = ioneq_filename
@@ -84,12 +87,13 @@ class IoneqParser(GenericParser):
         
     def postprocessor(self, df):
         df.meta['ioneq_filename'] = self.ioneq_filename
+        df.meta['descriptions'] = {h: d for h, d in zip(self.headings, self.descriptions)}
         return df
 
     def to_hdf5(self, hf, df):
         dataset_name = os.path.splitext(os.path.basename(self.ioneq_filename))[0]
         for row in df:
-            el = periodictable.elements[int(row['atomic number'])].symbol.lower()
+            el = periodictable.elements[int(row['Z'])].symbol.lower()
             ion = int(row['ion'])
             grp_name = '/'.join([el, '{}_{}'.format(el, ion), 'ioneq'])
             if grp_name not in hf:
@@ -102,15 +106,18 @@ class IoneqParser(GenericParser):
                 sub_grp.attrs['footer'] = df.meta['footer']
                 ds = sub_grp.create_dataset('temperature', data=row['temperature'])
                 ds.attrs['unit'] = df['temperature'].unit.to_string()
-                ds = sub_grp.create_dataset('ionization fraction', data=row['ionization fraction'])
-                ds.attrs['unit'] = df['ionization fraction'].unit.to_string()
+                ds.attrs['description'] = df.meta['descriptions']['temperature']
+                ds = sub_grp.create_dataset('ionization_fraction', data=row['ionization_fraction'])
+                ds.attrs['unit'] = df['ionization_fraction'].unit.to_string()
+                ds.attrs['description'] = df.meta['descriptions']['ionization_fraction']
 
 
 class IpParser(GenericParser):
     filetype = 'ip'
     dtypes = [int,int,float]
     units = [None,None,1/u.cm]
-    headings = ['atomic number','ion','ionization potential']
+    headings = ['Z', 'ion', 'ip']
+    descriptions = ['atomic number', 'ion', 'ionization potential']
 
     def __init__(self, ip_filename):
         self.ip_filename = ip_filename
@@ -119,6 +126,7 @@ class IpParser(GenericParser):
 
     def postprocessor(self, df):
         df.meta['ip_filename'] = self.ip_filename
+        df.meta['descriptions'] = {h: d for h, d in zip(self.headings, self.descriptions)}
         return df
 
     def to_hdf5(self, hf, df):
@@ -128,7 +136,7 @@ class IpParser(GenericParser):
 {}
 """.format(dataset_name, df.meta['footer'])
         for row in df:
-            el = periodictable.elements[int(row['atomic number'])].symbol.lower()
+            el = periodictable.elements[int(row['Z'])].symbol.lower()
             ion = int(row['ion'])
             grp_name = '/'.join([el, '{}_{}'.format(el, ion), 'ip'])
             if grp_name not in hf:
@@ -138,7 +146,7 @@ class IpParser(GenericParser):
                 grp = hf[grp_name]
             grp.attrs['footer'] += footer
             if dataset_name not in grp:
-                ds = grp.create_dataset(dataset_name, data=row['ionization potential'])
-                ds.attrs['unit'] = df['ionization potential'].unit.to_string()
-
+                ds = grp.create_dataset(dataset_name, data=row['ip'])
+                ds.attrs['unit'] = df['ip'].unit.to_string()
+                ds.attrs['description'] = df.meta['descriptions']['ip']
 

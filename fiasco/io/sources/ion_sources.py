@@ -21,9 +21,10 @@ class ElvlcParser(GenericParser):
     filetype = 'elvlc'
     dtypes = [int,str,str,int,str,float,float,float]
     units = [None,None,None,None,None,u.dimensionless_unscaled,1/u.cm,1/u.cm]
-    headings = ['level index','configuration','level label','multiplicity',
-                'orbital angular momentum','total angular momentum',
-                'observed energy','theoretical energy']
+    headings = ['level','config','label','mult','L_label','J','E_obs','E_th']
+    descriptions = ['level index','configuration','level label','multiplicity',
+                    'orbital angular momentum','total angular momentum',
+                    'observed energy','theoretical energy']
     fformat = fortranformat.FortranRecordReader('(I7,A30,A5,I5,A5,F5.1,F15.3,F15.3)')
 
     
@@ -31,9 +32,10 @@ class FblvlParser(GenericParser):
     filetype = 'fblvl'
     dtypes = [int,str,int,int,str,int,float,float]
     units = [None,None,None,None,None,None,1/u.cm,1/u.cm]
-    headings = ['level index','configuration','principal quantum number',
-                'azimuthal quantum number','orbital angular momentum',
-                'multiplicity','observed energy','theoretical energy']
+    headings = ['level', 'config', 'n', 'L', 'L_label', 'mult', 'E_obs', 'E_th']
+    descriptions = ['level index', 'configuration', 'principal quantum number',
+                    'azimuthal quantum number', 'orbital angular momentum',
+                    'multiplicity', 'observed energy', 'theoretical energy']
     fformat = fortranformat.FortranRecordReader('(I5,A20,2I5,A3,I5,2F20.3)')
 
     
@@ -43,10 +45,12 @@ class ScupsParser(GenericParser):
     units = [None,None,u.Ry,u.dimensionless_unscaled,1/u.Ry,None,None,
              u.dimensionless_unscaled,u.dimensionless_unscaled,
              u.dimensionless_unscaled]
-    headings = ['lower level index','upper level index','delta energy','oscillator strength',
-                'high-temperature limit','number of scaled temperatures','Burgess-Tully scaling type',
-                'Burgess-Tully scaling parameter','Burgess-Tully scaled temperatures',
-                'Burgess-Tully scaled effective collision strengths']
+    headings = ['lower_level', 'upper_level', 'delta_energy', 'gf', 'high_t_limit', 'n_t', 'bt_type',
+                'bt_c', 'bt_t', 'bt_upsilon']
+    descriptions = ['lower level index', 'upper level index', 'delta energy','oscillator strength',
+                    'high-temperature limit', 'number of scaled temperatures', 'Burgess-Tully scaling type',
+                    'Burgess-Tully scaling parameter', 'Burgess-Tully scaled temperatures',
+                    'Burgess-Tully scaled effective collision strengths']
     
     def preprocessor(self,table,line,index):
         if index%3 == 0:
@@ -71,9 +75,10 @@ class PsplupsParser(ScupsParser):
     dtypes = [int,int,int,float,float,float,'object']
     units = [None,None,None,u.dimensionless_unscaled,u.Ry,u.dimensionless_unscaled,
              u.dimensionless_unscaled]
-    headings = ['lower level index','upper level index','Burgess-Tully scaling type',
-                'oscillator strength','delta energy','Burgess-Tully scaling parameter',
-                'Burgess-Tully scaled effective collision strengths']
+    headings = ['lower_level', 'upper_level', 'bt_type', 'gf', 'delta_energy', 'bt_c', 'bt_upsilon']
+    descriptions = ['lower level index', 'upper level index', 'Burgess-Tully scaling type',
+                    'oscillator strength', 'delta energy', 'Burgess-Tully scaling parameter',
+                    'Burgess-Tully scaled effective collision strength']
     
     def preprocessor(self,table,line,index):
         line = line.strip().split()
@@ -98,9 +103,10 @@ class EasplomParser(GenericParser):
     dtypes = [int,int,int,float,float,float,float]
     units = [None,None,None,u.dimensionless_unscaled,u.Ry,u.dimensionless_unscaled,
              u.dimensionless_unscaled]
-    headings = ['lower level index','upper level index','Burgess-Tully scaling type',
-                'oscillator strength','delta energy','Burgess-Tully scaling parameter',
-                'Burgess-Tully scaled cross-section']
+    headings = ['lower_level', 'upper_level', 'bt_type', 'gf', 'delta_energy', 'bt_c', 'bt_cross_section']
+    descriptions = ['lower level index','upper level index','Burgess-Tully scaling type',
+                    'oscillator strength','delta energy','Burgess-Tully scaling parameter',
+                    'Burgess-Tully scaled cross-section']
     
     def preprocessor(self,table,line,index):
         line = line.strip().split()
@@ -114,18 +120,20 @@ class EasplupsParser(EasplomParser):
     dtypes = [int,int,int,float,float,float,float]
     units = [None,None,None,u.dimensionless_unscaled,u.Ry,u.dimensionless_unscaled,
              u.dimensionless_unscaled]
-    headings = ['lower level index','upper level index','Burgess-Tully scaling type',
+    headings = ['lower_level', 'upper_level', 'bt_type', 'gf', 'delta_energy', 'bt_c', 'bt_upsilon']
+    descriptions = ['lower level index','upper level index','Burgess-Tully scaling type',
                 'oscillator strength','delta energy','upsilon coefficient',
-                'excitation-autoionization rate coefficients']
+                'Burgess-Tully scaled effective collision strength']
     
     
 class WgfaParser(GenericParser):
     filetype = 'wgfa'
     dtypes = [int,int,float,float,float,str,str]
     units = [None,None,u.angstrom,u.dimensionless_unscaled,1/u.s,None,None]
-    headings = ['lower level index','upper level index',
-                'transition wavelength','oscillator strength','radiative decay rate',
-                'lower level label','upper level label']
+    headings = ['lower_level', 'upper_level', 'wavelength', 'gf', 'A', 'lower_label', 'upper_label']
+    descriptions = ['lower level index','upper level index',
+                    'transition wavelength','oscillator strength','radiative decay rate',
+                    'lower level label','upper level label']
     fformat = fortranformat.FortranRecordReader('(2I5,F15.3,2E15.3,A30,A30)')
     
     def preprocessor(self,table,line,index):
@@ -138,8 +146,8 @@ class CilvlParser(GenericParser):
     filetype = 'cilvl'
     dtypes = [int,int,float,float]
     units = [None,None,u.K,(u.cm**3)/u.s]
-    headings = ['lower level index','upper level index','temperature',
-                'ionization rate coefficient']
+    headings = ['lower_level', 'upper_level', 'temperature', 'ionization_rate']
+    descriptions = ['lower level index', 'upper level index', 'temperature', 'ionization rate coefficient']
     
     def preprocessor(self,table,line,index):
         line = line.strip().split()
@@ -155,8 +163,8 @@ class CilvlParser(GenericParser):
             
 class ReclvlParser(CilvlParser):
     filetype = 'reclvl'
-    headings = ['lower level index','upper level index','temperature',
-                'recombination rate coefficient']
+    headings = ['lower_level', 'upper_level', 'temperature', 'recombination_rate']
+    descriptions = ['lower level index', 'upper level index', 'temperature', 'recombination rate coefficient']
     
     
 class RrparamsParser(GenericParser):
@@ -170,18 +178,21 @@ class RrparamsParser(GenericParser):
             if filetype == 1:
                 self.dtypes = [int,float,float,float,float]
                 self.units = [None,(u.cm**3)/u.s,None,u.K,u.K]
-                self.headings = ['fit type','A fit parameter','B fit parameter',
-                                 'T0 fit parameter','T1 fit parameter']
+                self.headings = ['fit_type', 'A_fit', 'B_fit', 'T0_fit', 'T1_fit']
+                self.descriptions = ['fit type','A fit parameter','B fit parameter',
+                                     'T0 fit parameter','T1 fit parameter']
             elif filetype == 2:
                 self.dtypes = [int,float,float,float,float,float,float]
                 self.units = [None,(u.cm**3)/u.s,None,u.K,u.K,None,u.K]
-                self.headings = ['fit type','A fit parameter','B fit parameter',
-                                 'T0 fit parameter','T1 fit parameter','C fit parameter',
-                                 'T2 fit parameter']
+                self.headings = ['fit_type', 'A_fit', 'B_fit', 'T0_fit', 'T1_fit', 'C_fit', 'T2_fit']
+                self.descriptions = ['fit type','A fit parameter','B fit parameter',
+                                     'T0 fit parameter','T1 fit parameter','C fit parameter',
+                                     'T2 fit parameter']
             elif filetype == 3:
                 self.dtypes = [int,float,float]
                 self.units = [None,(u.cm**3)/u.s,None]
-                self.headings = ['fit type','A rad fit parameter','eta fit parameter']
+                self.headings = ['fit_type', 'A_fit', 'eta_fit']
+                self.descriptions = ['fit type','A rad fit parameter','eta fit parameter']
             else:
                 raise ValueError('Unrecognized .rrparams filetype {}'.format(filetype))
         else:
@@ -195,7 +206,8 @@ class TrparamsParser(GenericParser):
     filetype = 'trparams'
     dtypes = [float,float]
     units = [u.K,(u.cm**3)/u.s]
-    headings = ['temperature','total recombination rate']
+    headings = ['temperature', 'recombination_rate']
+    descriptions = ['temperature','total recombination rate']
     
     def preprocessor(self,table,line,index):
         if index > 0:
@@ -213,13 +225,15 @@ class DrparamsParser(GenericParser):
                 # Badnell type
                 self.dtypes = [float,float]
                 self.units = [u.K,(u.cm**3)/u.s*(u.K**(3/2))]
-                self.headings = ['E fit parameter','c fit parameter']
+                self.headings = ['E_fit', 'c_fit']
+                self.descriptions = ['E fit parameter','c fit parameter']
             elif self._drparams_filetype == 2:
                 # Shull type
                 self.dtypes = [float,float,float,float]
                 self.units = [(u.cm**3)/u.s*(u.K**(3/2)),u.dimensionless_unscaled,u.K,u.K]
-                self.headings = ['A fit coefficient','B fit coefficient',
-                                 'T0 fit coefficient','T1 fit coefficient']
+                self.headings = ['A_fit', 'B_fit', 'T0_fit', 'T1_fit']
+                self.descriptions = ['A fit coefficient','B fit coefficient',
+                                     'T0 fit coefficient','T1 fit coefficient']
             else:
                 raise ValueError('Unrecognized drparams filetype {}'.format(self._drparams_filetype))
         else:
@@ -235,11 +249,13 @@ class DrparamsParser(GenericParser):
         
 class DiparamsParser(GenericParser):
     filetype = 'diparams'
-    dtypes = [float,float,float,float]
+    dtypes = [float,float,float,float,float]
     units = [1/u.cm,u.dimensionless_unscaled,u.dimensionless_unscaled,
-             u.dimensionless_unscaled]
-    headings = ['ionization potential','Burgess-Tully scaling factor',
-                'scaled energy','scaled cross-section']
+                  u.dimensionless_unscaled, u.dimensionless_unscaled]
+    headings = ['ip', 'bt_c', 'bt_e', 'bt_cross_section', 'ea']
+    descriptions = ['ionization potential','Burgess-Tully scaling factor',
+                         'Burgess-Tully scaled energy','Burgess-Tully scaled cross-section',
+                         'excitation autoionization']
     
     def preprocessor(self,table,line,index):
         tmp = line.strip().split()
@@ -248,7 +264,8 @@ class DiparamsParser(GenericParser):
             self._num_lines = int(tmp[3])
             self._has_excitation_autoionization = bool(int(tmp[4]))
         elif index==self._num_lines*2 + 1 and self._has_excitation_autoionization:
-            self._excitation_autoionization = float(tmp[0])
+            for t in table:
+                t[-1] = float(tmp[0])
         elif index%2 != 0:
             bt_factor = tmp[0]
             u_spline = np.array(tmp[1:],dtype=float)
@@ -256,10 +273,5 @@ class DiparamsParser(GenericParser):
         else:
             ionization_potential = tmp[0]
             cs_spline = np.array(tmp[1:],dtype=float)
-            table[-1] = [ionization_potential]+table[-1]+[cs_spline]
+            table[-1] = [ionization_potential] + table[-1] + [cs_spline] + [0.0]
             
-    def postprocessor(self,df):
-        if hasattr(self,'_excitation_autoionization'):
-            df['excitation autoionization'] = len(df['ionization potential'])*[self._excitation_autoionization]
-        df = super().postprocessor(df)
-        return df

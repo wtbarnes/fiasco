@@ -25,7 +25,7 @@ class GenericParser(object):
         self.ion_filename = ion_filename
         self.dielectronic = False
         self.ion_name = self.ion_filename.split('.')[0]
-        if self.ion_name[-1] == 'd':
+        if self.ion_name and self.ion_name[-1] == 'd':
             self.dielectronic = True
             self.ion_name = self.ion_name[:-1]
         self.element = self.ion_name.split('_')[0]
@@ -83,6 +83,7 @@ class GenericParser(object):
         df.meta['element'] = self.element
         df.meta['ion'] = self.ion_name
         df.meta['dielectronic'] = self.dielectronic
+        df.meta['descriptions'] = {h: d for h, d in zip(self.headings, self.descriptions)}
         return df
     
     def to_hdf5(self, hf, df, **kwargs):
@@ -122,4 +123,5 @@ class GenericParser(object):
                 ds.attrs['unit'] = 'SKIP'
             else:
                 ds.attrs['unit'] = col.unit.to_string()
+            ds.attrs['description'] = df.meta['descriptions'][name]
         
