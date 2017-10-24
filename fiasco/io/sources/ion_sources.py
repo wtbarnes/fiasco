@@ -290,8 +290,7 @@ class DrparamsParser(GenericParser):
 class DiparamsParser(GenericParser):
     filetype = 'diparams'
     dtypes = [float,float,float,float,float]
-    units = [u.eV,u.dimensionless_unscaled,u.dimensionless_unscaled,
-                  u.dimensionless_unscaled, u.dimensionless_unscaled]
+    units = [u.eV, u.dimensionless_unscaled, u.dimensionless_unscaled, u.cm**2*u.eV**2, None]
     headings = ['ip', 'bt_c', 'bt_e', 'bt_cross_section', 'ea']
     descriptions = ['ionization potential','Burgess-Tully scaling factor',
                     'Burgess-Tully scaled energy','Burgess-Tully scaled cross-section','excitation autoionization']
