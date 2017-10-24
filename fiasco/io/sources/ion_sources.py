@@ -18,6 +18,9 @@ __all__ = ['ElvlcParser', 'FblvlParser', 'ScupsParser',
 
 
 class ElvlcParser(GenericParser):
+    """
+    Energy levels and configurations for each level in an ion.
+    """
     filetype = 'elvlc'
     dtypes = [int,str,str,int,str,float,float,float]
     units = [None,None,None,None,None,u.dimensionless_unscaled,1/u.cm,1/u.cm]
@@ -29,6 +32,11 @@ class ElvlcParser(GenericParser):
 
     
 class FblvlParser(GenericParser):
+    """
+    Energy levels and configuration related to the calculation of the free-bound
+    continuum. Only available for those ions and levels for which a free-bound 
+    continuum can be calculated.
+    """
     filetype = 'fblvl'
     dtypes = [int,str,int,int,str,int,float,float]
     units = [None,None,None,None,None,None,1/u.cm,1/u.cm]
@@ -39,7 +47,15 @@ class FblvlParser(GenericParser):
     fformat = fortranformat.FortranRecordReader('(I5,A20,2I5,A3,I5,2F20.3)')
 
     
-class ScupsParser(GenericParser): 
+class ScupsParser(GenericParser):
+    """
+    Scaled collisions strengths (denoted by upsilon) between energy levels as described
+    in [1]_.
+
+    References
+    ----------
+    .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_ 
+    """
     filetype = 'scups'
     dtypes = [int,int,float,float,float,int,int,float,'object','object']
     units = [None,None,u.Ry,u.dimensionless_unscaled,1/u.Ry,None,None,
@@ -71,6 +87,14 @@ class ScupsParser(GenericParser):
 
 
 class PsplupsParser(ScupsParser):
+    """
+    Spline fits to scaled collision strengths (denoted by upsilon) for protons. The details of the
+    scaled collision strengths are described in [1]_.
+
+    References
+    ----------
+    .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_ 
+    """
     filetype = 'psplups'
     dtypes = [int,int,int,float,float,float,'object']
     units = [None,None,None,u.dimensionless_unscaled,u.Ry,u.dimensionless_unscaled,
@@ -99,6 +123,15 @@ class PsplupsParser(ScupsParser):
         
             
 class EasplomParser(GenericParser):
+    """
+    Spline fits to the excitation-autoionization scaled cross-sections. See [1]_ and [2]_
+    for more details.
+
+    References
+    ----------
+    .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_ 
+    .. [2] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
+    """
     filetype = 'easplom'
     dtypes = [int,int,int,float,float,float,float]
     units = [None,None,None,u.dimensionless_unscaled,u.Ry,u.dimensionless_unscaled,
@@ -122,11 +155,15 @@ class EasplupsParser(EasplomParser):
              u.dimensionless_unscaled]
     headings = ['lower_level', 'upper_level', 'bt_type', 'gf', 'delta_energy', 'bt_c', 'bt_upsilon']
     descriptions = ['lower level index','upper level index','Burgess-Tully scaling type',
-                'oscillator strength','delta energy','upsilon coefficient',
-                'Burgess-Tully scaled effective collision strength']
+                    'oscillator strength','delta energy','upsilon coefficient',
+                    'Burgess-Tully scaled effective collision strength']
     
     
 class WgfaParser(GenericParser):
+    """
+    Information about each possible transition in an ion, including level indices, wavelengths, 
+    energies, and decay rates.
+    """
     filetype = 'wgfa'
     dtypes = [int,int,float,float,float,str,str]
     units = [None,None,u.angstrom,u.dimensionless_unscaled,1/u.s,None,None]
@@ -223,16 +260,16 @@ class DrparamsParser(GenericParser):
             self._drparams_filetype = int(line[0])
             if self._drparams_filetype == 1:
                 # Badnell type
-                self.dtypes = [float,float]
-                self.units = [u.K,(u.cm**3)/u.s*(u.K**(3/2))]
-                self.headings = ['E_fit', 'c_fit']
-                self.descriptions = ['E fit parameter','c fit parameter']
+                self.dtypes = [int,float,float]
+                self.units = [None,u.K,(u.cm**3)/u.s*(u.K**(3/2))]
+                self.headings = ['fit_type', 'E_fit', 'c_fit']
+                self.descriptions = ['fit type', 'E fit parameter','c fit parameter']
             elif self._drparams_filetype == 2:
                 # Shull type
-                self.dtypes = [float,float,float,float]
-                self.units = [(u.cm**3)/u.s*(u.K**(3/2)),u.dimensionless_unscaled,u.K,u.K]
-                self.headings = ['A_fit', 'B_fit', 'T0_fit', 'T1_fit']
-                self.descriptions = ['A fit coefficient','B fit coefficient',
+                self.dtypes = [int,float,float,float,float]
+                self.units = [None,(u.cm**3)/u.s*(u.K**(3/2)),u.dimensionless_unscaled,u.K,u.K]
+                self.headings = ['fit_type', 'A_fit', 'B_fit', 'T0_fit', 'T1_fit']
+                self.descriptions = ['fit type','A fit coefficient','B fit coefficient',
                                      'T0 fit coefficient','T1 fit coefficient']
             else:
                 raise ValueError('Unrecognized drparams filetype {}'.format(self._drparams_filetype))
@@ -240,22 +277,24 @@ class DrparamsParser(GenericParser):
             if self._drparams_filetype == 1:
                 tmp = np.array(line[2:],dtype=float)
                 if index%2 == 0:
-                    table[-1].append(tmp)
+                    tmp_col = table[-1]
+                    for i in range(tmp.shape[0]):
+                        table.append([self._drparams_filetype,tmp_col[i],tmp[i]])
+                    del table[0]
                 else:
-                    table.append([tmp])
+                    table.append(tmp)
             else:
-                table.append(line[2:])
+                table.append([self._drparams_filetype]+line[2:])
 
         
 class DiparamsParser(GenericParser):
     filetype = 'diparams'
     dtypes = [float,float,float,float,float]
-    units = [1/u.cm,u.dimensionless_unscaled,u.dimensionless_unscaled,
+    units = [u.eV,u.dimensionless_unscaled,u.dimensionless_unscaled,
                   u.dimensionless_unscaled, u.dimensionless_unscaled]
     headings = ['ip', 'bt_c', 'bt_e', 'bt_cross_section', 'ea']
     descriptions = ['ionization potential','Burgess-Tully scaling factor',
-                         'Burgess-Tully scaled energy','Burgess-Tully scaled cross-section',
-                         'excitation autoionization']
+                    'Burgess-Tully scaled energy','Burgess-Tully scaled cross-section','excitation autoionization']
     
     def preprocessor(self,table,line,index):
         tmp = line.strip().split()
@@ -272,6 +311,6 @@ class DiparamsParser(GenericParser):
             table.append([bt_factor,u_spline])
         else:
             ionization_potential = tmp[0]
-            cs_spline = np.array(tmp[1:],dtype=float)
+            cs_spline = np.array(tmp[1:],dtype=float)*1e-14
             table[-1] = [ionization_potential] + table[-1] + [cs_spline] + [0.0]
             
