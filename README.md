@@ -1,4 +1,6 @@
 # fiasco
+[![Powered by SunPy Badge]( http://img.shields.io/badge/powered%20by-SunPy-orange.svg?style=flat)](http://www.sunpy.org)
+
 Prototype for Python interface to the [CHIANTI atomic database](http://www.chiantidatabase.org/)
 
 ## Dependencies
@@ -36,3 +38,6 @@ A *fiasco*, or flask, is [the typical style of bottle](https://en.wikipedia.org/
 
 ## Develop
 See the [wiki](https://github.com/wtbarnes/fiasco/wiki) for notes on the development of this package.
+
+## License
+This project is Copyright (c) Will Barnes and licensed under the terms of the BSD 3-Clause license. See the licenses folder for more information.

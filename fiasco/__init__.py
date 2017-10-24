@@ -2,9 +2,15 @@
 fiasco
 ======
 
-a prototype package for interfacing with the CHIANTI atomic database
+a python interface to the CHIANTI atomic database
 """
-from .base import IonBase, ElementBase
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
+# ----------------------------------------------------------------------------
+from ._sunpy_init import *
+# ----------------------------------------------------------------------------
 
-from .util import setup_paths
-defaults = setup_paths()
+if not _ASTROPY_SETUP_:
+    from .base import IonBase, ElementBase
+
+    from .util import setup_paths
+    defaults = setup_paths()
