@@ -5,12 +5,7 @@ Various functions for downloading and setting up the database
 import os
 import warnings
 import tarfile
-try:
-    # Python 3
-    import configparser
-except ImportError:
-    # Python 2
-    import ConfigParser as configparser
+import configparser
     
 import h5py
 from astropy.config import set_temp_cache
@@ -59,8 +54,8 @@ def download_dbase(ascii_dbase_root, version=None, ask_before=True):
     else:
         dbase_url = CHIANTI_URL.format(version=version)
     if ask_before:
-        question = "No CHIANTI database found at {}. Download it from the internet?"
-        answer = query_yes_no(question.format(ascii_dbase_root), default='no')
+        question = "No CHIANTI database found at {}. Download it from {}?"
+        answer = query_yes_no(question.format(ascii_dbase_root, dbase_url), default='no')
         if not answer:
             return None
     
