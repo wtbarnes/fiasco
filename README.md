@@ -1,7 +1,7 @@
 # fiasco
 [![Powered by SunPy Badge]( http://img.shields.io/badge/powered%20by-SunPy-orange.svg?style=flat)](http://www.sunpy.org)
 
-Prototype for Python interface to the [CHIANTI atomic database](http://www.chiantidatabase.org/)
+A Python interface to the [CHIANTI atomic database](http://www.chiantidatabase.org/)
 
 ## Dependencies
 All packages can be installed with conda (recommended)
