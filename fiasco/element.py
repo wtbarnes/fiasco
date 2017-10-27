@@ -14,8 +14,8 @@ class Element(object):
     Logical grouping of ion objects according to their element
     """
 
-    @u.quantity_input(temperature=u.K)
-    def __init__(self, element_name, temperature, hdf5_path=None, **kwargs):
+    @u.quantity_input
+    def __init__(self, element_name, temperature: u.K, hdf5_path=None, **kwargs):
         self.temperature = temperature
         if type(element_name) is str:
             self.element_name = element_name.lower()

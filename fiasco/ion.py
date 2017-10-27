@@ -25,10 +25,10 @@ class Ion(IonBase):
     from the CHIANTI database.
     """
     
-    @u.quantity_input(temperature=u.K)
-    def __init__(self,ion_name,temperature,*args,**kwargs):
+    @u.quantity_input
+    def __init__(self, ion_name, temperature: u.K, *args, **kwargs):
         self.temperature = temperature
-        super().__init__(ion_name,*args,**kwargs)
+        super().__init__(ion_name, *args, **kwargs)
         self.Z = periodictable.__dict__[self.element.capitalize()].number
         # Use selected datasets
         if super().ip is not None:
@@ -45,7 +45,7 @@ class Ion(IonBase):
         self._ip = value
         
     @staticmethod
-    def burgess_tully_descale(x,y,energy_ratio,c,scaling_type):
+    def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
         """
         Convert scaled Burgess-Tully parameters to physical quantities. For more details see
         [1]_.
@@ -99,8 +99,8 @@ class Ion(IonBase):
         
         return term1*(term2 + term3)
     
-    @u.quantity_input(energy=u.erg)
-    def direct_ionization_cross_section(self, energy):
+    @u.quantity_input
+    def direct_ionization_cross_section(self, energy: u.erg):
         """
         Calculate direct ionization cross-section.
 
