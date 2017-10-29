@@ -2,8 +2,8 @@
 Element class for logically grouping ions
 """
 import h5py
-import periodictable
 import astropy.units as u
+import plasmapy
 
 import fiasco
 from .ion import Ion
@@ -18,11 +18,10 @@ class Element(object):
     def __init__(self, element_name, temperature: u.K, hdf5_path=None, **kwargs):
         self.temperature = temperature
         if type(element_name) is str:
-            self.element_name = element_name.lower()
-        elif type(element_name) is int:
-            self.element_name = periodictable.elements[element_name].symbol.lower()
-        else:
-            raise ValueError('Unrecognized input type {}'.format(type(element_name)))
+            element_name = element_name.capitalize()
+        self.atomic_symbol = plasmapy.atomic.atomic_symbol(element_name)
+        self.atomic_number = plasmapy.atomic.atomic_number(element_name)
+        self.element_name = plasmapy.atomic.element_name(element_name)
         if hdf5_path is None:
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
@@ -31,8 +30,8 @@ class Element(object):
     @property
     def ions(self):
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
-            ions = sorted([i.split('_') for i in hf[self.element_name].keys() if '{}_'.format(self.element_name) in i],
-                          key=lambda x: int(x[1]))
+            ions = sorted([i.split('_') for i in hf[self.atomic_symbol.lower()].keys() 
+                           if '{}_'.format(self.atomic_symbol.lower()) in i], key=lambda x: int(x[1]))
         return ['_'.join(i) for i in ions]
 
     def __getitem__(self, x):
@@ -47,8 +46,8 @@ class Element(object):
         ion_list = ['{} {}'.format(i.split('_')[0].capitalize(), i.split('_')[1]) for i in self.ions]
         return '''Element
 -------
-{}
+{} ({}) -- {}
 
 Available Ions
 --------------
-{}'''.format(self.element_name.capitalize(), '\n'.join(ion_list))
+{}'''.format(self.atomic_symbol, self.atomic_number, self.element_name, '\n'.join(ion_list))

@@ -27,9 +27,8 @@ class Ion(IonBase):
     
     @u.quantity_input
     def __init__(self, ion_name, temperature: u.K, *args, **kwargs):
-        self.temperature = temperature
         super().__init__(ion_name, *args, **kwargs)
-        self.Z = periodictable.__dict__[self.element.capitalize()].number
+        self.temperature = temperature
         # Use selected datasets
         if super().ip is not None:
             self._ip = super().ip[kwargs.get('ip_filename','chianti')]*const.h.cgs*const.c.cgs
@@ -114,21 +113,21 @@ class Ion(IonBase):
         .. [1] Fontes, C. J., et al., 1999, Phys. Rev. A., `59 1329 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.59.1329>`_
         .. [2] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
         """
-        is_hydrogenic = (self.Z - self.stage + 1 == 1) and (self.Z >= 6)
-        is_he_like = (self.Z - self.stage + 1 == 2) and (self.Z >= 10)
+        is_hydrogenic = (self.atomic_number - self.charge_state == 1) and (self.atomic_number >= 6)
+        is_he_like = (self.atomic_number - self.charge_state == 2) and (self.atomic_number >= 10)
         
         if is_hydrogenic or is_he_like:
             # Fontes cross sections
             U = energy/self.ip
             A = 1.13
             B = 1 if is_hydrogenic else 2
-            F = 1 if self.Z < 20 else (140 + (self.Z/20)**3.2)/141
-            if self.Z >= 16:
+            F = 1 if self.atomic_number < 20 else (140 + (self.atomic_number/20)**3.2)/141
+            if self.atomic_number >= 16:
                 c = -0.28394
                 d = 1.95270
                 C = 0.20594
-                if self.Z > 20:
-                    C += ((self.Z - 20)/50.5)**1.11
+                if self.atomic_number > 20:
+                    C += ((self.atomic_number - 20)/50.5)**1.11
                 D = 3.70590
             else:
                 c = -0.80414

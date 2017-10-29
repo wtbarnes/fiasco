@@ -7,7 +7,7 @@ import numpy as np
 import h5py
 import astropy.units as u
 from astropy.table import QTable
-import periodictable
+import plasmapy.atomic
 
 import fiasco
 from .io.factory import all_subclasses
@@ -85,9 +85,13 @@ class IonBase(object):
     """
     
     def __init__(self, ion_name, hdf5_path=None, **kwargs):
-        self.ion_name = ion_name
-        self.element = ion_name.split('_')[0]
-        self.stage = int(ion_name.split('_')[-1])
+        self._ion_name = ion_name
+        self.atomic_symbol = ion_name.split('_')[0].capitalize()
+        self.atomic_number = plasmapy.atomic.atomic_number(self.atomic_symbol)
+        self.element_name = plasmapy.atomic.element_name(self.atomic_symbol)
+        self.ionization_stage = int(ion_name.split('_')[-1])
+        self.charge_state = self.ionization_stage - 1
+        self.ion_name = '{} {}'.format(self.atomic_symbol, self.ionization_stage)
         if hdf5_path is None:
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
@@ -98,7 +102,7 @@ class IonBase(object):
        
     @property
     def abundance(self):
-        return DataIndexer(self.hdf5_dbase_root, '/'.join([self.element, 'abundance']))
+        return DataIndexer(self.hdf5_dbase_root, '/'.join([self.atomic_symbol.lower(), 'abundance']))
         
 
 def add_property(cls, filetype):
@@ -107,9 +111,9 @@ def add_property(cls, filetype):
     """
     def property_template(self):
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
-            if '/'.join([self.element, self.ion_name, filetype]) not in hf:
+            if '/'.join([self.atomic_symbol.lower(), self._ion_name, filetype]) not in hf:
                 return None
-        return DataIndexer(self.hdf5_dbase_root, '/'.join([self.element, self.ion_name, filetype]))
+        return DataIndexer(self.hdf5_dbase_root, '/'.join([self.atomic_symbol.lower(), self._ion_name, filetype]))
 
     property_template.__doc__ = 'Data in {} type file'.format(filetype)
     property_template.__name__ = '_'.join(filetype.split('/'))

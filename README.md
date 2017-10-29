@@ -19,8 +19,8 @@ $ pip install {package name}
 * NumPy
 * Astropy
 * h5py
+* PlasmaPy (pip only, conda soon)
 * fortranformat (pip only)
-* periodictable (pip only)
 
 The [CHIANTI atomic database](http://www.chiantidatabase.org/chianti_download.html) is also required.
 
