@@ -3,6 +3,8 @@
 
 A Python interface to the [CHIANTI atomic database](http://www.chiantidatabase.org/)
 
+**DISCLAIMER: fiasco is still in the very early stages of development. As such, the API is changing very frequently and drastically.**
+
 ## Dependencies
 All packages can be installed with conda (recommended)
 
