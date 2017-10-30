@@ -11,6 +11,12 @@ import fiasco
 class Element(object):
     """
     Logical grouping of ion objects according to their element
+
+    Notes
+    -----
+
+    Examples
+    --------
     """
 
     @u.quantity_input
@@ -28,6 +34,9 @@ class Element(object):
 
     @property
     def ions(self):
+        """
+        All ions available in CHIANTI for this element
+        """
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
             ions = sorted([i.split('_') for i in hf[self.atomic_symbol.lower()].keys() 
                            if '{}_'.format(self.atomic_symbol.lower()) in i], key=lambda x: int(x[1]))
@@ -39,13 +48,13 @@ class Element(object):
     def __radd__(self, value):
         return fiasco.IonCollection(value, self)
 
-    def __getitem__(self, x):
-        if type(x) is int:
-            x = self.ions[x]
-        return fiasco.Ion(x, self.temperature, hdf5_path=self.hdf5_dbase_root)
+    def __getitem__(self, value):
+        if type(value) is int:
+            value = self.ions[value]
+        return fiasco.Ion(value, self.temperature, hdf5_path=self.hdf5_dbase_root)
 
-    def __contains__(self, x):
-        return x in self.ions
+    def __contains__(self, value):
+        return value in self.ions
 
     def __repr__(self):
         ion_list = ['{} {}'.format(i.split('_')[0].capitalize(), i.split('_')[1]) for i in self.ions]

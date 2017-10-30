@@ -61,7 +61,7 @@ class DataIndexer(object):
         def ufilter(x):
             return ('' if 'unit' not in x.attrs or x.attrs['unit'] == 'SKIP' or x.attrs['unit'] == '' 
                     else '({})'.format(x.attrs['unit']))
-                    
+
         def dfilter(x):
             return '' if 'description' not in x.attrs else '{}'.format(x.attrs['description'])
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
@@ -84,6 +84,12 @@ Footer
 class IonBase(object):
     """
     Base class for accessing CHIANTI data attached to a particular ion
+
+    Examples
+    --------
+
+    Notes
+    -----
     """
     
     def __init__(self, ion_name, hdf5_path=None, **kwargs):

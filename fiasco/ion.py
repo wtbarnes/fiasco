@@ -25,6 +25,12 @@ class Ion(IonBase):
     The ion object is the fundamental unit of the fiasco library. An Ion object contains
     all of the properties and methods needed to access important information about each ion
     from the CHIANTI database.
+
+    Examples
+    --------
+
+    Notes
+    -----
     """
     
     @u.quantity_input
@@ -47,6 +53,9 @@ class Ion(IonBase):
     
     @property
     def ioneq(self):
+        """
+        Ionization equilibrium data interpolated to the given temperature
+        """
         f = interp1d(self._ioneq['temperature'], self._ioneq['ionization_fraction'], kind='cubic')
         return f(self.temperature)
     
@@ -56,6 +65,9 @@ class Ion(IonBase):
     
     @property
     def abundance(self):
+        """
+        Elemental abundance relative to H
+        """
         return self._abundance
     
     @abundance.setter
@@ -64,7 +76,10 @@ class Ion(IonBase):
 
     @property
     def ip(self):
-        return self._ip
+        """
+        Ionization potential
+        """
+        return self._ip.decompose().cgs
     
     @ip.setter
     def ip(self, value):
@@ -85,7 +100,6 @@ class Ion(IonBase):
         References
         ----------
         .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_ 
-
         """
         nots = splrep(x, y, s=0)
         if scaling_type == 1:
@@ -256,6 +270,17 @@ class Ion(IonBase):
             raise ValueError('Unrecognized fit type {}'.format(self.rrparams['fit_type']))
     
     def dielectronic_recombination_rate(self):
+        """
+        Dielectronic recombination rate
+
+        Calculated according to one of two methods,
+
+        - Method of [1]_, (show expression)
+        - Method of [2]_, (show expression)
+
+        References
+        ----------
+        """
         if self.drparams is None:
             return np.zeros(self.temperature.shape)*u.cm**3/u.s
         if self.drparams['fit_type'][0] == 1:

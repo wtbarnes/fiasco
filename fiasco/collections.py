@@ -7,7 +7,14 @@ import fiasco
 
 class IonCollection(object):
     """
-    Container for holding multiple ions. Can be instantiate with either a 
+    Container for holding multiple ions. Instantiate with ions, elements, or another 
+    ion collection.
+
+    Notes
+    -----
+
+    Examples
+    --------
     """
     
     def __init__(self, *args, **kwargs):
