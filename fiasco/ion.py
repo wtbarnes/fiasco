@@ -1,6 +1,7 @@
 """
 Ion object. Holds all methods properties of a CHIANTI ion.
 """
+import warnings
 
 import numpy as np
 from scipy.interpolate import splrep, splev, interp1d
@@ -30,17 +31,42 @@ class Ion(IonBase):
         super().__init__(ion_name, *args, **kwargs)
         self.temperature = temperature
         # Use selected datasets
+        self._ioneq = super().ioneq[kwargs.get('ioneq_filename', 'chianti')]
+        try:
+            abundance_filename = kwargs.get('abundance_filename', 'sun_photospheric_1998_grevesse')
+            self._abundance = super().abundance[abundance_filename]
+        except IndexError:
+            warnings.warn('No {} abundance available for dataset {}. Setting abundance to 0'
+                          .format(self.atomic_symbol, abundance_filename))
+            self._abundance = 0.0
         if super().ip is not None:
-            self._ip = super().ip[kwargs.get('ip_filename','chianti')]*const.h.cgs*const.c.cgs
+            self._ip = super().ip[kwargs.get('ip_filename', 'chianti')]*const.h.cgs*const.c.cgs
         else:
             self._ip = None
     
+    @property
+    def ioneq(self):
+        f = interp1d(self._ioneq['temperature'], self._ioneq['ionization_fraction'], kind='cubic')
+        return f(self.temperature)
+    
+    @ioneq.setter
+    def ioneq(self, value):
+        self._ioneq = value
+    
+    @property
+    def abundance(self):
+        return self._abundance
+    
+    @abundance.setter
+    def abundance(self, value):
+        self._abundance = value
+
     @property
     def ip(self):
         return self._ip
     
     @ip.setter
-    def ip(self,value):
+    def ip(self, value):
         self._ip = value
         
     @staticmethod
