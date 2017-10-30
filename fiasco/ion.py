@@ -10,6 +10,7 @@ import astropy.constants as const
 import periodictable
 
 from .base import IonBase
+from .collections import IonCollection
 
 
 class Ion(IonBase):
@@ -68,6 +69,12 @@ class Ion(IonBase):
     @ip.setter
     def ip(self, value):
         self._ip = value
+
+    def __add__(self, value):
+        return IonCollection(self, value)
+
+    def __radd__(self, value):
+        return IonCollection(value, self)
         
     @staticmethod
     def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):

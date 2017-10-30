@@ -6,7 +6,6 @@ import astropy.units as u
 import plasmapy
 
 import fiasco
-from .ion import Ion
 
 
 class Element(object):
@@ -34,10 +33,16 @@ class Element(object):
                            if '{}_'.format(self.atomic_symbol.lower()) in i], key=lambda x: int(x[1]))
         return ['_'.join(i) for i in ions]
 
+    def __add__(self, value):
+        return fiasco.IonCollection(self, value)
+
+    def __radd__(self, value):
+        return fiasco.IonCollection(value, self)
+
     def __getitem__(self, x):
         if type(x) is int:
             x = self.ions[x]
-        return Ion(x, self.temperature, hdf5_path=self.hdf5_dbase_root)
+        return fiasco.Ion(x, self.temperature, hdf5_path=self.hdf5_dbase_root)
 
     def __contains__(self, x):
         return x in self.ions

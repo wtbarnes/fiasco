@@ -13,6 +13,7 @@ if not _ASTROPY_SETUP_:
     from .base import IonBase
     from .ion import Ion
     from .element import Element
+    from .collections import IonCollection
 
     from .util import setup_paths
     defaults = setup_paths()
