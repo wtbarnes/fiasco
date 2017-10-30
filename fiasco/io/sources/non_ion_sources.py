@@ -8,7 +8,7 @@ import h5py
 import astropy.units as u
 from astropy.table import Column
 import fortranformat
-import periodictable
+import plasmapy
 
 from fiasco.util import setup_paths
 from ..generic import GenericParser
@@ -35,7 +35,7 @@ class AbundParser(GenericParser):
         if df['element'][0] == '':
             col = []
             for atomic_number in df['Z']:
-                col.append(periodictable.elements[int(atomic_number)].symbol.lower())
+                col.append(plasmapy.atomic.atomic_symbol(int(atomic_number)))
             df['element'] = Column(col) 
         df.meta['abundance_filename'] = self.abundance_filename
         df.meta['descriptions'] = {h: d for h, d in zip(self.headings, self.descriptions)}
@@ -48,7 +48,7 @@ class AbundParser(GenericParser):
 {}
 """.format(dataset_name, df.meta['footer'])
         for row in df:
-            grp_name = '/'.join([row['element'].lower(),'abundance'])
+            grp_name = '/'.join([row['element'].lower(), 'abundance'])
             if grp_name not in hf:
                 grp = hf.create_group(grp_name)
                 grp.attrs['footer'] = ''

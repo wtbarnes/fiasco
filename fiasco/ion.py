@@ -1,5 +1,5 @@
 """
-Ion object. Holds all methods properties of a CHIANTI ion.
+Ion object. Holds all methods and properties of a CHIANTI ion.
 """
 import warnings
 
@@ -7,7 +7,6 @@ import numpy as np
 from scipy.interpolate import splrep, splev, interp1d
 import astropy.units as u
 import astropy.constants as const
-import periodictable
 
 from .base import IonBase
 from .collections import IonCollection
