@@ -42,6 +42,30 @@ class Element(object):
                            if '{}_'.format(self.atomic_symbol.lower()) in i], key=lambda x: int(x[1]))
         return ['_'.join(i) for i in ions]
 
+    def ionization_equilibrium():
+        """
+        Calculate the ionization equilibrium for all ions of the element.
+
+        Brief explanation and equations about how these equations are solved.
+        """
+        # Make matrix of ionization and recombination rates
+        a_matrix = np.zeros(self.temperature.shape+(self.atomic_number+1, self.atomic_number+1))
+        for i in range(1, self.atomic_number):
+            a_matrix[:, i, i] = -(self[i].ionization_rate() + self[i].recombination_rate()).value
+            a_matrix[:, i, i-1] = self[i-1].ionization_rate().value
+            a_matrix[:, i, i+1] = self[i+1].recombination_rate().value
+        a_matrix[:, 0, 0] = -(self[0].ionization_rate() + self[0].recombination_rate()).value
+        a_matrix[:, 0, 1] = self[1].recombination_rate().value
+        a_matrix[:, -1, -1] = -(self[-1].ionization_rate() + self[-1].recombination_rate()).value
+        a_matrix[:, -1, -2] = self[-2].ionization_rate().value
+        
+        # Solve system of equations using SVD and normalize
+        U, S, V = np.linalg.svd(a_matrix)
+        ioneq = np.fabs(V[:, -1, :])
+        ioneq /= np.sum(ioneq, axis=1)[:, np.newaxis]
+
+        return ioneq
+
     def __add__(self, value):
         return fiasco.IonCollection(self, value)
 
