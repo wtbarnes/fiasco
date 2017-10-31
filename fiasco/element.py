@@ -1,6 +1,7 @@
 """
 Element class for logically grouping ions
 """
+import numpy as np
 import h5py
 import astropy.units as u
 import plasmapy
@@ -42,14 +43,14 @@ class Element(object):
                            if '{}_'.format(self.atomic_symbol.lower()) in i], key=lambda x: int(x[1]))
         return ['_'.join(i) for i in ions]
 
-    def ionization_equilibrium():
+    def ionization_equilibrium(self):
         """
         Calculate the ionization equilibrium for all ions of the element.
 
         Brief explanation and equations about how these equations are solved.
         """
         # Make matrix of ionization and recombination rates
-        a_matrix = np.zeros(self.temperature.shape+(self.atomic_number+1, self.atomic_number+1))
+        a_matrix = np.zeros(self.temperature.shape + (self.atomic_number+1, self.atomic_number+1))
         for i in range(1, self.atomic_number):
             a_matrix[:, i, i] = -(self[i].ionization_rate() + self[i].recombination_rate()).value
             a_matrix[:, i, i-1] = self[i-1].ionization_rate().value
