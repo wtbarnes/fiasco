@@ -55,7 +55,8 @@ class Ion(IonBase):
         """
         Ionization equilibrium data interpolated to the given temperature
         """
-        f = interp1d(self._ioneq['temperature'], self._ioneq['ionization_fraction'], kind='cubic')
+        f = interp1d(self._ioneq['temperature'], self._ioneq['ionization_fraction'], 
+                     kind='cubic', bounds_error=False, fill_value=0.)
         return f(self.temperature)
     
     @ioneq.setter
