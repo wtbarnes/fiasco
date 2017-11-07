@@ -61,7 +61,8 @@ class Element(object):
         a_matrix[:, -1, -2] = self[-2].ionization_rate().value
         
         # Solve system of equations using SVD and normalize
-        U, S, V = np.linalg.svd(a_matrix)
+        _, _, V = np.linalg.svd(a_matrix)
+        # Select columns of V with smallest eigenvalues (returned in descending order)
         ioneq = np.fabs(V[:, -1, :])
         ioneq /= np.sum(ioneq, axis=1)[:, np.newaxis]
 

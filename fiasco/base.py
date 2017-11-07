@@ -58,12 +58,14 @@ class DataIndexer(object):
         return data
     
     def __repr__(self):
+        
         def ufilter(x):
             return ('' if 'unit' not in x.attrs or x.attrs['unit'] == 'SKIP' or x.attrs['unit'] == '' 
                     else '({})'.format(x.attrs['unit']))
 
         def dfilter(x):
             return '' if 'description' not in x.attrs else '{}'.format(x.attrs['description'])
+
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
             grp = hf[self.top_level_path]
             var_names = [(key, ufilter(grp[key]), dfilter(grp[key])) for key in grp]
@@ -91,7 +93,7 @@ class IonBase(object):
     Notes
     -----
     """
-    
+
     def __init__(self, ion_name, hdf5_path=None, **kwargs):
         self._ion_name = ion_name
         self.atomic_symbol = ion_name.split('_')[0].capitalize()
