@@ -34,7 +34,7 @@ class ElvlcParser(GenericParser):
 class FblvlParser(GenericParser):
     """
     Energy levels and configuration related to the calculation of the free-bound
-    continuum. Only available for those ions and levels for which a free-bound 
+    continuum. Only available for those ions and levels for which a free-bound
     continuum can be calculated.
     """
     filetype = 'fblvl'
@@ -149,6 +149,9 @@ class EasplomParser(GenericParser):
         
         
 class EasplupsParser(EasplomParser):
+    """
+    Scaled collision strengths for calculating ionization rates due to excitation autoionization. 
+    """
     filetype = 'easplups'
     dtypes = [int,int,int,float,float,float,float]
     units = [None,None,None,u.dimensionless_unscaled,u.Ry,u.dimensionless_unscaled,
@@ -205,6 +208,15 @@ class ReclvlParser(CilvlParser):
     
     
 class RrparamsParser(GenericParser):
+    """
+    Fit parameters for calculating radiative recombination rates. The first two fit types are 
+    given in Eqs. 1 and 2 of [1]_ and the third fit type is given by Eq. 4 of [2]_.
+
+    References
+    ----------
+    .. [1] Badnell, N. R., 2006, ApJS, `167 334 <https://ui.adsabs.harvard.edu/#abs/2006ApJS..167..334B/abstract>`_ 
+    .. [2] Shull, J. M. and M. van Steenberg, 1982, ApJS, `48 95 <http://adsabs.harvard.edu/abs/1982ApJS...48...95S>`_
+    """
     filetype = 'rrparams'
     
     def preprocessor(self,table,line,index):
@@ -252,6 +264,15 @@ class TrparamsParser(GenericParser):
             
             
 class DrparamsParser(GenericParser):
+    """
+    Fit parameters for calculating dielectronic recombination. The first fit type is given by Eq. 3 
+    of [1]_ and the second fit type is given by Eq. 5 of [2]_.
+
+    References
+    ----------
+    .. [1] Zatsarinny, O. et al., 2003, A&A, `412 587 <http://cdsads.u-strasbg.fr/abs/2003A%26A...412..587Z>`_
+    .. [2] Shull, J. M. and M. van Steenberg, 1982, ApJS, `48 95 <http://adsabs.harvard.edu/abs/1982ApJS...48...95S>`_
+    """
     filetype = 'drparams'
       
     def preprocessor(self,table,line,index):
@@ -288,6 +309,19 @@ class DrparamsParser(GenericParser):
 
         
 class DiparamsParser(GenericParser):
+    """
+    Scaled cross-sections for calculating the ionization rate due to direct ionization. See [1]_ 
+    and [2]_ for more details.
+
+    Notes
+    -----
+    - The scaled cross-sections date have been multiplied by :math:`10^{14}`
+
+    References
+    ----------
+    .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_ 
+    .. [2] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
+    """
     filetype = 'diparams'
     dtypes = [float,float,float,float,float]
     units = [u.eV, u.dimensionless_unscaled, u.dimensionless_unscaled, u.cm**2*u.eV**2, None]
@@ -306,10 +340,10 @@ class DiparamsParser(GenericParser):
                 t[-1] = float(tmp[0])
         elif index%2 != 0:
             bt_factor = tmp[0]
-            u_spline = np.array(tmp[1:],dtype=float)
+            u_spline = np.array(tmp[1:], dtype=float)
             table.append([bt_factor,u_spline])
         else:
             ionization_potential = tmp[0]
-            cs_spline = np.array(tmp[1:],dtype=float)*1e-14
+            cs_spline = np.array(tmp[1:], dtype=float)*1e-14
             table[-1] = [ionization_potential] + table[-1] + [cs_spline] + [0.0]
             
