@@ -58,7 +58,7 @@ class DataIndexer(object):
         return data
     
     def __repr__(self):
-        
+
         def ufilter(x):
             return ('' if 'unit' not in x.attrs or x.attrs['unit'] == 'SKIP' or x.attrs['unit'] == '' 
                     else '({})'.format(x.attrs['unit']))
@@ -111,7 +111,7 @@ class IonBase(object):
                          ask_before=kwargs.get('ask_before', True))
        
     @property
-    def abundance(self):
+    def _abundance(self):
         return DataIndexer(self.hdf5_dbase_root, '/'.join([self.atomic_symbol.lower(), 'abundance']))
         
 
@@ -126,7 +126,7 @@ def add_property(cls, filetype):
         return DataIndexer(self.hdf5_dbase_root, '/'.join([self.atomic_symbol.lower(), self._ion_name, filetype]))
 
     property_template.__doc__ = 'Data in {} type file'.format(filetype)
-    property_template.__name__ = '_'.join(filetype.split('/'))
+    property_template.__name__ = '_{}'.format('_'.join(filetype.split('/')))
     setattr(cls, property_template.__name__, property(property_template))
     
 # Collect the filetypes and add the methods

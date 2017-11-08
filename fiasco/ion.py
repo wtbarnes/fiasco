@@ -36,54 +36,46 @@ class Ion(IonBase):
     def __init__(self, ion_name, temperature: u.K, *args, **kwargs):
         super().__init__(ion_name, *args, **kwargs)
         self.temperature = temperature
-        # Use selected datasets
-        self._ioneq = super().ioneq[kwargs.get('ioneq_filename', 'chianti')]
-        try:
-            abundance_filename = kwargs.get('abundance_filename', 'sun_photospheric_1998_grevesse')
-            self._abundance = super().abundance[abundance_filename]
-        except IndexError:
-            warnings.warn('No {} abundance available for dataset {}. Setting abundance to 0'
-                          .format(self.atomic_symbol, abundance_filename))
-            self._abundance = 0.0
-        if super().ip is not None:
-            self._ip = super().ip[kwargs.get('ip_filename', 'chianti')]*const.h.cgs*const.c.cgs
-        else:
-            self._ip = None
+        # Get selected datasets
+        # TODO: do not hardcode defaults, pull from rc file
+        self._dset_names = {}
+        self._dset_names['ioneq_filename'] = kwargs.get('ioneq_filename', 'chianti')
+        self._dset_names['abundance_filename'] = kwargs.get('abundance_filename', 'sun_photospheric_1998_grevesse')
+        self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
     
     @property
     def ioneq(self):
         """
         Ionization equilibrium data interpolated to the given temperature
         """
-        f = interp1d(self._ioneq['temperature'], self._ioneq['ionization_fraction'], 
+        f = interp1d(self._ioneq[self._dset_names['ioneq_filename']]['temperature'],
+                     self._ioneq[self._dset_names['ioneq_filename']]['ionization_fraction'], 
                      kind='cubic', bounds_error=False, fill_value=0.)
-        return f(self.temperature)
-    
-    @ioneq.setter
-    def ioneq(self, value):
-        self._ioneq = value
+        return u.Quantity(f(self.temperature))
     
     @property
     def abundance(self):
         """
         Elemental abundance relative to H
         """
-        return self._abundance
-    
-    @abundance.setter
-    def abundance(self, value):
-        self._abundance = value
+        try:
+            abundance = self._abundance[self._dset_names['abundance_filename']]
+        except IndexError:
+            warnings.warn('No {} abundance available for dataset {}'
+                          .format(self.atomic_symbol, self._dset_names['abundance_filename']))
+            abundance = None
+        return abundance
 
     @property
     def ip(self):
         """
         Ionization potential
         """
-        return self._ip.decompose().cgs
-    
-    @ip.setter
-    def ip(self, value):
-        self._ip = value
+        if self._ip is not None:
+            ip = (self._ip[self._dset_names['ip_filename']] * const.h.cgs * const.c.cgs).decompose().cgs
+        else:
+            ip = None
+        return ip
 
     def __add__(self, value):
         return IonCollection(self, value)
@@ -117,7 +109,7 @@ class Ion(IonBase):
         elif scaling_type == 5:
             # dielectronic
             x_new = energy_ratio/(energy_ratio + c)
-            upsilon = splev(x_new,nots,der=0)/energy_ratio
+            upsilon = splev(x_new, nots, der=0)/energy_ratio
         elif scaling_type == 6:
             # protons
             x_new = energy_ratio/(energy_ratio + c)
@@ -133,7 +125,7 @@ class Ion(IonBase):
         
         Needs an equation reference or explanation
         """
-        if self.diparams is None:
+        if self._diparams is None:
             return np.zeros(self.temperature.shape)*u.cm**3/u.s
         xgl,wgl = np.polynomial.laguerre.laggauss(12)
         kBT = const.k_B.cgs*self.temperature
@@ -188,10 +180,10 @@ class Ion(IonBase):
         else:
             # Cross-sections from diparams file
             cross_section_total = np.zeros(energy.shape)
-            if self.diparams is None:
+            if self._diparams is None:
                 return cross_section_total*u.cm**2
-            for ip,bt_c,bt_e,bt_cross_section in zip(self.diparams['ip'],self.diparams['bt_c'],self.diparams['bt_e'],
-                                                     self.diparams['bt_cross_section']):
+            for ip,bt_c,bt_e,bt_cross_section in zip(self._diparams['ip'],self._diparams['bt_c'],self._diparams['bt_e'],
+                                                     self._diparams['bt_cross_section']):
                 U = energy/(ip.to(u.erg))
                 scaled_energy = 1. - np.log(bt_c)/np.log(U - 1. + bt_c)
                 f_interp = interp1d(bt_e.value,bt_cross_section.value,kind='cubic',fill_value='extrapolate')
@@ -209,18 +201,20 @@ class Ion(IonBase):
         """
         Calculate ionization rate due to excitation autoionization
         """
-        if self.easplups is None:
-            return np.zeros(self.temperature.shape)*u.cm**3/u.s
+        if self._easplups is None:
+            return np.zeros(self.temperature.shape) * u.cm**3/u.s
         # Collision constant
-        c = (const.h.cgs**2)/((2.*np.pi*const.m_e.cgs)**(1.5)*np.sqrt(const.k_B.cgs))
-        kBTE = u.Quantity([(const.k_B.cgs*self.temperature)/(de.to(u.erg)) for de in self.easplups['delta_energy']])
+        c = (const.h.cgs**2)/((2. * np.pi * const.m_e.cgs)**(1.5) * np.sqrt(const.k_B.cgs))
+        kBTE = u.Quantity([(const.k_B.cgs * self.temperature) / (de.to(u.erg)) 
+                           for de in self._easplups['delta_energy']])
         # Descale upsilon
-        shape = self.easplups['bt_upsilon'].shape
-        xs = np.tile(np.linspace(0,1,shape[1]),shape[0]).reshape(shape)
-        args = [xs,self.easplups['bt_upsilon'].value,kBTE.value,self.easplups['bt_c'].value,self.easplups['bt_type']]
-        upsilon = u.Quantity(list(map(self.burgess_tully_descale,*args)))
+        shape = self._easplups['bt_upsilon'].shape
+        xs = np.tile(np.linspace(0, 1, shape[1]), shape[0]).reshape(shape)
+        args = [xs, self._easplups['bt_upsilon'].value, kBTE.value, self._easplups['bt_c'].value, 
+                self._easplups['bt_type']]
+        upsilon = u.Quantity(list(map(self.burgess_tully_descale, *args)))
         # Rate coefficient
-        rate = c*upsilon*np.exp(-1/kBTE)/np.sqrt(self.temperature[np.newaxis,:])
+        rate = c * upsilon * np.exp(-1 / kBTE) / np.sqrt(self.temperature[np.newaxis,:])
         
         return rate.sum(axis=0)
     
@@ -252,22 +246,22 @@ class Ion(IonBase):
         .. [1] Badnell, N. R., 2006, APJS, `167 334 <http://adsabs.harvard.edu/abs/2006ApJS..167..334B>`_
         .. [2] Shull, J. M., Van Steenberg, M., 1982, `48 95 <http://adsabs.harvard.edu/abs/1982ApJS...48...95S>`_
         """
-        if self.rrparams is None:
+        if self._rrparams is None:
             return np.zeros(self.temperature.shape)*u.cm**3/u.s
-        if self.rrparams['fit_type'][0] == 1 or self.rrparams['fit_type'][0] == 2:
-            A = self.rrparams['A_fit']
-            B = self.rrparams['B_fit']
-            if self.rrparams['fit_type'] == 2:
-                B = B + self.rrparams['C_fit']*np.exp(-self.rrparams['T2_fit']/self.temperature)
-            T0 = self.rrparams['T0_fit']
-            T1 = self.rrparams['T1_fit']
+        if self._rrparams['fit_type'][0] == 1 or self._rrparams['fit_type'][0] == 2:
+            A = self._rrparams['A_fit']
+            B = self._rrparams['B_fit']
+            if self._rrparams['fit_type'] == 2:
+                B = B + self._rrparams['C_fit'] * np.exp(-self._rrparams['T2_fit'] / self.temperature)
+            T0 = self._rrparams['T0_fit']
+            T1 = self._rrparams['T1_fit']
             
-            return A/(np.sqrt(self.temperature/T0)*(1 + np.sqrt(self.temperature/T0))**(1. - B)
-                      *(1. + np.sqrt(self.temperature/T1))**(1. + B))
-        elif self.rrparams['fit_type'][0] == 3:
-            return self.rrparams['A_fit']*(self.temperature/(1e4*u.K))**(-self.rrparams['eta_fit'])
+            return A/(np.sqrt(self.temperature/T0) * (1 + np.sqrt(self.temperature/T0))**(1. - B)
+                      * (1. + np.sqrt(self.temperature/T1))**(1. + B))
+        elif self._rrparams['fit_type'][0] == 3:
+            return self._rrparams['A_fit'] * (self.temperature/(1e4*u.K))**(-self._rrparams['eta_fit'])
         else:
-            raise ValueError('Unrecognized fit type {}'.format(self.rrparams['fit_type']))
+            raise ValueError('Unrecognized fit type {}'.format(self._rrparams['fit_type']))
     
     def dielectronic_recombination_rate(self):
         """
@@ -281,19 +275,20 @@ class Ion(IonBase):
         References
         ----------
         """
-        if self.drparams is None:
+        if self._drparams is None:
             return np.zeros(self.temperature.shape)*u.cm**3/u.s
-        if self.drparams['fit_type'][0] == 1:
-            E_over_T = np.outer(self.drparams['E_fit'],1./self.temperature)*(self.drparams['E_fit'].unit/self.temperature.unit)
-            return self.temperature**(-1.5)*(self.drparams['c_fit'][:,np.newaxis]*np.exp(-E_over_T)).sum(axis=0)
-        elif self.drparams['fit_type'][0] == 2:
-            A = self.drparams['A_fit']
-            B = self.drparams['B_fit']
-            T0 = self.drparams['T0_fit']
-            T1 = self.drparams['T1_fit']
-            return A*self.temperature**(-1.5)*np.exp(-T0/self.temperature)*(1. + B*np.exp(-T1/self.temperature))
+        if self._drparams['fit_type'][0] == 1:
+            E_over_T = (np.outer(self._drparams['E_fit'], 1./self.temperature)
+                        * (self._drparams['E_fit'].unit/self.temperature.unit))
+            return self.temperature**(-1.5)*(self._drparams['c_fit'][:,np.newaxis]*np.exp(-E_over_T)).sum(axis=0)
+        elif self._drparams['fit_type'][0] == 2:
+            A = self._drparams['A_fit']
+            B = self._drparams['B_fit']
+            T0 = self._drparams['T0_fit']
+            T1 = self._drparams['T1_fit']
+            return A * self.temperature**(-1.5) * np.exp(-T0/self.temperature) * (1. + B * np.exp(-T1/self.temperature))
         else:
-            raise ValueError('Unrecognized fit type {}'.format(self.drparams['fit_type']))
+            raise ValueError('Unrecognized fit type {}'.format(self._drparams['fit_type']))
     
     def recombination_rate(self):
         """
