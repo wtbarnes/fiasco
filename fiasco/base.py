@@ -49,7 +49,7 @@ class DataIndexer(object):
             if isinstance(ds, h5py.Group):
                 data = DataIndexer(self.hdf5_dbase_root, '/'.join([self.top_level_path, key]))
             else:
-                if ds.attrs['unit'] == 'SKIP':
+                if ds.attrs['unit'] == 'SKIP' or ds.dtype == 'object':
                     data = np.array(ds, dtype=ds.dtype)
                 else:
                     data = u.Quantity(np.array(ds), ds.attrs['unit'], dtype=ds.dtype)
