@@ -88,38 +88,38 @@ class ScupsParser(GenericParser):
 
 class PsplupsParser(ScupsParser):
     """
-    Spline fits to scaled collision strengths (denoted by upsilon) for protons. The details of the
-    scaled collision strengths are described in [1]_.
+    Spline fits to scaled collision rates for protons. These files are discussed in
+    section 2.2 of[1]_ and the details of how these quantities are scaled are given in [2]_.
+
+    Note
+    ----
+    * Unlike the electron "scups" and "splups" files which contain the collision strengths
+      (upsilons), these files contain the scaled *rates*.
+    * The number of spline points for the rates depends on the fit type, 5 points for type 6
+      fits and 9 points for type 2.
 
     References
     ----------
-    .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_ 
+    .. [1] Young, P. et al., 2003, A&AS, `135, 339 <http://adsabs.harvard.edu/abs/2003ApJS..144..135Y>`_
+    .. [2] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_ 
     """
     filetype = 'psplups'
     dtypes = [int,int,int,float,float,float,'object']
     units = [None,None,None,u.dimensionless_unscaled,u.Ry,u.dimensionless_unscaled,
              u.dimensionless_unscaled]
-    headings = ['lower_level', 'upper_level', 'bt_type', 'gf', 'delta_energy', 'bt_c', 'bt_upsilon']
+    headings = ['lower_level', 'upper_level', 'bt_type', 'gf', 'delta_energy', 'bt_c', 'bt_rate']
     descriptions = ['lower level index', 'upper level index', 'Burgess-Tully scaling type',
                     'oscillator strength', 'delta energy', 'Burgess-Tully scaling parameter',
-                    'Burgess-Tully scaled effective collision strength']
+                    'Burgess-Tully scaled collision rate']
     
-    def preprocessor(self,table,line,index):
-        line = line.strip().split()
-        new_line = []
-        for i,item in enumerate(line):
-            dot_splits = [j for j,char in enumerate(item) if char=='.']
-            if len(dot_splits) > 1:
-                dot_splits = np.hstack([dot_splits,len(item)+3])
-                split_items = [item[dot_splits[j]-1:dot_splits[j+1]-2] 
-                               for j,_ in enumerate(dot_splits[:-1])]
-                new_line += split_items
-            else:
-                new_line.append(item)
-        
-        array = np.array(new_line[6:],dtype=np.dtype('float64'))
-        new_line = new_line[:6] + [array]
-        table.append(new_line)
+    def preprocessor(self, table, line, index):
+        tmp = line.strip().split()
+        # 5-point fit for type 6, 9-point fit for type 2
+        n_spline = 5 if int(tmp[2]) == 6 else 9 
+        fformat = fortranformat.FortranRecordReader('(3I3,{}E10.3)'.format(3+n_spline))
+        line = fformat.read(line)
+        row = line[:6] + [np.array(line[6:])]
+        table.append(row)
         
             
 class EasplomParser(GenericParser):
