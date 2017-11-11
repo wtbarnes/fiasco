@@ -93,7 +93,7 @@ class IoneqParser(GenericParser):
     def to_hdf5(self, hf, df):
         dataset_name = os.path.splitext(os.path.basename(self.ioneq_filename))[0]
         for row in df:
-            el = periodictable.elements[int(row['Z'])].symbol.lower()
+            el = plasmapy.atomic.atomic_symbol(int(row['Z'])).lower()
             ion = int(row['ion'])
             grp_name = '/'.join([el, '{}_{}'.format(el, ion), 'ioneq'])
             if grp_name not in hf:
@@ -136,7 +136,7 @@ class IpParser(GenericParser):
 {}
 """.format(dataset_name, df.meta['footer'])
         for row in df:
-            el = periodictable.elements[int(row['Z'])].symbol.lower()
+            el = plasmapy.atomic.atomic_symbol(int(row['Z'])).lower()
             ion = int(row['ion'])
             grp_name = '/'.join([el, '{}_{}'.format(el, ion), 'ip'])
             if grp_name not in hf:
