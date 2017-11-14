@@ -10,6 +10,7 @@ import astropy.constants as const
 
 from .base import IonBase
 from .collections import IonCollection
+from fiasco.util import has_dataset
 
 
 class Ion(IonBase):
@@ -72,10 +73,9 @@ class Ion(IonBase):
         Ionization potential
         """
         if self._ip is not None:
-            ip = (self._ip[self._dset_names['ip_filename']] * const.h.cgs * const.c.cgs).decompose().cgs
+            return (self._ip[self._dset_names['ip_filename']] * const.h.cgs * const.c.cgs).decompose().cgs
         else:
-            ip = None
-        return ip
+            return None
 
     def __add__(self, value):
         return IonCollection(self, value)
@@ -119,18 +119,19 @@ class Ion(IonBase):
 
         return upsilon
     
+    @has_dataset('ip')
     def direct_ionization_rate(self):
         """
         Calculate direct ionization rate in cm3/s
         
         Needs an equation reference or explanation
         """
-        if self._diparams is None:
-            return np.zeros(self.temperature.shape)*u.cm**3/u.s
-        xgl,wgl = np.polynomial.laguerre.laggauss(12)
+        xgl, wgl = np.polynomial.laguerre.laggauss(12)
         kBT = const.k_B.cgs*self.temperature
-        energy = np.outer(xgl,kBT)*kBT.unit + self.ip
+        energy = np.outer(xgl, kBT)*kBT.unit + self.ip
         cross_section = self.direct_ionization_cross_section(energy)
+        if cross_section is None:
+            return None
         term1 = np.sqrt(8./np.pi/const.m_e.cgs)*np.sqrt(kBT)*np.exp(-self.ip/kBT)
         term2 = ((wgl*xgl)[:,np.newaxis]*cross_section).sum(axis=0)
         term3 = (wgl[:,np.newaxis]*cross_section).sum(axis=0)*self.ip/kBT
@@ -156,53 +157,73 @@ class Ion(IonBase):
         is_he_like = (self.atomic_number - self.charge_state == 2) and (self.atomic_number >= 10)
         
         if is_hydrogenic or is_he_like:
-            # Fontes cross sections
-            U = energy/self.ip
-            A = 1.13
-            B = 1 if is_hydrogenic else 2
-            F = 1 if self.atomic_number < 20 else (140 + (self.atomic_number/20)**3.2)/141
-            if self.atomic_number >= 16:
-                c = -0.28394
-                d = 1.95270
-                C = 0.20594
-                if self.atomic_number > 20:
-                    C += ((self.atomic_number - 20)/50.5)**1.11
-                D = 3.70590
-            else:
-                c = -0.80414
-                d = 2.32431
-                C = 0.14424
-                D = 3.82652
-            Qrp = 1./U*(A*np.log(U) + D*(1. - 1./U)**2 + C*U*(1. - 1./U)**4 + (c/U + d/U**2)*(1. - 1./U))
-            
-            return B*(np.pi*const.a0.cgs**2)*F*Qrp/(self.ip.to(u.Ry).value**2)
-                
+            return self._fontes_cross_section(energy)
         else:
-            # Cross-sections from diparams file
-            cross_section_total = np.zeros(energy.shape)
-            if self._diparams is None:
-                return cross_section_total*u.cm**2
-            for ip,bt_c,bt_e,bt_cross_section in zip(self._diparams['ip'],self._diparams['bt_c'],self._diparams['bt_e'],
-                                                     self._diparams['bt_cross_section']):
-                U = energy/(ip.to(u.erg))
-                scaled_energy = 1. - np.log(bt_c)/np.log(U - 1. + bt_c)
-                f_interp = interp1d(bt_e.value,bt_cross_section.value,kind='cubic',fill_value='extrapolate')
-                scaled_cross_section = f_interp(scaled_energy.value)*bt_cross_section.unit
-                # Only nonzero at energies above the ionization potential
-                scaled_cross_section *= (U.value > 1.)
-                cross_section = scaled_cross_section*(np.log(U) + 1.)/U/(ip**2)
-                if not hasattr(cross_section_total,'unit'):
-                    cross_section_total = cross_section_total*cross_section.unit
-                cross_section_total += cross_section
-                
-            return cross_section_total
+            return self._dere_cross_section(energy)
+
+    @has_dataset('diparams')
+    @u.quantity_input
+    def _dere_cross_section(self, energy: u.erg):
+        """
+        Calculate direct ionization cross-sections according to [1]_.
+
+        References
+        ----------
+        .. [1] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
+        """
+        # Cross-sections from diparams file
+        cross_section_total = np.zeros(energy.shape)
+        for ip,bt_c,bt_e,bt_cross_section in zip(self._diparams['ip'], self._diparams['bt_c'], self._diparams['bt_e'],
+                                                 self._diparams['bt_cross_section']):
+            U = energy/(ip.to(u.erg))
+            scaled_energy = 1. - np.log(bt_c)/np.log(U - 1. + bt_c)
+            f_interp = interp1d(bt_e.value, bt_cross_section.value, kind='cubic', fill_value='extrapolate')
+            scaled_cross_section = f_interp(scaled_energy.value)*bt_cross_section.unit
+            # Only nonzero at energies above the ionization potential
+            scaled_cross_section *= (U.value > 1.)
+            cross_section = scaled_cross_section*(np.log(U) + 1.)/U/(ip**2)
+            if not hasattr(cross_section_total, 'unit'):
+                cross_section_total = cross_section_total*cross_section.unit
+            cross_section_total += cross_section
             
+        return cross_section_total
+
+    @has_dataset('ip')
+    @u.quantity_input
+    def _fontes_cross_section(self, energy: u.erg):
+        """
+        Calculate direct ionization cross-section according to [1]_.
+
+        References
+        ----------
+        .. [1] Fontes, C. J., et al., 1999, Phys. Rev. A., `59 1329 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.59.1329>`_
+        """
+        is_hydrogenic = (self.atomic_number - self.charge_state == 1) and (self.atomic_number >= 6)
+        U = energy/self.ip
+        A = 1.13
+        B = 1 if is_hydrogenic else 2
+        F = 1 if self.atomic_number < 20 else (140 + (self.atomic_number/20)**3.2)/141
+        if self.atomic_number >= 16:
+            c = -0.28394
+            d = 1.95270
+            C = 0.20594
+            if self.atomic_number > 20:
+                C += ((self.atomic_number - 20)/50.5)**1.11
+            D = 3.70590
+        else:
+            c = -0.80414
+            d = 2.32431
+            C = 0.14424
+            D = 3.82652
+        Qrp = 1./U*(A*np.log(U) + D*(1. - 1./U)**2 + C*U*(1. - 1./U)**4 + (c/U + d/U**2)*(1. - 1./U))
+        
+        return B*(np.pi*const.a0.cgs**2)*F*Qrp/(self.ip.to(u.Ry).value**2)
+            
+    @has_dataset('easplups')
     def excitation_autoionization_rate(self):
         """
         Calculate ionization rate due to excitation autoionization
         """
-        if self._easplups is None:
-            return np.zeros(self.temperature.shape) * u.cm**3/u.s
         # Collision constant
         c = (const.h.cgs**2)/((2. * np.pi * const.m_e.cgs)**(1.5) * np.sqrt(const.k_B.cgs))
         kBTE = u.Quantity([(const.k_B.cgs * self.temperature) / (de.to(u.erg)) 
@@ -229,8 +250,13 @@ class Ion(IonBase):
         direct_ionization_rate
         excitation_autoionization_rate
         """
-        return self.direct_ionization_rate() + self.excitation_autoionization_rate()
+        di_rate = self.direct_ionization_rate()
+        di_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if di_rate is None else di_rate
+        ea_rate = self.excitation_autoionization_rate()
+        ea_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if ea_rate is None else ea_rate
+        return di_rate + ea_rate
     
+    @has_dataset('rrparams')
     def radiative_recombination_rate(self):
         """
         Radiative recombination rate
@@ -246,8 +272,6 @@ class Ion(IonBase):
         .. [1] Badnell, N. R., 2006, APJS, `167 334 <http://adsabs.harvard.edu/abs/2006ApJS..167..334B>`_
         .. [2] Shull, J. M., Van Steenberg, M., 1982, `48 95 <http://adsabs.harvard.edu/abs/1982ApJS...48...95S>`_
         """
-        if self._rrparams is None:
-            return np.zeros(self.temperature.shape)*u.cm**3/u.s
         if self._rrparams['fit_type'][0] == 1 or self._rrparams['fit_type'][0] == 2:
             A = self._rrparams['A_fit']
             B = self._rrparams['B_fit']
@@ -263,6 +287,7 @@ class Ion(IonBase):
         else:
             raise ValueError('Unrecognized fit type {}'.format(self._rrparams['fit_type']))
     
+    @has_dataset('drparams')
     def dielectronic_recombination_rate(self):
         """
         Dielectronic recombination rate
@@ -275,8 +300,6 @@ class Ion(IonBase):
         References
         ----------
         """
-        if self._drparams is None:
-            return np.zeros(self.temperature.shape)*u.cm**3/u.s
         if self._drparams['fit_type'][0] == 1:
             E_over_T = (np.outer(self._drparams['E_fit'], 1./self.temperature)
                         * (self._drparams['E_fit'].unit/self.temperature.unit))
@@ -301,4 +324,8 @@ class Ion(IonBase):
         radiative_recombination_rate
         dielectronic_recombination_rate
         """
-        return self.radiative_recombination_rate() + self.dielectronic_recombination_rate()
+        rr_rate = self.radiative_recombination_rate()
+        rr_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if rr_rate is None else rr_rate
+        dr_rate = self.dielectronic_recombination_rate()
+        dr_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if dr_rate is None else dr_rate
+        return rr_rate + dr_rate
