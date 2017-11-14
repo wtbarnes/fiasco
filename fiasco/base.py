@@ -60,7 +60,7 @@ class DataIndexer(object):
     def __repr__(self):
 
         def ufilter(x):
-            return ('' if 'unit' not in x.attrs or x.attrs['unit'] == 'SKIP' or x.attrs['unit'] == '' 
+            return ('' if 'unit' not in x.attrs or x.attrs['unit'] == 'SKIP' or x.attrs['unit'] == ''
                     else '({})'.format(x.attrs['unit']))
 
         def dfilter(x):

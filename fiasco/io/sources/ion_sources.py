@@ -23,9 +23,9 @@ class ElvlcParser(GenericParser):
     """
     filetype = 'elvlc'
     dtypes = [int,str,str,int,str,float,float,float]
-    units = [None,None,None,None,None,u.dimensionless_unscaled,1/u.cm,1/u.cm]
-    headings = ['level','config','label','mult','L_label','J','E_obs','E_th']
-    descriptions = ['level index','configuration','level label','multiplicity',
+    units = [None,None,None,u.dimensionless_unscaled,None,u.dimensionless_unscaled,1/u.cm,1/u.cm]
+    headings = ['level','config','label','multiplicity','L_label','J','E_obs','E_th']
+    descriptions = ['level index','configuration','level label','multiplicity, 2s+1',
                     'orbital angular momentum','total angular momentum',
                     'observed energy','theoretical energy']
     fformat = fortranformat.FortranRecordReader('(I7,A30,A5,I5,A5,F5.1,F15.3,F15.3)')
@@ -40,10 +40,10 @@ class FblvlParser(GenericParser):
     filetype = 'fblvl'
     dtypes = [int,str,int,int,str,int,float,float]
     units = [None,None,None,None,None,None,1/u.cm,1/u.cm]
-    headings = ['level', 'config', 'n', 'L', 'L_label', 'mult', 'E_obs', 'E_th']
+    headings = ['level', 'config', 'n', 'L', 'L_label', 'multiplicity', 'E_obs', 'E_th']
     descriptions = ['level index', 'configuration', 'principal quantum number',
                     'azimuthal quantum number', 'orbital angular momentum',
-                    'multiplicity', 'observed energy', 'theoretical energy']
+                    'multiplicity, 2s+1', 'observed energy', 'theoretical energy']
     fformat = fortranformat.FortranRecordReader('(I5,A20,2I5,A3,I5,2F20.3)')
 
     
@@ -68,15 +68,15 @@ class ScupsParser(GenericParser):
                     'Burgess-Tully scaling parameter', 'Burgess-Tully scaled temperatures',
                     'Burgess-Tully scaled effective collision strengths']
     
-    def preprocessor(self,table,line,index):
-        if index%3 == 0:
-            super().preprocessor(table,line,index)
+    def preprocessor(self, table, line, index):
+        if index % 3 == 0:
+            super().preprocessor(table, line, index)
         else:
             # scaled temperature or collision strengths
-            scaled = np.array(line.strip().split(),dtype=float)
+            scaled = np.array(line.strip().split(), dtype=float)
             table[-1].append(scaled)
 
-    def postprocessor(self,df):
+    def postprocessor(self, df):
         for cn in df.colnames:
             all_equal = np.all(np.array([row.size for row in df[cn]]) == df[cn][0].size)
             if df[cn].dtype == np.dtype('O') and all_equal:
@@ -141,7 +141,7 @@ class EasplomParser(GenericParser):
                     'oscillator strength','delta energy','Burgess-Tully scaling parameter',
                     'Burgess-Tully scaled cross-section']
     
-    def preprocessor(self,table,line,index):
+    def preprocessor(self, table, line, index):
         line = line.strip().split()
         scaled_cs = np.array(line[8:],dtype=float)
         row = line[2:8] + [scaled_cs]
@@ -165,7 +165,7 @@ class EasplupsParser(EasplomParser):
 class WgfaParser(GenericParser):
     """
     Information about each possible transition in an ion, including level indices, wavelengths, 
-    energies, and decay rates.
+    and decay rates.
     """
     filetype = 'wgfa'
     dtypes = [int,int,float,float,float,str,str]
@@ -176,7 +176,7 @@ class WgfaParser(GenericParser):
                     'lower level label','upper level label']
     fformat = fortranformat.FortranRecordReader('(2I5,F15.3,2E15.3,A30,A30)')
     
-    def preprocessor(self,table,line,index):
+    def preprocessor(self, table, line, index):
         super().preprocessor(table,line,index)
         # remove the dash in the second-to-last entry
         table[-1][-2] = table[-1][-2].split('-')[0].strip() 
@@ -189,7 +189,7 @@ class CilvlParser(GenericParser):
     headings = ['lower_level', 'upper_level', 'temperature', 'ionization_rate']
     descriptions = ['lower level index', 'upper level index', 'temperature', 'ionization rate coefficient']
     
-    def preprocessor(self,table,line,index):
+    def preprocessor(self, table, line, index):
         line = line.strip().split()
         if index%2 == 0:
             row = line[2:4]
@@ -219,7 +219,7 @@ class RrparamsParser(GenericParser):
     """
     filetype = 'rrparams'
     
-    def preprocessor(self,table,line,index):
+    def preprocessor(self, table, line, index):
         line = line.strip().split()
         if index == 0:
             filetype = int(line[0])
@@ -258,9 +258,9 @@ class TrparamsParser(GenericParser):
     headings = ['temperature', 'recombination_rate']
     descriptions = ['temperature','total recombination rate']
     
-    def preprocessor(self,table,line,index):
+    def preprocessor(self, table, line, index):
         if index > 0:
-            super().preprocessor(table,line,index)
+            super().preprocessor(table, line, index)
             
             
 class DrparamsParser(GenericParser):
@@ -275,7 +275,7 @@ class DrparamsParser(GenericParser):
     """
     filetype = 'drparams'
       
-    def preprocessor(self,table,line,index):
+    def preprocessor(self, table, line, index):
         line = line.strip().split()
         if index == 0:
             self._drparams_filetype = int(line[0])
@@ -329,7 +329,7 @@ class DiparamsParser(GenericParser):
     descriptions = ['ionization potential','Burgess-Tully scaling factor',
                     'Burgess-Tully scaled energy','Burgess-Tully scaled cross-section','excitation autoionization']
     
-    def preprocessor(self,table,line,index):
+    def preprocessor(self, table, line, index):
         tmp = line.strip().split()
         if index == 0:
             self._num_fits = int(tmp[2])
