@@ -10,7 +10,7 @@ import astropy.constants as const
 
 from .base import IonBase
 from .collections import IonCollection
-from fiasco.util import has_dataset
+from fiasco.util import needs_dataset
 
 
 class Ion(IonBase):
@@ -119,7 +119,7 @@ class Ion(IonBase):
 
         return upsilon
     
-    @has_dataset('ip')
+    @needs_dataset('ip')
     def direct_ionization_rate(self):
         """
         Calculate direct ionization rate in cm3/s
@@ -161,7 +161,7 @@ class Ion(IonBase):
         else:
             return self._dere_cross_section(energy)
 
-    @has_dataset('diparams')
+    @needs_dataset('diparams')
     @u.quantity_input
     def _dere_cross_section(self, energy: u.erg):
         """
@@ -188,7 +188,7 @@ class Ion(IonBase):
             
         return cross_section_total
 
-    @has_dataset('ip')
+    @needs_dataset('ip')
     @u.quantity_input
     def _fontes_cross_section(self, energy: u.erg):
         """
@@ -219,7 +219,7 @@ class Ion(IonBase):
         
         return B*(np.pi*const.a0.cgs**2)*F*Qrp/(self.ip.to(u.Ry).value**2)
             
-    @has_dataset('easplups')
+    @needs_dataset('easplups')
     def excitation_autoionization_rate(self):
         """
         Calculate ionization rate due to excitation autoionization
@@ -256,7 +256,7 @@ class Ion(IonBase):
         ea_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if ea_rate is None else ea_rate
         return di_rate + ea_rate
     
-    @has_dataset('rrparams')
+    @needs_dataset('rrparams')
     def radiative_recombination_rate(self):
         """
         Radiative recombination rate
@@ -287,7 +287,7 @@ class Ion(IonBase):
         else:
             raise ValueError('Unrecognized fit type {}'.format(self._rrparams['fit_type']))
     
-    @has_dataset('drparams')
+    @needs_dataset('drparams')
     def dielectronic_recombination_rate(self):
         """
         Dielectronic recombination rate
