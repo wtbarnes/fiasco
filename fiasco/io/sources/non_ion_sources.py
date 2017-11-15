@@ -52,6 +52,7 @@ class AbundParser(GenericParser):
             if grp_name not in hf:
                 grp = hf.create_group(grp_name)
                 grp.attrs['footer'] = ''
+                grp.attrs['chianti_version'] = df.meta['chianti_version']
             else:
                 grp = hf[grp_name]
             grp.attrs['footer'] += footer
@@ -104,6 +105,7 @@ class IoneqParser(GenericParser):
             if dataset_name not in grp:
                 sub_grp = grp.create_group(dataset_name)
                 sub_grp.attrs['footer'] = df.meta['footer']
+                sub_grp.attrs['chianti_version'] = df.meta['chianti_version']
                 ds = sub_grp.create_dataset('temperature', data=row['temperature'])
                 ds.attrs['unit'] = df['temperature'].unit.to_string()
                 ds.attrs['description'] = df.meta['descriptions']['temperature']
@@ -142,6 +144,7 @@ class IpParser(GenericParser):
             if grp_name not in hf:
                 grp = hf.create_group(grp_name)
                 grp.attrs['footer'] = ''
+                grp.attrs['chianti_version'] = df.meta['chianti_version']
             else:
                 grp = hf[grp_name]
             grp.attrs['footer'] += footer

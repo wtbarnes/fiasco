@@ -22,6 +22,15 @@ class DataIndexer(object):
         self.hdf5_dbase_root = hdf5_path
 
     @property
+    def version(self):
+        with h5py.File(self.hdf5_dbase_root, 'r') as hf:
+            if 'chianti_version' in hf[self.top_level_path].attrs:
+                version = hf[self.top_level_path].attrs['chianti_version']
+            else:
+                version = None
+        return version
+    
+    @property
     def fields(self):
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
             fields = [k for k in hf[self.top_level_path]]
