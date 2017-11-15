@@ -81,7 +81,7 @@ class DataIndexer(object):
             footer = grp.attrs['footer']
             
         name_strs = '\n'.join(['{} {} -- {}'.format(*v) for v in var_names])
-        return '''{top_level_path}
+        return '''{top_level_path} {version}
 
 Fields
 ------
@@ -89,7 +89,8 @@ Fields
 
 Footer
 ------
-{footer}'''.format(top_level_path=self.top_level_path, vars_and_units=name_strs, footer=footer)
+{footer}'''.format(top_level_path=self.top_level_path, vars_and_units=name_strs, footer=footer,
+                   version='' if self.version is None else '-- v{}'.format(self.version))
 
 
 class IonBase(object):
