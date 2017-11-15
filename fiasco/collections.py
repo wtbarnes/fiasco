@@ -24,13 +24,14 @@ class IonCollection(object):
                 self._ion_list.append(item)
             elif isinstance(item, fiasco.Element):
                 self._ion_list += [ion for ion in item]
-            elif isinstance(item, type(self)):
+            elif isinstance(item, fiasco.IonCollection):
                 self._ion_list += item._ion_list
             else:
                 raise TypeError('{} has an unrecognized type {} and cannot be added to collection.'
                                 .format(item, type(item)))
         # TODO: check for duplicates
-        # TODO: check all temperatures are the same
+        assert all([all(self[0].temperature == ion.temperature) for ion in self]), (
+               'Temperatures for all ions in collection must be the same.')
         
     def __getitem__(self, value):
         return self._ion_list[value]
