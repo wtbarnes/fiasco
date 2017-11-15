@@ -25,7 +25,7 @@ class Element(object):
         self.temperature = temperature
         if type(element_name) is str:
             element_name = element_name.capitalize()
-        self.atomic_symbol = plasmapy.atomic.atomic_symbol(element_name)
+        self.atomic_symbol = plasmapy.atomic.element_symbol(element_name)
         self.atomic_number = plasmapy.atomic.atomic_number(element_name)
         self.element_name = plasmapy.atomic.element_name(element_name)
         if hdf5_path is None:
