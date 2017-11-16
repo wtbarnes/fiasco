@@ -48,11 +48,20 @@ class Ion(IonBase):
     def ioneq(self):
         """
         Ionization equilibrium data interpolated to the given temperature
+
+        Note
+        ----
+        Will return NaN where interpolation is out of range of the data. For computing
+        ionization equilibrium outside of this temperature range, it is better to use
+        `fiasco.Element.ionization_equilibrium`
         """
         f = interp1d(self._ioneq[self._dset_names['ioneq_filename']]['temperature'],
                      self._ioneq[self._dset_names['ioneq_filename']]['ionization_fraction'], 
-                     kind='cubic', bounds_error=False, fill_value=0.)
-        return u.Quantity(f(self.temperature))
+                     kind='cubic', bounds_error=False, fill_value=np.nan)
+        ioneq = f(self.temperature)
+        isfinite = np.isfinite(ioneq)
+        ioneq[isfinite] = np.where(ioneq[isfinite] < 0., 0., ioneq[isfinite])
+        return u.Quantity(ioneq)
     
     @property
     def abundance(self):
@@ -204,17 +213,12 @@ class Ion(IonBase):
         B = 1 if is_hydrogenic else 2
         F = 1 if self.atomic_number < 20 else (140 + (self.atomic_number/20)**3.2)/141
         if self.atomic_number >= 16:
-            c = -0.28394
-            d = 1.95270
-            C = 0.20594
+            c, d, C, D = -0.28394, 1.95270, 0.20594, 3.70590
             if self.atomic_number > 20:
                 C += ((self.atomic_number - 20)/50.5)**1.11
-            D = 3.70590
         else:
-            c = -0.80414
-            d = 2.32431
-            C = 0.14424
-            D = 3.82652
+            c, d, C, D = -0.80414, 2.32431, 0.14424, 3.82652
+
         Qrp = 1./U*(A*np.log(U) + D*(1. - 1./U)**2 + C*U*(1. - 1./U)**4 + (c/U + d/U**2)*(1. - 1./U))
         
         return B*(np.pi*const.a0.cgs**2)*F*Qrp/(self.ip.to(u.Ry).value**2)
