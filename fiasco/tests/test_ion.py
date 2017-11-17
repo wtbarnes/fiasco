@@ -16,6 +16,11 @@ def ion():
     return fiasco.Ion('fe_5', temperature)
 
 
+@pytest.fixture
+def another_ion():
+    return fiasco.Ion('fe_6', temperature)
+
+
 def test_ioneq(ion):
     assert ion.ioneq.shape == temperature.shape
 
@@ -26,6 +31,20 @@ def test_abundance(ion):
 
 def test_ip(ion):
     assert ion.ip.dtype == np.dtype('float64')
+
+
+def test_add_ions(ion, another_ion):
+    collection = ion + another_ion
+    assert isinstance(collection, fiasco.IonCollection)
+    assert collection[0] == ion
+    assert collection[1] == another_ion
+
+
+def test_radd_ions(ion, another_ion):
+    collection = another_ion + ion
+    assert isinstance(collection, fiasco.IonCollection)
+    assert collection[1] == ion
+    assert collection[0] == another_ion
 
 
 def test_create_ion_without_units_raises_units_error():
