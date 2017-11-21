@@ -32,6 +32,8 @@ class Element(object):
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
             self.hdf5_dbase_root = hdf5_path
+        self._ion_kwargs = kwargs.get('ion_kwargs', {})
+        self._ion_kwargs['hdf5_path'] = self.hdf5_dbase_root
 
     @property
     def ions(self):
@@ -77,7 +79,7 @@ class Element(object):
     def __getitem__(self, value):
         if type(value) is int:
             value = self.ions[value]
-        return fiasco.Ion(value, self.temperature, hdf5_path=self.hdf5_dbase_root)
+        return fiasco.Ion(value, self.temperature, **self._ion_kwargs)
 
     def __contains__(self, value):
         return value in self.ions
