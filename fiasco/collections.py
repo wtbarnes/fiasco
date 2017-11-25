@@ -31,7 +31,7 @@ class IonCollection(object):
                                 .format(item, type(item)))
         # TODO: check for duplicates
         assert all([all(self[0].temperature == ion.temperature) for ion in self]), (
-               'Temperatures for all ions in collection must be the same.')
+            'Temperatures for all ions in collection must be the same.')
         
     def __getitem__(self, value):
         return self._ion_list[value]
