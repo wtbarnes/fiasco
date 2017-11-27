@@ -45,7 +45,7 @@ class Element(object):
                            if '{}_'.format(self.atomic_symbol.lower()) in i], key=lambda x: int(x[1]))
         return ['_'.join(i) for i in ions]
 
-    def ionization_equilibrium(self):
+    def equilibrium_ionization(self):
         """
         Calculate the ionization equilibrium for all ions of the element.
 

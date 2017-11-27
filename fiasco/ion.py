@@ -53,11 +53,11 @@ class Ion(IonBase):
         ----
         Will return NaN where interpolation is out of range of the data. For computing
         ionization equilibrium outside of this temperature range, it is better to use
-        `fiasco.Element.ionization_equilibrium`
+        `fiasco.Element.equilibrium_ionization`
         """
         f = interp1d(self._ioneq[self._dset_names['ioneq_filename']]['temperature'],
                      self._ioneq[self._dset_names['ioneq_filename']]['ionization_fraction'], 
-                     kind='cubic', bounds_error=False, fill_value=np.nan)
+                     kind='linear', bounds_error=False, fill_value=np.nan)
         ioneq = f(self.temperature)
         isfinite = np.isfinite(ioneq)
         ioneq[isfinite] = np.where(ioneq[isfinite] < 0., 0., ioneq[isfinite])
