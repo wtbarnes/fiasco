@@ -92,7 +92,7 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, ask_before=True):
     with ProgressBar(len(all_files)) as progress:
         with h5py.File(hdf5_dbase_root, 'a') as hf:
             for af in all_files:
-                parser = fiasco.io.Parser(af)
+                parser = fiasco.io.Parser(af, ascii_dbase_root=ascii_dbase_root)
                 df = parser.parse()
                 if df is None:
                     warnings.warn('Not including {} in {}'.format(af, hdf5_dbase_root), stacklevel=2)

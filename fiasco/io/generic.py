@@ -29,7 +29,7 @@ class GenericParser(object):
             self.dielectronic = True
             self.ion_name = self.ion_name[:-1]
         self.element = self.ion_name.split('_')[0]
-        self.ascii_dbase_root = setup_paths()['ascii_dbase_root']
+        self.ascii_dbase_root = kwargs.get('ascii_dbase_root', setup_paths()['ascii_dbase_root'])
         self.full_path = os.path.join(self.ascii_dbase_root, self.element, os.path.splitext(self.ion_filename)[0], self.ion_filename)
         
     def parse(self):

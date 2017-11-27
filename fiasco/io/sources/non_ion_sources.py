@@ -4,7 +4,6 @@ Source classes for CHIANTI filetypes not attached to ions
 import os
 
 import numpy as np
-import h5py
 import astropy.units as u
 from astropy.table import Column
 import fortranformat
@@ -24,9 +23,9 @@ class AbundParser(GenericParser):
     descriptions = ['atomic number', 'abundance relative to H', 'element']
     fformat = fortranformat.FortranRecordReader('(I3,F7.3,A5)')
 
-    def __init__(self, abundance_filename):
+    def __init__(self, abundance_filename, **kwargs):
         self.abundance_filename = abundance_filename
-        self.ascii_dbase_root = setup_paths()['ascii_dbase_root']
+        self.ascii_dbase_root = kwargs.get('ascii_dbase_root', setup_paths()['ascii_dbase_root'])
         self.full_path = os.path.join(self.ascii_dbase_root, 'abundance', self.abundance_filename)
 
     def postprocessor(self, df):
@@ -69,9 +68,9 @@ class IoneqParser(GenericParser):
     headings = ['Z', 'ion', 'temperature', 'ionization_fraction']
     descriptions = ['atomic number', 'ion', 'temperature', 'ionization fraction']
 
-    def __init__(self, ioneq_filename):
+    def __init__(self, ioneq_filename, **kwargs):
         self.ioneq_filename = ioneq_filename
-        self.ascii_dbase_root = setup_paths()['ascii_dbase_root']
+        self.ascii_dbase_root = kwargs.get('ascii_dbase_root', setup_paths()['ascii_dbase_root'])
         self.full_path = os.path.join(self.ascii_dbase_root, 'ioneq', self.ioneq_filename)
         
     def preprocessor(self, table, line, index):
@@ -121,9 +120,9 @@ class IpParser(GenericParser):
     headings = ['Z', 'ion', 'ip']
     descriptions = ['atomic number', 'ion', 'ionization potential']
 
-    def __init__(self, ip_filename):
+    def __init__(self, ip_filename, **kwargs):
         self.ip_filename = ip_filename
-        self.ascii_dbase_root = setup_paths()['ascii_dbase_root']
+        self.ascii_dbase_root = kwargs.get('ascii_dbase_root', setup_paths()['ascii_dbase_root'])
         self.full_path = os.path.join(self.ascii_dbase_root, 'ip', self.ip_filename)
 
     def postprocessor(self, df):
