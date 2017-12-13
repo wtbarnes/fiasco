@@ -1,15 +1,14 @@
-Documentation
-=============
+fiasco Documentation
+=====================
 
-This is the documentation for fiasco.
-Python interface to the CHIANTI atomic database
+Welcome to the documentation for fiasco. fiasco provides a Python interface to the CHIANTI atomic database. In addition to several high-level abstractions of the atomic data, fiasco also provides many common atomic physics calculations. 
 
 .. toctree::
   :maxdepth: 2
 
-  fiasco/index.rst
+  getting_started
+  code_ref/index
+  examples
+  dev_guide
+  resources
 
-.. note:: The layout of this directory is simply a suggestion.  To follow
-          traditional practice, do *not* edit this page, but instead place
-          all documentation for the package inside ``fiasco/``.
-          You can follow this practice or choose your own layout.

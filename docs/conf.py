@@ -29,6 +29,9 @@ import datetime
 import os
 import sys
 
+ON_RTD = os.environ.get('READTHEDOCS') == 'True'
+ON_TRAVIS = os.environ.get('TRAVIS') == 'true'
+
 try:
     import astropy_helpers
 except ImportError:
@@ -112,14 +115,12 @@ release = package.__version__
 # name of a builtin theme or the name of a custom theme in html_theme_path.
 #html_theme = None
 
-html_theme = "sphinx_rtd_theme"
-
-
-
-
 try:
+    html_theme = "sphinx_rtd_theme"
     import sphinx_rtd_theme
     html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+    # from sunpy_sphinx_theme.conf import *
+    # html_sidebars = {'**': ['docsidebar.html']}
 except ImportError:
     html_theme = 'default'
 
