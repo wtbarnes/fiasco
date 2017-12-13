@@ -1,5 +1,8 @@
 # fiasco
 [![Powered by SunPy Badge]( http://img.shields.io/badge/powered%20by-SunPy-orange.svg?style=flat)](http://www.sunpy.org)
+[![Build Status](https://travis-ci.org/wtbarnes/fiasco.svg?branch=master)](https://travis-ci.org/wtbarnes/fiasco)
+[![Documentation Status](https://readthedocs.org/projects/fiasco/badge/?version=latest)](http://fiasco.readthedocs.io/en/latest/?badge=latest)
+[![Coverage Status](https://coveralls.io/repos/github/wtbarnes/fiasco/badge.svg?branch=master)](https://coveralls.io/github/wtbarnes/fiasco?branch=master)
 
 A Python interface to the [CHIANTI atomic database](http://www.chiantidatabase.org/)
 
