@@ -6,14 +6,14 @@ import os
 import warnings
 import tarfile
 import configparser
-    
+
 import h5py
 from astropy.config import set_temp_cache
 from astropy.utils.data import download_file
 from astropy.utils.console import ProgressBar
 
-from .yes_no import query_yes_no
 import fiasco.io
+from .yes_no import query_yes_no
 
 __all__ = ['setup_paths', 'download_dbase', 'get_masterlist', 'build_hdf5_dbase']
 

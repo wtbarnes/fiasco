@@ -2,7 +2,11 @@
 # by importing them here in conftest.py they are discoverable by py.test
 # no matter how it is invoked within the source tree.
 
+import os
 from astropy.tests.pytest_plugins import *
+
+# check if on Travis
+ON_TRAVIS = os.environ.get('TRAVIS') == 'true'
 
 ## Uncomment the following line to treat all DeprecationWarnings as
 ## exceptions. For Astropy v2.0 or later, there are 2 additional keywords,
@@ -44,3 +48,10 @@ from astropy.tests.pytest_plugins import *
 #     TESTED_VERSIONS[packagename] = version
 # except NameError:   # Needed to support Astropy <= 1.0.0
 #     pass
+
+# When on Travis, download the database and build the HDF file (if it does not already exist)
+if ON_TRAVIS:
+    import fiasco.util
+    paths = fiasco.util.setup_paths()
+    fiasco.util.download_dbase(paths['ascii_dbase_root'], ask_before=False)
+    fiasco.util.build_hdf5_dbase(paths['ascii_dbase_root'], paths['hdf5_dbase_root'], ask_before=False)
