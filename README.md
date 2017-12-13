@@ -19,6 +19,7 @@ $ pip install {package name}
 ```
 
 * NumPy
+* scipy
 * Astropy
 * h5py
 * PlasmaPy (pip only, conda soon)
