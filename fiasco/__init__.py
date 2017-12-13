@@ -1,8 +1,5 @@
 """
-fiasco
-======
-
-a python interface to the CHIANTI atomic database
+A Python interface to the CHIANTI atomic database
 """
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # ----------------------------------------------------------------------------
