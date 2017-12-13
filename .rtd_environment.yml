@@ -1,0 +1,10 @@
+name: fiasco-rtd
+dependencies:
+- python=3.6
+- numpy
+- scipy
+- astropy
+- h5py
+- pip:
+  - fortranformat
+  - git+git://github.com/PlasmaPy/PlasmaPy.git
