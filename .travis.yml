@@ -73,7 +73,7 @@ install:
     - source ci-helpers/travis/setup_conda.sh
 
 script:
-   - travis-wait $MAIN_CMD $SETUP_CMD
+   - travis_wait $MAIN_CMD $SETUP_CMD
 
 after_success:
     - if [[ $SETUP_CMD == *coverage* ]]; then coveralls --rcfile='fiasco/tests/coveragerc'; fi
