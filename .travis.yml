@@ -44,7 +44,7 @@ env:
         # Make sure that egg_info works without dependencies
         - SETUP_CMD='egg_info'
         - SETUP_CMD='install'
-        - SETUP_CMD='test'
+        - SETUP_CMD='test --coverage'
         - SETUP_CMD='build_docs'
 
 matrix:
@@ -53,10 +53,6 @@ matrix:
         # Try MacOS X
         - os: osx
           env: SETUP_CMD='test'
-
-        # Do a coverage test.
-        - os: linux
-          env: SETUP_CMD='test --coverage'
 
         # Do a PEP8 test with pycodestyle
         - os: linux
@@ -73,7 +69,8 @@ install:
     - source ci-helpers/travis/setup_conda.sh
 
 script:
-   - travis_wait $MAIN_CMD $SETUP_CMD
+   - if [[ $SETUP_CMD == *test* ]]; then python setup.py install && python ci/setup_dbase.py; fi
+   - $MAIN_CMD $SETUP_CMD
 
 after_success:
     - if [[ $SETUP_CMD == *coverage* ]]; then coveralls --rcfile='fiasco/tests/coveragerc'; fi
