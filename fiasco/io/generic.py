@@ -16,21 +16,14 @@ class GenericParser(object):
     """
     Base class for CHIANTI file parsers
     """
-
     dtypes = []
     units = []
     headings = []
+    descriptions = []
     
-    def __init__(self, ion_filename, **kwargs):
-        self.ion_filename = ion_filename
-        self.dielectronic = False
-        self.ion_name = self.ion_filename.split('.')[0]
-        if self.ion_name and self.ion_name[-1] == 'd':
-            self.dielectronic = True
-            self.ion_name = self.ion_name[:-1]
-        self.element = self.ion_name.split('_')[0]
+    def __init__(self, filename, **kwargs):
+        self.filename = filename
         self.ascii_dbase_root = kwargs.get('ascii_dbase_root', setup_paths()['ascii_dbase_root'])
-        self.full_path = os.path.join(self.ascii_dbase_root, self.element, os.path.splitext(self.ion_filename)[0], self.ion_filename)
         
     def parse(self):
         """
@@ -42,9 +35,8 @@ class GenericParser(object):
         with open(self.full_path, 'r') as f:
             lines = f.readlines()
         table = []
-        for i,line in enumerate(lines):
+        for i, line in enumerate(lines):
             if line.strip() == '-1':
-                comment = ''.join(lines[i+1:len(lines)])
                 break
             else:
                 self.preprocessor(table, line, i)
@@ -54,8 +46,7 @@ class GenericParser(object):
             df[name].unit = unit
             df[name] = df[name].astype(dtype)
         
-        df.meta['footer'] = '\n'.join([l.strip().strip('%') for l in comment.split('\n')
-                                       if l.strip() != '-1' and l.strip()])
+        df.meta['footer'] = self.extract_footer(lines)
         with open(os.path.join(self.ascii_dbase_root, 'VERSION'), 'r') as f:
             lines = f.readlines()
             version = lines[0].strip()
@@ -64,8 +55,20 @@ class GenericParser(object):
         df = self.postprocessor(df)
         
         return df
+
+    def extract_footer(self, lines):
+        """
+        Extract metadata from raw text and format appropriately.
+        """
+        for i, line in enumerate(lines):
+            if line.strip() == '-1':
+                comment = lines[i+1:len(lines)]
+                break
+
+        footer = '\n'.join([l.strip('%').strip() for l in comment if l.strip('%').strip().strip('-1')])
+        return footer
     
-    def preprocessor(self, table, line, index):
+    def preprocessor(self, table, line, *args):
         """
         Default preprocessor method run on each line ingested.
         """
@@ -80,12 +83,35 @@ class GenericParser(object):
         """
         Default postprocessor method run on the whole dataframe
         """
+        df.meta['filename'] = self.filename
+        df.meta['descriptions'] = {h: d for h, d in zip(self.headings, self.descriptions)}
+        return df
+
+    def to_hdf5(self, *args, **kwargs):
+        raise NotImplementedError('No method for converting QTable to HDF5')
+        
+
+class GenericIonParser(GenericParser):
+    """
+    Base class for CHIANTI files attached to a particular ion
+    """
+    def __init__(self, ion_filename, **kwargs):
+        super().__init__(ion_filename, **kwargs)
+        self.dielectronic = False
+        self.ion_name = self.filename.split('.')[0]
+        if self.ion_name and self.ion_name[-1] == 'd':
+            self.dielectronic = True
+            self.ion_name = self.ion_name[:-1]
+        self.element = self.ion_name.split('_')[0]
+        self.full_path = os.path.join(self.ascii_dbase_root, self.element, os.path.splitext(self.filename)[0], self.filename)
+
+    def postprocessor(self, df):
+        df = super().postprocessor(df)
         df.meta['element'] = self.element
         df.meta['ion'] = self.ion_name
         df.meta['dielectronic'] = self.dielectronic
-        df.meta['descriptions'] = {h: d for h, d in zip(self.headings, self.descriptions)}
         return df
-    
+
     def to_hdf5(self, hf, df, **kwargs):
         """
         Add datasets to a group for an HDF5 file handler
@@ -124,4 +150,3 @@ class GenericParser(object):
             else:
                 ds.attrs['unit'] = col.unit.to_string()
             ds.attrs['description'] = df.meta['descriptions'][name]
-        

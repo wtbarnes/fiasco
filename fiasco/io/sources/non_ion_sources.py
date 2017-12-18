@@ -9,7 +9,6 @@ from astropy.table import Column
 import fortranformat
 import plasmapy
 
-from fiasco.util import setup_paths
 from ..generic import GenericParser
 
 __all__ = ['AbundParser', 'IoneqParser', 'IpParser']
@@ -24,24 +23,22 @@ class AbundParser(GenericParser):
     fformat = fortranformat.FortranRecordReader('(I3,F7.3,A5)')
 
     def __init__(self, abundance_filename, **kwargs):
-        self.abundance_filename = abundance_filename
-        self.ascii_dbase_root = kwargs.get('ascii_dbase_root', setup_paths()['ascii_dbase_root'])
-        self.full_path = os.path.join(self.ascii_dbase_root, 'abundance', self.abundance_filename)
+        super().__init__(abundance_filename, **kwargs)
+        self.full_path = os.path.join(self.ascii_dbase_root, 'abundance', self.filename)
 
     def postprocessor(self, df):
-        df['abundance'] = 10.**(df['abundance'] - df['abundance'][df['Z']==1])
+        df['abundance'] = 10.**(df['abundance'] - df['abundance'][df['Z'] == 1])
         # repair missing data
         if df['element'][0] == '':
             col = []
             for atomic_number in df['Z']:
                 col.append(plasmapy.atomic.atomic_symbol(int(atomic_number)))
             df['element'] = Column(col) 
-        df.meta['abundance_filename'] = self.abundance_filename
-        df.meta['descriptions'] = {h: d for h, d in zip(self.headings, self.descriptions)}
+        df = super().postprocessor(df)
         return df
 
     def to_hdf5(self, hf, df):
-        dataset_name = os.path.splitext(os.path.basename(self.abundance_filename))[0]
+        dataset_name = os.path.splitext(os.path.basename(self.filename))[0]
         footer = """{}
 ------------------
 {}
@@ -69,9 +66,8 @@ class IoneqParser(GenericParser):
     descriptions = ['atomic number', 'ion', 'temperature', 'ionization fraction']
 
     def __init__(self, ioneq_filename, **kwargs):
-        self.ioneq_filename = ioneq_filename
-        self.ascii_dbase_root = kwargs.get('ascii_dbase_root', setup_paths()['ascii_dbase_root'])
-        self.full_path = os.path.join(self.ascii_dbase_root, 'ioneq', self.ioneq_filename)
+        super().__init__(ioneq_filename, **kwargs)
+        self.full_path = os.path.join(self.ascii_dbase_root, 'ioneq', self.filename)
         
     def preprocessor(self, table, line, index):
         if index == 0:
@@ -84,14 +80,9 @@ class IoneqParser(GenericParser):
             line = self.fformat_ioneq.read(line)
             line = line[:2] + [self.temperature, np.array(line[2:], dtype=float)] 
             table.append(line)
-        
-    def postprocessor(self, df):
-        df.meta['ioneq_filename'] = self.ioneq_filename
-        df.meta['descriptions'] = {h: d for h, d in zip(self.headings, self.descriptions)}
-        return df
 
     def to_hdf5(self, hf, df):
-        dataset_name = os.path.splitext(os.path.basename(self.ioneq_filename))[0]
+        dataset_name = os.path.splitext(os.path.basename(self.filename))[0]
         for row in df:
             el = plasmapy.atomic.atomic_symbol(int(row['Z'])).lower()
             ion = int(row['ion'])
@@ -121,17 +112,11 @@ class IpParser(GenericParser):
     descriptions = ['atomic number', 'ion', 'ionization potential']
 
     def __init__(self, ip_filename, **kwargs):
-        self.ip_filename = ip_filename
-        self.ascii_dbase_root = kwargs.get('ascii_dbase_root', setup_paths()['ascii_dbase_root'])
-        self.full_path = os.path.join(self.ascii_dbase_root, 'ip', self.ip_filename)
-
-    def postprocessor(self, df):
-        df.meta['ip_filename'] = self.ip_filename
-        df.meta['descriptions'] = {h: d for h, d in zip(self.headings, self.descriptions)}
-        return df
+        super().__init__(ip_filename, **kwargs)
+        self.full_path = os.path.join(self.ascii_dbase_root, 'ip', self.filename)
 
     def to_hdf5(self, hf, df):
-        dataset_name = os.path.splitext(os.path.basename(self.ip_filename))[0]
+        dataset_name = os.path.splitext(os.path.basename(self.filename))[0]
         footer = """{}
 ------------------
 {}

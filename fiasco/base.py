@@ -11,11 +11,17 @@ import plasmapy.atomic
 
 import fiasco
 from .io.factory import all_subclasses
-from .io.generic import GenericParser
+from .io.generic import GenericParser, GenericIonParser
 from .util import download_dbase, build_hdf5_dbase
 
 
 class DataIndexer(object):
+    """
+    Data access layer for each distinct CHIANTI dataset
+
+    Acts as an interface layer between `Ion` and the CHIANTI stored in the
+    HDF5 database. All data that the user interacts with passes through this layer. 
+    """
     
     def __init__(self, hdf5_path, top_level_path):
         self.top_level_path = top_level_path
@@ -123,7 +129,15 @@ class IonBase(object):
     @property
     def _abundance(self):
         return DataIndexer(self.hdf5_dbase_root, '/'.join([self.atomic_symbol.lower(), 'abundance']))
-        
+
+    @property
+    def _ip(self):
+        return DataIndexer(self.hdf5_dbase_root, '/'.join([self.atomic_symbol.lower(), self._ion_name, 'ip']))
+
+    @property
+    def _ioneq(self):
+        return DataIndexer(self.hdf5_dbase_root, '/'.join([self.atomic_symbol.lower(), self._ion_name, 'ioneq']))
+      
 
 def add_property(cls, filetype):
     """
@@ -138,10 +152,9 @@ def add_property(cls, filetype):
     property_template.__doc__ = 'Data in {} type file'.format(filetype)
     property_template.__name__ = '_{}'.format('_'.join(filetype.split('/')))
     setattr(cls, property_template.__name__, property(property_template))
-    
+
 # Collect the filetypes and add the methods
-all_ext = [cls.filetype for cls in all_subclasses(GenericParser) 
-           if hasattr(cls, 'filetype') and cls.filetype not in ['abund']]
+all_ext = [cls.filetype for cls in all_subclasses(GenericIonParser) if hasattr(cls, 'filetype')]
 for filetype in all_ext:
     add_property(IonBase, filetype)
     add_property(IonBase, '/'.join(['dielectronic', filetype]))

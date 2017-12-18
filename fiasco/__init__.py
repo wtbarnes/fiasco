@@ -7,7 +7,7 @@ from ._sunpy_init import *
 # ----------------------------------------------------------------------------
 
 if not _ASTROPY_SETUP_:
-    from .base import IonBase
+    from .base import IonBase, DataIndexer
     from .ion import Ion
     from .element import Element
     from .collections import IonCollection

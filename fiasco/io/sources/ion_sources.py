@@ -8,7 +8,7 @@ import h5py
 import astropy.units as u
 import fortranformat
 
-from ..generic import GenericParser
+from ..generic import GenericIonParser
 
 __all__ = ['ElvlcParser', 'FblvlParser', 'ScupsParser',
            'PsplupsParser', 'EasplomParser', 'EasplupsParser',
@@ -17,7 +17,7 @@ __all__ = ['ElvlcParser', 'FblvlParser', 'ScupsParser',
            'DiparamsParser']
 
 
-class ElvlcParser(GenericParser):
+class ElvlcParser(GenericIonParser):
     """
     Energy levels and configurations for each level in an ion.
     """
@@ -31,7 +31,7 @@ class ElvlcParser(GenericParser):
     fformat = fortranformat.FortranRecordReader('(I7,A30,A5,I5,A5,F5.1,F15.3,F15.3)')
 
     
-class FblvlParser(GenericParser):
+class FblvlParser(GenericIonParser):
     """
     Energy levels and configuration related to the calculation of the free-bound
     continuum. Only available for those ions and levels for which a free-bound
@@ -47,7 +47,7 @@ class FblvlParser(GenericParser):
     fformat = fortranformat.FortranRecordReader('(I5,A20,2I5,A3,I5,2F20.3)')
 
     
-class ScupsParser(GenericParser):
+class ScupsParser(GenericIonParser):
     """
     Scaled collisions strengths (denoted by upsilon) between energy levels as described
     in [1]_.
@@ -122,7 +122,7 @@ class PsplupsParser(ScupsParser):
         table.append(row)
         
             
-class EasplomParser(GenericParser):
+class EasplomParser(GenericIonParser):
     """
     Spline fits to the excitation-autoionization scaled cross-sections. See [1]_ and [2]_
     for more details.
@@ -162,7 +162,7 @@ class EasplupsParser(EasplomParser):
                     'Burgess-Tully scaled effective collision strength']
     
     
-class WgfaParser(GenericParser):
+class WgfaParser(GenericIonParser):
     """
     Information about each possible transition in an ion, including level indices, wavelengths, 
     and decay rates.
@@ -182,7 +182,7 @@ class WgfaParser(GenericParser):
         table[-1][-2] = table[-1][-2].split('-')[0].strip() 
         
         
-class CilvlParser(GenericParser):
+class CilvlParser(GenericIonParser):
     filetype = 'cilvl'
     dtypes = [int,int,float,float]
     units = [None,None,u.K,(u.cm**3)/u.s]
@@ -207,7 +207,7 @@ class ReclvlParser(CilvlParser):
     descriptions = ['lower level index', 'upper level index', 'temperature', 'recombination rate coefficient']
     
     
-class RrparamsParser(GenericParser):
+class RrparamsParser(GenericIonParser):
     """
     Fit parameters for calculating radiative recombination rates. The first two fit types are 
     given in Eqs. 1 and 2 of [1]_ and the third fit type is given by Eq. 4 of [2]_.
@@ -251,7 +251,7 @@ class RrparamsParser(GenericParser):
                 table[0] += line[2:]
                 
                 
-class TrparamsParser(GenericParser):
+class TrparamsParser(GenericIonParser):
     filetype = 'trparams'
     dtypes = [float,float]
     units = [u.K,(u.cm**3)/u.s]
@@ -263,7 +263,7 @@ class TrparamsParser(GenericParser):
             super().preprocessor(table, line, index)
             
             
-class DrparamsParser(GenericParser):
+class DrparamsParser(GenericIonParser):
     """
     Fit parameters for calculating dielectronic recombination. The first fit type is given by Eq. 3 
     of [1]_ and the second fit type is given by Eq. 5 of [2]_.
@@ -308,7 +308,7 @@ class DrparamsParser(GenericParser):
                 table.append([self._drparams_filetype]+line[2:])
 
         
-class DiparamsParser(GenericParser):
+class DiparamsParser(GenericIonParser):
     """
     Scaled cross-sections for calculating the ionization rate due to direct ionization. See [1]_ 
     and [2]_ for more details.
