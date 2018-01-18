@@ -84,7 +84,7 @@ class DataIndexer(object):
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
             grp = hf[self.top_level_path]
             var_names = [(key, ufilter(grp[key]), dfilter(grp[key])) for key in grp]
-            footer = grp.attrs['footer']
+            footer = '' if 'footer' not in grp.attrs else grp.attrs['footer']
             
         name_strs = '\n'.join(['{} {} -- {}'.format(*v) for v in var_names])
         return '''{top_level_path} {version}
