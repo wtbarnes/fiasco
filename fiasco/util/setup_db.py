@@ -103,7 +103,7 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, ask_before=True):
 
 def get_masterlist(ascii_dbase_root):
     """
-    Parse CHIANTI filetree and return several useful lists for indexing the database.
+    Parse CHIANTI filetree and return list of all files, separated by category.
 
     Note
     -----
@@ -115,18 +115,18 @@ def get_masterlist(ascii_dbase_root):
     ion_files = []
     for root, sub, files in os.walk(ascii_dbase_root):
         if not any([sd in root for sd in skip_dirs]) and not any([sd in sub for sd in skip_dirs]):
-            ion_files += files
+            ion_files += [f for f in files if f[0] != '.']
 
-    # List all of the non-ion files
+    # List all of the non-ion files, excluding any "dot"/hidden files
     def walk_sub_dir(subdir):
         subdir_files = []
         subdir_root = os.path.join(ascii_dbase_root, subdir)
         for root, _, files in os.walk(subdir_root):
-            subdir_files += [os.path.relpath(os.path.join(root, f), subdir_root) for f in files]
+            subdir_files += [os.path.relpath(os.path.join(root, f), subdir_root) for f in files if f[0] != '.']
         
         return subdir_files
 
-    non_ion_subdirs = ['abundance', 'ioneq', 'ip']
+    non_ion_subdirs = ['abundance', 'ioneq', 'ip', 'continuum']
     all_files = {'{}_files'.format(sd): walk_sub_dir(sd) for sd in non_ion_subdirs}
     all_files['ion_files'] = ion_files
 
