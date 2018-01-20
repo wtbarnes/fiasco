@@ -24,6 +24,13 @@ class GenericParser(object):
     def __init__(self, filename, **kwargs):
         self.filename = filename
         self.ascii_dbase_root = kwargs.get('ascii_dbase_root', setup_paths()['ascii_dbase_root'])
+        # Cannot supply a version number if this is a standalone file
+        if 'full_path' in kwargs:
+            self.chianti_version = ''
+        else:
+            with open(os.path.join(self.ascii_dbase_root, 'VERSION'), 'r') as f:
+                lines = f.readlines()
+                self.chianti_version = lines[0].strip()
         self.full_path = kwargs.get('full_path', os.path.join(self.ascii_dbase_root, self.filename))
         
     def parse(self):
@@ -48,10 +55,7 @@ class GenericParser(object):
             df[name] = df[name].astype(dtype)
         
         df.meta['footer'] = self.extract_footer(lines)
-        with open(os.path.join(self.ascii_dbase_root, 'VERSION'), 'r') as f:
-            lines = f.readlines()
-            version = lines[0].strip()
-        df.meta['chianti_version'] = version
+        df.meta['chianti_version'] = self.chianti_version
 
         df = self.postprocessor(df)
         
