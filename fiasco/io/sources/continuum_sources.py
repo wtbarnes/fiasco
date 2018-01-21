@@ -10,7 +10,8 @@ import plasmapy
 
 from ..generic import GenericParser
 
-__all__ = ['GffguParser', 'GffintParser']
+__all__ = ['GffguParser', 'GffintParser', 'KlgfbParser', 'VernerParser', 'ItohParser',
+           'HSeqParser', 'HeSeqParser']
 
 
 class GffguParser(GenericParser):
