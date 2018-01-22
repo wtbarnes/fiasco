@@ -6,7 +6,8 @@ import pytest
 import numpy as np
 from astropy.table import QTable
 
-from fiasco.io.sources.ion_sources import ElvlcParser, FblvlParser, ScupsParser, PsplupsParser
+from fiasco.io.sources.ion_sources import (ElvlcParser, FblvlParser, ScupsParser, PsplupsParser, 
+                                           EasplomParser)
 
 
 def test_elvlcparser(tmpdir):
@@ -140,6 +141,40 @@ def test_psplupsparser(tmpdir):
     for h, unit in zip(PsplupsParser.headings, PsplupsParser.units):
         table[h].unit = unit
     p = PsplupsParser('c_2.psplups', full_path=os.path.join(f.dirname, f.basename))
+    table_parsed = p.parse()
+    for c in table.colnames:
+        for row, row_parsed in zip(table[c], table_parsed[c]):
+            test = row == row_parsed
+            if isinstance(test, np.ndarray):
+                assert np.all(test)
+            else:
+                assert test
+    for k in ('footer', 'filename', 'element', 'ion'):
+        assert table_parsed.meta[k] == table.meta[k]
+    assert 'chianti_version' in table_parsed.meta
+    assert 'descriptions' in table_parsed.meta
+
+
+def test_easplomparser(tmpdir):
+    f = tmpdir.mkdir('ion_sources').join('be_2.easplom')
+    f.write("""  4  2  1  3  1 7.551e-01 8.649e+00 1.700e+00 9.785e-02 1.007e-01 1.147e-01 1.415e-01 1.749e-01
+-1
+%file:  be_2.easplom
+%excitation autoionization cross section parameter file
+ derived from fits to experimental and theoretical data
+Dere, K. P., 2007, A&A, 466, 771
+ADS ref:  http://adsabs.harvard.edu/abs/2007A%26A...466..771D
+ created for CHIANTI database for astrophysical spectroscopy
+  created by Ken Dere  (GMU)  Fri Jan 26 12:40:26 2007
+-1""")
+    table = QTable(data=[[1], [3], [1], [0.7551], [8.649], [1.7], 
+                         [np.array([0.09785, 0.1007, 0.1147, 0.1415, 0.1749])]],
+                   names=EasplomParser.headings,
+                   meta={'element': 'be', 'ion': 'be_2', 'filename': 'be_2.easplom',
+                         'footer': "file:  be_2.easplom\nexcitation autoionization cross section parameter file\nderived from fits to experimental and theoretical data\nDere, K. P., 2007, A&A, 466, 771\nADS ref:  http://adsabs.harvard.edu/abs/2007A%26A...466..771D\ncreated for CHIANTI database for astrophysical spectroscopy\ncreated by Ken Dere  (GMU)  Fri Jan 26 12:40:26 2007"})
+    for h, unit in zip(EasplomParser.headings, EasplomParser.units):
+        table[h].unit = unit
+    p = EasplomParser('be_2.easplom', full_path=os.path.join(f.dirname, f.basename))
     table_parsed = p.parse()
     for c in table.colnames:
         for row, row_parsed in zip(table[c], table_parsed[c]):
