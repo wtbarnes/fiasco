@@ -27,6 +27,15 @@ class DataIndexer(object):
         self.top_level_path = top_level_path
         self.hdf5_dbase_root = hdf5_path
 
+    @classmethod
+    def create_indexer(cls, hdf5_path, top_level_path):
+        """
+        Create an instance as long as the dataset exists
+        """
+        with h5py.File(hdf5_path, 'r') as hf:
+            path_is_valid = True if top_level_path in hf else False
+        return cls(hdf5_path, top_level_path) if path_is_valid else None
+
     @property
     def version(self):
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
@@ -128,26 +137,27 @@ class IonBase(object):
        
     @property
     def _abundance(self):
-        return DataIndexer(self.hdf5_dbase_root, '/'.join([self.atomic_symbol.lower(), 'abundance']))
+        data_path = '/'.join([self.atomic_symbol.lower(), 'abundance'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @property
     def _ip(self):
-        return DataIndexer(self.hdf5_dbase_root, '/'.join([self.atomic_symbol.lower(), self._ion_name, 'ip']))
+        data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, 'ip'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @property
     def _ioneq(self):
-        return DataIndexer(self.hdf5_dbase_root, '/'.join([self.atomic_symbol.lower(), self._ion_name, 'ioneq']))
-      
+        data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, 'ioneq'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+
 
 def add_property(cls, filetype):
     """
     Dynamically add filetype properties to base data access class
     """
     def property_template(self):
-        with h5py.File(self.hdf5_dbase_root, 'r') as hf:
-            if '/'.join([self.atomic_symbol.lower(), self._ion_name, filetype]) not in hf:
-                return None
-        return DataIndexer(self.hdf5_dbase_root, '/'.join([self.atomic_symbol.lower(), self._ion_name, filetype]))
+        data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, filetype])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     property_template.__doc__ = 'Data in {} type file'.format(filetype)
     property_template.__name__ = '_{}'.format('_'.join(filetype.split('/')))
