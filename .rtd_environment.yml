@@ -7,4 +7,4 @@ dependencies:
 - h5py
 - pip:
   - fortranformat
-  - git+git://github.com/PlasmaPy/PlasmaPy.git
+  - plasmapy
