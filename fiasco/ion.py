@@ -17,20 +17,26 @@ class Ion(IonBase):
     """
     Ion class
 
+    The ion object is the fundamental unit of the fiasco library. An Ion object contains
+    all of the properties and methods needed to access important information about each ion
+    from the CHIANTI database.
+
     Parameters
     ----------
     ion_name: `str`
     temperature: ~astropy.Quantity
 
-    The ion object is the fundamental unit of the fiasco library. An Ion object contains
-    all of the properties and methods needed to access important information about each ion
-    from the CHIANTI database.
+    Other Parameters
+    ----------------
+    ioneq_filename : `str`, optional
+        Ionization equilibrium dataset
+    abundance_filename : `str`, optional
+        Abundance dataset
+    ip_filename : `str`, optional
+        Ionization potential dataset
 
     Examples
     --------
-
-    Notes
-    -----
     """
     
     @u.quantity_input
@@ -56,7 +62,7 @@ class Ion(IonBase):
         `fiasco.Element.equilibrium_ionization`
         """
         f = interp1d(self._ioneq[self._dset_names['ioneq_filename']]['temperature'],
-                     self._ioneq[self._dset_names['ioneq_filename']]['ionization_fraction'], 
+                     self._ioneq[self._dset_names['ioneq_filename']]['ionization_fraction'],
                      kind='linear', bounds_error=False, fill_value=np.nan)
         ioneq = f(self.temperature)
         isfinite = np.isfinite(ioneq)
@@ -68,23 +74,31 @@ class Ion(IonBase):
         """
         Elemental abundance relative to H
         """
-        try:
-            abundance = self._abundance[self._dset_names['abundance_filename']]
-        except IndexError:
-            warnings.warn('No {} abundance available for dataset {}'
-                          .format(self.atomic_symbol, self._dset_names['abundance_filename']))
-            abundance = None
-        return abundance
+        return self._abundance[self._dset_names['abundance_filename']]
 
     @property
     def ip(self):
         """
-        Ionization potential
+        Ionization potential with reasonable units
         """
         if self._ip is not None:
             return (self._ip[self._dset_names['ip_filename']] * const.h.cgs * const.c.cgs).decompose().cgs
         else:
             return None
+
+    @property
+    def hydrogenic(self):
+        """
+        Is the ion hydrogen-like or not
+        """
+        return (self.atomic_number - self.charge_state == 1) and (self.atomic_number >= 6)
+
+    @property
+    def helium_like(self):
+        """
+        Is the ion helium like or not
+        """
+        return (self.atomic_number - self.charge_state == 2) and (self.atomic_number >= 10)
 
     def __add__(self, value):
         return IonCollection(self, value)
@@ -162,10 +176,7 @@ class Ion(IonBase):
         .. [1] Fontes, C. J., et al., 1999, Phys. Rev. A., `59 1329 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.59.1329>`_
         .. [2] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
         """
-        is_hydrogenic = (self.atomic_number - self.charge_state == 1) and (self.atomic_number >= 6)
-        is_he_like = (self.atomic_number - self.charge_state == 2) and (self.atomic_number >= 10)
-        
-        if is_hydrogenic or is_he_like:
+        if self.hydrogenic or self.helium_like:
             return self._fontes_cross_section(energy)
         else:
             return self._dere_cross_section(energy)
@@ -207,10 +218,9 @@ class Ion(IonBase):
         ----------
         .. [1] Fontes, C. J., et al., 1999, Phys. Rev. A., `59 1329 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.59.1329>`_
         """
-        is_hydrogenic = (self.atomic_number - self.charge_state == 1) and (self.atomic_number >= 6)
         U = energy/self.ip
         A = 1.13
-        B = 1 if is_hydrogenic else 2
+        B = 1 if self.hydrogenic else 2
         F = 1 if self.atomic_number < 20 else (140 + (self.atomic_number/20)**3.2)/141
         if self.atomic_number >= 16:
             c, d, C, D = -0.28394, 1.95270, 0.20594, 3.70590
@@ -219,10 +229,11 @@ class Ion(IonBase):
         else:
             c, d, C, D = -0.80414, 2.32431, 0.14424, 3.82652
 
-        Qrp = 1./U*(A*np.log(U) + D*(1. - 1./U)**2 + C*U*(1. - 1./U)**4 + (c/U + d/U**2)*(1. - 1./U))
+        Qrp = 1./U * (A * np.log(U) + D * (1. - 1./U)**2 + C * U * (1. - 1./U)**4
+                      + (c / U + d / U**2) * (1. - 1. / U))
         
-        return B*(np.pi*const.a0.cgs**2)*F*Qrp/(self.ip.to(u.Ry).value**2)
-            
+        return B * (np.pi * const.a0.cgs**2) * F * Qrp / (self.ip.to(u.Ry).value**2)
+
     @needs_dataset('easplups')
     def excitation_autoionization_rate(self):
         """

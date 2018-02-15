@@ -66,12 +66,12 @@ class DataIndexer(object):
         if type(key) is int:
             raise NotImplementedError('Iteration not supported.')
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
-            grp = hf[self.top_level_path]
-            if key not in grp:
-                raise IndexError('{} not found in {} filetype'.format(key, self.top_level_path))
-            ds = grp[key]
+            if key not in self:
+                return None
+            ds = hf[self.top_level_path][key]
             if isinstance(ds, h5py.Group):
-                data = DataIndexer(self.hdf5_dbase_root, '/'.join([self.top_level_path, key]))
+                data = DataIndexer.create_indexer(self.hdf5_dbase_root,
+                                                  '/'.join([self.top_level_path, key]))
             else:
                 if ds.attrs['unit'] == 'SKIP' or ds.dtype == 'object':
                     data = np.array(ds, dtype=ds.dtype)
