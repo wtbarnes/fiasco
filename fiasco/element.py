@@ -11,10 +11,23 @@ import fiasco
 
 class Element(object):
     """
-    Logical grouping of ion objects according to their element
+    Object containing all ions for a particular element.
 
-    Notes
-    -----
+    The Element object provides a way to logically group together ions of the same
+    element. This provides easy ways to compute element-level derived quantities. 
+
+    Parameters
+    ----------
+    element_name : `str`, `int`
+        Symbol, atomic number, or full name of the element
+    temperature : `~astropy.units.Quantity`
+    hdf5_path : `str`, optional
+        Path to HDF5 database; defaults to that listed in `~fiasco.defaults`
+
+    Other Parameters
+    ----------------
+    ion_kwargs : `dict`
+        Possible keyword arguments for individual ions
 
     Examples
     --------
@@ -45,30 +58,42 @@ class Element(object):
                            if '{}_'.format(self.atomic_symbol.lower()) in i], key=lambda x: int(x[1]))
         return ['_'.join(i) for i in ions]
 
-    def equilibrium_ionization(self):
+    def _rate_matrix(self):
+        rate_matrix = np.zeros(self.temperature.shape + (self.atomic_number+1, self.atomic_number+1))
+        rate_unit = self[0].ionization_rate().unit
+        rate_matrix = rate_matrix * rate_unit
+        for i in range(1, self.atomic_number):
+            rate_matrix[:, i, i] = -(self[i].ionization_rate() + self[i].recombination_rate())
+            rate_matrix[:, i, i-1] = self[i-1].ionization_rate()
+            rate_matrix[:, i, i+1] = self[i+1].recombination_rate()
+        rate_matrix[:, 0, 0] = -(self[0].ionization_rate() + self[0].recombination_rate())
+        rate_matrix[:, 0, 1] = self[1].recombination_rate()
+        rate_matrix[:, -1, -1] = -(self[-1].ionization_rate() + self[-1].recombination_rate())
+        rate_matrix[:, -1, -2] = self[-2].ionization_rate()
+
+        return rate_matrix
+
+    def equilibrium_ionization(self, rate_matrix=None):
         """
         Calculate the ionization equilibrium for all ions of the element.
 
-        Brief explanation and equations about how these equations are solved.
+        Calculate the population fractions for every ion of this element as a function of 
+        temperature, assuming ionization equilibrium.
+
+        Parameters
+        ----------
+        rate_matrix : `~astropy.units.Quantity`, optional
+            Precomputed matrix of total ionization and recombination rates
         """
-        # Make matrix of ionization and recombination rates
-        a_matrix = np.zeros(self.temperature.shape + (self.atomic_number+1, self.atomic_number+1))
-        for i in range(1, self.atomic_number):
-            a_matrix[:, i, i] = -(self[i].ionization_rate() + self[i].recombination_rate()).value
-            a_matrix[:, i, i-1] = self[i-1].ionization_rate().value
-            a_matrix[:, i, i+1] = self[i+1].recombination_rate().value
-        a_matrix[:, 0, 0] = -(self[0].ionization_rate() + self[0].recombination_rate()).value
-        a_matrix[:, 0, 1] = self[1].recombination_rate().value
-        a_matrix[:, -1, -1] = -(self[-1].ionization_rate() + self[-1].recombination_rate()).value
-        a_matrix[:, -1, -2] = self[-2].ionization_rate().value
-        
-        # Solve system of equations using SVD and normalize
-        _, _, V = np.linalg.svd(a_matrix)
+        if rate_matrix is None:
+            rate_matrix = self._rate_matrix()
+        # Solve system of equations using singular value decomposition
+        _, _, V = np.linalg.svd(rate_matrix.value)
         # Select columns of V with smallest eigenvalues (returned in descending order)
         ioneq = np.fabs(V[:, -1, :])
         ioneq /= np.sum(ioneq, axis=1)[:, np.newaxis]
 
-        return ioneq
+        return u.Quantity(ioneq)
 
     def __add__(self, value):
         return fiasco.IonCollection(self, value)
@@ -85,11 +110,12 @@ class Element(object):
         return value in self.ions
 
     def __repr__(self):
-        ion_list = ['{} {}'.format(i.split('_')[0].capitalize(), i.split('_')[1]) for i in self.ions]
-        return '''Element
+        ion_list = '\n'.join([f"{i.split('_')[0].capitalize()} {i.split('_')[1]}"
+                              for i in self.ions])
+        return f"""Element
 -------
-{} ({}) -- {}
+{self.atomic_symbol} ({self.atomic_number}) -- {self.element_name}
 
 Available Ions
 --------------
-{}'''.format(self.atomic_symbol, self.atomic_number, self.element_name, '\n'.join(ion_list))
+{ion_list}"""
