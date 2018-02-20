@@ -122,24 +122,24 @@ class Ion(IonBase):
         """
         nots = splrep(x, y, s=0)
         if scaling_type == 1:
-            x_new = 1.0 - np.log(c)/np.log(energy_ratio + c)
-            upsilon = splev(x_new, nots, der=0)*np.log(energy_ratio + np.e)
+            x_new = 1.0 - np.log(c) / np.log(energy_ratio + c)
+            upsilon = splev(x_new, nots, der=0) * np.log(energy_ratio + np.e)
         elif scaling_type == 2:
-            x_new = energy_ratio/(energy_ratio + c)
+            x_new = energy_ratio / (energy_ratio + c)
             upsilon = splev(x_new, nots, der=0)
         elif scaling_type == 3:
-            x_new = energy_ratio/(energy_ratio + c)
-            upsilon = splev(x_new, nots, der=0)/(energy_ratio + 1.0)
+            x_new = energy_ratio / (energy_ratio + c)
+            upsilon = splev(x_new, nots, der=0) / (energy_ratio + 1.0)
         elif scaling_type == 4:
-            x_new = 1.0 - np.log(c)/np.log(energy_ratio + c)
-            upsilon = splev(x_new, nots, der=0)*np.log(energy_ratio + c)
+            x_new = 1.0 - np.log(c) / np.log(energy_ratio + c)
+            upsilon = splev(x_new, nots, der=0) * np.log(energy_ratio + c)
         elif scaling_type == 5:
             # dielectronic
-            x_new = energy_ratio/(energy_ratio + c)
-            upsilon = splev(x_new, nots, der=0)/energy_ratio
+            x_new = energy_ratio / (energy_ratio + c)
+            upsilon = splev(x_new, nots, der=0) / energy_ratio
         elif scaling_type == 6:
             # protons
-            x_new = energy_ratio/(energy_ratio + c)
+            x_new = energy_ratio / (energy_ratio + c)
             upsilon = 10**splev(x_new, nots, der=0)
         else:
             raise ValueError('Unrecognized BT92 scaling option.')
@@ -155,7 +155,7 @@ class Ion(IonBase):
         """
         xgl, wgl = np.polynomial.laguerre.laggauss(12)
         kBT = const.k_B.cgs*self.temperature
-        energy = np.outer(xgl, kBT)*kBT.unit + self.ip
+        energy = np.outer(xgl, kBT) * kBT.unit + self.ip
         cross_section = self.direct_ionization_cross_section(energy)
         if cross_section is None:
             return None
@@ -197,15 +197,17 @@ class Ion(IonBase):
         """
         # Cross-sections from diparams file
         cross_section_total = np.zeros(energy.shape)
-        for ip,bt_c,bt_e,bt_cross_section in zip(self._diparams['ip'], self._diparams['bt_c'], self._diparams['bt_e'],
-                                                 self._diparams['bt_cross_section']):
+        for ip, bt_c, bt_e, bt_cross_section in zip(self._diparams['ip'], self._diparams['bt_c'], 
+                                                    self._diparams['bt_e'],
+                                                    self._diparams['bt_cross_section']):
             U = energy/(ip.to(u.erg))
             scaled_energy = 1. - np.log(bt_c)/np.log(U - 1. + bt_c)
-            f_interp = interp1d(bt_e.value, bt_cross_section.value, kind='cubic', fill_value='extrapolate')
+            f_interp = interp1d(bt_e.value, bt_cross_section.value, kind='cubic', 
+                                fill_value='extrapolate')
             scaled_cross_section = f_interp(scaled_energy.value)*bt_cross_section.unit
             # Only nonzero at energies above the ionization potential
             scaled_cross_section *= (U.value > 1.)
-            cross_section = scaled_cross_section*(np.log(U) + 1.)/U/(ip**2)
+            cross_section = scaled_cross_section * (np.log(U) + 1.) / U / (ip**2)
             if not hasattr(cross_section_total, 'unit'):
                 cross_section_total = cross_section_total*cross_section.unit
             cross_section_total += cross_section
@@ -302,7 +304,8 @@ class Ion(IonBase):
             return A/(np.sqrt(self.temperature/T0) * (1 + np.sqrt(self.temperature/T0))**(1. - B)
                       * (1. + np.sqrt(self.temperature/T1))**(1. + B))
         elif self._rrparams['fit_type'][0] == 3:
-            return self._rrparams['A_fit'] * (self.temperature/(1e4*u.K))**(-self._rrparams['eta_fit'])
+            return self._rrparams['A_fit'] * (
+                    (self.temperature/(1e4*u.K))**(-self._rrparams['eta_fit']))
         else:
             raise ValueError('Unrecognized fit type {}'.format(self._rrparams['fit_type']))
     
@@ -322,13 +325,15 @@ class Ion(IonBase):
         if self._drparams['fit_type'][0] == 1:
             E_over_T = (np.outer(self._drparams['E_fit'], 1./self.temperature)
                         * (self._drparams['E_fit'].unit/self.temperature.unit))
-            return self.temperature**(-1.5)*(self._drparams['c_fit'][:,np.newaxis]*np.exp(-E_over_T)).sum(axis=0)
+            return self.temperature**(-1.5)*(
+                    self._drparams['c_fit'][:,np.newaxis]*np.exp(-E_over_T)).sum(axis=0)
         elif self._drparams['fit_type'][0] == 2:
             A = self._drparams['A_fit']
             B = self._drparams['B_fit']
             T0 = self._drparams['T0_fit']
             T1 = self._drparams['T1_fit']
-            return A * self.temperature**(-1.5) * np.exp(-T0/self.temperature) * (1. + B * np.exp(-T1/self.temperature))
+            return A * self.temperature**(-1.5) * np.exp(-T0/self.temperature) * (
+                    1. + B * np.exp(-T1/self.temperature))
         else:
             raise ValueError('Unrecognized fit type {}'.format(self._drparams['fit_type']))
     
