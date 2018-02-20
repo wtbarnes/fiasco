@@ -1,5 +1,5 @@
 """
-Base class for access to CHIANTI ion data
+Base classes for access to CHIANTI ion data
 """
 import os
 
@@ -19,8 +19,16 @@ class DataIndexer(object):
     """
     Data access layer for each distinct CHIANTI dataset
 
-    Acts as an interface layer between `Ion` and the CHIANTI stored in the
-    HDF5 database. All data that the user interacts with passes through this layer. 
+    Acts as an interface layer between `Ion` and the CHIANTI data stored in the
+    HDF5 database. All data that the user interacts with passes through this layer.
+
+    .. warning This object is not meant to be instantiated directly by the user. Rather, instances
+               are created by higher-level objects in order to provide access to the CHIANTI data.
+
+    Parameters
+    ----------
+    hdf5_path : `str`
+    top_level_path : `str`
     """
     
     def __init__(self, hdf5_path, top_level_path):
@@ -96,16 +104,16 @@ class DataIndexer(object):
             footer = '' if 'footer' not in grp.attrs else grp.attrs['footer']
             
         name_strs = '\n'.join(['{} {} -- {}'.format(*v) for v in var_names])
-        return '''{top_level_path} {version}
+        version = '' if self.version is None else f'-- v{self.version}'
+        return f"""{self.top_level_path} {version}
 
 Fields
 ------
-{vars_and_units}
+{name_strs}
 
 Footer
 ------
-{footer}'''.format(top_level_path=self.top_level_path, vars_and_units=name_strs, footer=footer,
-                   version='' if self.version is None else '-- v{}'.format(self.version))
+{footer}"""
 
 
 class IonBase(object):
@@ -114,9 +122,6 @@ class IonBase(object):
 
     Examples
     --------
-
-    Notes
-    -----
     """
 
     def __init__(self, ion_name, hdf5_path=None, **kwargs):
@@ -126,14 +131,15 @@ class IonBase(object):
         self.element_name = plasmapy.atomic.element_name(self.atomic_symbol)
         self.ionization_stage = int(ion_name.split('_')[-1])
         self.charge_state = self.ionization_stage - 1
-        self.ion_name = '{} {}'.format(self.atomic_symbol, self.ionization_stage)
+        self.ion_name = f'{self.atomic_symbol} {self.ionization_stage}'
         if hdf5_path is None:
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
             self.hdf5_dbase_root = hdf5_path
-        download_dbase(fiasco.defaults['ascii_dbase_root'], ask_before=kwargs.get('ask_before', True))
+        ask_before = kwargs.get('ask_before', True)
+        download_dbase(fiasco.defaults['ascii_dbase_root'], ask_before=ask_before)
         build_hdf5_dbase(fiasco.defaults['ascii_dbase_root'], self.hdf5_dbase_root,
-                         ask_before=kwargs.get('ask_before', True))
+                         ask_before=ask_before)
        
     @property
     def _abundance(self):

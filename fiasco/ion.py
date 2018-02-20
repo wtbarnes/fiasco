@@ -47,7 +47,8 @@ class Ion(IonBase):
         # TODO: do not hardcode defaults, pull from rc file
         self._dset_names = {}
         self._dset_names['ioneq_filename'] = kwargs.get('ioneq_filename', 'chianti')
-        self._dset_names['abundance_filename'] = kwargs.get('abundance_filename', 'sun_photospheric_1998_grevesse')
+        self._dset_names['abundance_filename'] = kwargs.get('abundance_filename',
+                                                            'sun_photospheric_1998_grevesse')
         self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
     
     @property
@@ -55,11 +56,14 @@ class Ion(IonBase):
         """
         Ionization equilibrium data interpolated to the given temperature
 
-        Note
-        ----
-        Will return NaN where interpolation is out of range of the data. For computing
-        ionization equilibrium outside of this temperature range, it is better to use
-        `fiasco.Element.equilibrium_ionization`
+        Interpolated the pre-computed ionization fractions stored in CHIANTI to the temperature
+        of the ion. Returns NaN where interpolation is out of range of the data. For computing
+        ionization equilibrium outside of this temperature range, it is better to use the ionization
+        and recombination rates.
+
+        See Also
+        --------
+        fiasco.Element.equilibrium_ionization
         """
         f = interp1d(self._ioneq[self._dset_names['ioneq_filename']]['temperature'],
                      self._ioneq[self._dset_names['ioneq_filename']]['ionization_fraction'],
