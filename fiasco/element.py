@@ -53,10 +53,16 @@ class Element(object):
         """
         All ions available in CHIANTI for this element
         """
-        with h5py.File(self.hdf5_dbase_root, 'r') as hf:
-            ions = sorted([i.split('_') for i in hf[self.atomic_symbol.lower()].keys() 
-                           if '{}_'.format(self.atomic_symbol.lower()) in i], key=lambda x: int(x[1]))
-        return ['_'.join(i) for i in ions]
+        ions = []
+        for f in fiasco.DataIndexer(self.hdf5_dbase_root, self.atomic_symbol.lower()).fields:
+            try:
+                el, ion = f.split('_') if '_' in f else (f,'0')
+                _ = plasmapy.atomic.atomic_symbol(f'{el} {int(ion)-1}+'.capitalize())
+                ions.append(f)
+            except plasmapy.atomic.names.InvalidParticleError:
+                continue
+
+        return sorted(ions, key=lambda x: int(x.split('_')[1]))
 
     def _rate_matrix(self):
         rate_matrix = np.zeros(self.temperature.shape + (self.atomic_number+1, self.atomic_number+1))
@@ -110,8 +116,7 @@ class Element(object):
         return value in self.ions
 
     def __repr__(self):
-        ion_list = '\n'.join([f"{i.split('_')[0].capitalize()} {i.split('_')[1]}"
-                              for i in self.ions])
+        ion_list = '\n'.join([' '.join(i.split('_')).capitalize() for i in self.ions])
         return f"""Element
 -------
 {self.atomic_symbol} ({self.atomic_number}) -- {self.element_name}
