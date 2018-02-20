@@ -29,8 +29,17 @@ def test_abundance(ion):
     assert ion.abundance.dtype == np.dtype('float64')
 
 
+def test_missing_abundance():
+    ion = fiasco.Ion('li_1', temperature, abundance_filename='sun_coronal_1992_feldman')
+    assert ion.abundance is None
+
+
 def test_ip(ion):
     assert ion.ip.dtype == np.dtype('float64')
+
+def test_missing_ip():
+    ion = fiasco.Ion('fe_27', temperature)
+    assert ion.ip is None
 
 
 def test_add_ions(ion, another_ion):
