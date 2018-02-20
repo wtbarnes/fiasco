@@ -22,8 +22,8 @@ class DataIndexer(object):
     Acts as an interface layer between `Ion` and the CHIANTI data stored in the
     HDF5 database. All data that the user interacts with passes through this layer.
 
-    .. warning This object is not meant to be instantiated directly by the user. Rather, instances
-               are created by higher-level objects in order to provide access to the CHIANTI data.
+    .. warning:: This object is not meant to be instantiated directly by the user. Rather, instances
+                 are created by higher-level objects in order to provide access to the CHIANTI data.
 
     Parameters
     ----------
