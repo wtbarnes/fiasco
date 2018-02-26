@@ -1,6 +1,3 @@
-.. _reference
-
-==============
 Code Reference
 ==============
 

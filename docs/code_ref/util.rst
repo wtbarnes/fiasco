@@ -1,4 +1,4 @@
-fiasco Utilities
+fiasco util
 ================
 
 .. automodapi:: fiasco.util
