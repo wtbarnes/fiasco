@@ -54,8 +54,8 @@ def download_dbase(ascii_dbase_root, version=None, ask_before=True):
     else:
         dbase_url = CHIANTI_URL.format(version=version)
     if ask_before:
-        question = "No CHIANTI database found at {}. Download it from {}?"
-        answer = query_yes_no(question.format(ascii_dbase_root, dbase_url), default='no')
+        question = f"No CHIANTI database found at {ascii_dbase_root}. Download it from {dbase_url}?"
+        answer = query_yes_no(question, default='no')
         if not answer:
             return None
     
@@ -77,10 +77,10 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, ask_before=True):
     if os.path.isfile(hdf5_dbase_root):
         return None
     if not os.path.isfile(os.path.join(ascii_dbase_root, 'VERSION')):
-        raise FileNotFoundError('No CHIANTI database found at {}'.format(ascii_dbase_root))
+        raise FileNotFoundError(f'No CHIANTI database found at {ascii_dbase_root}')
     if ask_before:
-        question = """No HDF5 database found at {}. Build it now?"""
-        answer = query_yes_no(question.format(hdf5_dbase_root), default='yes')
+        question = f"No HDF5 database found at {hdf5_dbase_root}. Build it now?"
+        answer = query_yes_no(question, default='yes')
         if not answer:
             return None
     
@@ -95,7 +95,7 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, ask_before=True):
                 parser = fiasco.io.Parser(af, ascii_dbase_root=ascii_dbase_root)
                 df = parser.parse()
                 if df is None:
-                    warnings.warn('Not including {} in {}'.format(af, hdf5_dbase_root), stacklevel=2)
+                    warnings.warn(f'Not including {af} in {hdf5_dbase_root}')
                 else:
                     parser.to_hdf5(hf, df)
                 progress.update()
@@ -103,14 +103,11 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, ask_before=True):
 
 def get_masterlist(ascii_dbase_root):
     """
-    Parse CHIANTI filetree and return list of all files, separated by category.
-
-    Note
-    -----
-    This will be only be useful when dealing with the raw ASCII data.
+    Parse CHIANTI filetree and return list of all files, separated by category. This will be only
+    be useful when dealing with the raw ASCII data.
     """
-    skip_dirs = ['version_3', 'deprecated', 'masterlist', 'ioneq', 'dem', 'ancillary_data', 'ip', 'abundance',
-                 'continuum', 'instrument_responses']
+    skip_dirs = ['version_3', 'deprecated', 'masterlist', 'ioneq', 'dem', 'ancillary_data', 'ip',
+                 'abundance', 'continuum', 'instrument_responses']
     # List of all files associated with ions
     ion_files = []
     for root, sub, files in os.walk(ascii_dbase_root):
@@ -122,12 +119,13 @@ def get_masterlist(ascii_dbase_root):
         subdir_files = []
         subdir_root = os.path.join(ascii_dbase_root, subdir)
         for root, _, files in os.walk(subdir_root):
-            subdir_files += [os.path.relpath(os.path.join(root, f), subdir_root) for f in files if f[0] != '.']
+            subdir_files += [os.path.relpath(os.path.join(root, f), subdir_root) for f in files
+                             if f[0] != '.']
         
         return subdir_files
 
     non_ion_subdirs = ['abundance', 'ioneq', 'ip', 'continuum']
-    all_files = {'{}_files'.format(sd): walk_sub_dir(sd) for sd in non_ion_subdirs}
+    all_files = {f'{sd}_files': walk_sub_dir(sd) for sd in non_ion_subdirs}
     all_files['ion_files'] = ion_files
 
     return all_files
