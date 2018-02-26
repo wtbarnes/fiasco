@@ -7,11 +7,8 @@ import fiasco
 
 class IonCollection(object):
     """
-    Container for holding multiple ions. Instantiate with ions, elements, or another 
+    Container for holding multiple ions. Instantiate with ions, elements, or another
     ion collection.
-
-    Notes
-    -----
 
     Examples
     --------

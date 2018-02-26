@@ -91,8 +91,8 @@ class PsplupsParser(ScupsParser):
     Spline fits to scaled collision rates for protons. These files are discussed in
     section 2.2 of[1]_ and the details of how these quantities are scaled are given in [2]_.
 
-    Note
-    ----
+    Notes
+    -----
     * Unlike the electron "scups" and "splups" files which contain the collision strengths
       (upsilons), these files contain the scaled *rates*.
     * The number of spline points for the rates depends on the fit type, 5 points for type 6

@@ -83,7 +83,7 @@ class Element(object):
         """
         Calculate the ionization equilibrium for all ions of the element.
 
-        Calculate the population fractions for every ion of this element as a function of 
+        Calculate the population fractions for every ion of this element as a function of
         temperature, assuming ionization equilibrium.
 
         Parameters

@@ -24,7 +24,7 @@ class Ion(IonBase):
     Parameters
     ----------
     ion_name: `str`
-    temperature: ~astropy.Quantity
+    temperature: `~astropy.units.Quantity`
 
     Other Parameters
     ----------------
@@ -197,12 +197,12 @@ class Ion(IonBase):
         """
         # Cross-sections from diparams file
         cross_section_total = np.zeros(energy.shape)
-        for ip, bt_c, bt_e, bt_cross_section in zip(self._diparams['ip'], self._diparams['bt_c'], 
+        for ip, bt_c, bt_e, bt_cross_section in zip(self._diparams['ip'], self._diparams['bt_c'],
                                                     self._diparams['bt_e'],
                                                     self._diparams['bt_cross_section']):
             U = energy/(ip.to(u.erg))
             scaled_energy = 1. - np.log(bt_c)/np.log(U - 1. + bt_c)
-            f_interp = interp1d(bt_e.value, bt_cross_section.value, kind='cubic', 
+            f_interp = interp1d(bt_e.value, bt_cross_section.value, kind='cubic',
                                 fill_value='extrapolate')
             scaled_cross_section = f_interp(scaled_energy.value)*bt_cross_section.unit
             # Only nonzero at energies above the ionization potential
@@ -297,7 +297,7 @@ class Ion(IonBase):
             A = self._rrparams['A_fit']
             B = self._rrparams['B_fit']
             if self._rrparams['fit_type'] == 2:
-                B = B + self._rrparams['C_fit'] * np.exp(-self._rrparams['T2_fit'] / self.temperature)
+                B = B + self._rrparams['C_fit']*np.exp(-self._rrparams['T2_fit']/self.temperature)
             T0 = self._rrparams['T0_fit']
             T1 = self._rrparams['T1_fit']
             
@@ -307,7 +307,7 @@ class Ion(IonBase):
             return self._rrparams['A_fit'] * (
                     (self.temperature/(1e4*u.K))**(-self._rrparams['eta_fit']))
         else:
-            raise ValueError('Unrecognized fit type {}'.format(self._rrparams['fit_type']))
+            raise ValueError(f"Unrecognized fit type {self._rrparams['fit_type']}")
     
     @needs_dataset('drparams')
     def dielectronic_recombination_rate(self):
@@ -335,7 +335,7 @@ class Ion(IonBase):
             return A * self.temperature**(-1.5) * np.exp(-T0/self.temperature) * (
                     1. + B * np.exp(-T1/self.temperature))
         else:
-            raise ValueError('Unrecognized fit type {}'.format(self._drparams['fit_type']))
+            raise ValueError(f"Unrecognized fit type {self._drparams['fit_type']}")
     
     def recombination_rate(self):
         """
