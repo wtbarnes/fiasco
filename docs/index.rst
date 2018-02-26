@@ -19,8 +19,8 @@ Welcome to the documentation for fiasco. fiasco provides a Python interface to t
   :maxdepth: 2
 
   getting_started
+  tutorial
   code_ref/index
-  examples
   dev_guide
   resources
 
