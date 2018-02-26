@@ -56,13 +56,13 @@ class Element(object):
         ions = []
         for f in fiasco.DataIndexer(self.hdf5_dbase_root, self.atomic_symbol.lower()).fields:
             try:
-                el, ion = f.split('_') if '_' in f else (f,'0')
+                el, ion = f.split('_') if '_' in f else (f, '0')
                 _ = plasmapy.atomic.atomic_symbol(f'{el} {int(ion)-1}+'.capitalize())
-                ions.append(f)
+                ions.append(f'{el.capitalize()} {ion}')
             except plasmapy.atomic.names.InvalidParticleError:
                 continue
 
-        return sorted(ions, key=lambda x: int(x.split('_')[1]))
+        return sorted(ions, key=lambda x: int(x.split()[1]))
 
     def _rate_matrix(self):
         rate_matrix = np.zeros(self.temperature.shape + (self.atomic_number+1, self.atomic_number+1))
@@ -116,7 +116,7 @@ class Element(object):
         return value in self.ions
 
     def __repr__(self):
-        ion_list = '\n'.join([' '.join(i.split('_')).capitalize() for i in self.ions])
+        ion_list = '\n'.join(self.ions)
         return f"""Element
 -------
 {self.atomic_symbol} ({self.atomic_number}) -- {self.element_name}

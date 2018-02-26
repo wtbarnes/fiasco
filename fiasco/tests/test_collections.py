@@ -13,7 +13,7 @@ temperature = np.logspace(5, 8, 100)*u.K
 
 @pytest.fixture
 def ion():
-    return fiasco.Ion('fe_11', temperature)
+    return fiasco.Ion('Fe 11', temperature)
 
 
 @pytest.fixture
@@ -23,11 +23,11 @@ def element():
 
 @pytest.fixture
 def collection():
-    return fiasco.IonCollection(fiasco.Ion('h_1',temperature), fiasco.Ion('he_2',temperature))
+    return fiasco.IonCollection(fiasco.Ion('H 1', temperature), fiasco.Ion('He 2', temperature))
 
 
 def test_create_collection_from_ions(ion):
-    another_ion = fiasco.Ion('fe_12', temperature)
+    another_ion = fiasco.Ion('Fe 12', temperature)
     assert isinstance(ion + another_ion, fiasco.IonCollection)
     assert isinstance(fiasco.IonCollection(ion, another_ion), fiasco.IonCollection)
 
@@ -48,7 +48,7 @@ def test_create_collection_from_collection(collection):
 
 
 def test_unequal_temperatures_raise_assertion_error():
-    first_ion = fiasco.Ion('fe_12', [1e6, 1e7]*u.K)
-    second_ion = fiasco.Ion('fe_9', [1e4, 1e5]*u.K)
+    first_ion = fiasco.Ion('Fe 12', [1e6, 1e7]*u.K)
+    second_ion = fiasco.Ion('Fe 9', [1e4, 1e5]*u.K)
     with pytest.raises(AssertionError):
         fiasco.IonCollection(first_ion, second_ion)

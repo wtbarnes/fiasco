@@ -125,13 +125,17 @@ class IonBase(object):
     """
 
     def __init__(self, ion_name, hdf5_path=None, **kwargs):
-        self._ion_name = ion_name
-        self.atomic_symbol = ion_name.split('_')[0].capitalize()
-        self.atomic_number = plasmapy.atomic.atomic_number(self.atomic_symbol)
-        self.element_name = plasmapy.atomic.element_name(self.atomic_symbol)
-        self.ionization_stage = int(ion_name.split('_')[-1])
+        element, ion = ion_name.split()
+        if '+' in ion:
+            ion = f"{int(ion.strip('+')) + 1}"
+        self.atomic_number = plasmapy.atomic.atomic_number(element.capitalize())
+        self.element_name = plasmapy.atomic.element_name(element.capitalize())
+        self.atomic_symbol = plasmapy.atomic.atomic_symbol(element.capitalize())
+        self.ionization_stage = int(ion)
         self.charge_state = self.ionization_stage - 1
         self.ion_name = f'{self.atomic_symbol} {self.ionization_stage}'
+        # This is the preferred CHIANTI format and is only preserved for internal data access
+        self._ion_name = f'{self.atomic_symbol.lower()}_{self.ionization_stage}'
         if hdf5_path is None:
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
