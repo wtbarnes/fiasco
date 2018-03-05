@@ -9,7 +9,7 @@ import plasmapy
 import fiasco
 
 
-class Element(object):
+class Element(fiasco.IonCollection):
     """
     Object containing all ions for a particular element.
 
@@ -45,24 +45,15 @@ class Element(object):
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
             self.hdf5_dbase_root = hdf5_path
-        self._ion_kwargs = kwargs.get('ion_kwargs', {})
-        self._ion_kwargs['hdf5_path'] = self.hdf5_dbase_root
-
-    @property
-    def ions(self):
-        """
-        All ions available in CHIANTI for this element
-        """
-        ions = []
-        for f in fiasco.DataIndexer(self.hdf5_dbase_root, self.atomic_symbol.lower()).fields:
-            try:
-                el, ion = f.split('_') if '_' in f else (f, '0')
-                _ = plasmapy.atomic.atomic_symbol(f'{el} {int(ion)-1}+'.capitalize())
-                ions.append(f'{el.capitalize()} {ion}')
-            except plasmapy.atomic.names.InvalidParticleError:
-                continue
-
-        return sorted(ions, key=lambda x: int(x.split()[1]))
+        ion_kwargs = kwargs.get('ion_kwargs', {})
+        ion_kwargs['hdf5_path'] = self.hdf5_dbase_root
+        # Build ion list
+        ion_list = []
+        for i in range(self.atomic_number + 1):
+            ion = f'{self.atomic_symbol.lower()}_{i+1}'
+            if ion in fiasco.DataIndexer(self.hdf5_dbase_root, self.atomic_symbol.lower()).fields:
+                ion_list.append(fiasco.Ion(f'{self.atomic_symbol} {i+1}', temperature, **ion_kwargs))
+        super().__init__(*ion_list)
 
     def _rate_matrix(self):
         rate_matrix = np.zeros(self.temperature.shape + (self.atomic_number+1, self.atomic_number+1))
@@ -101,22 +92,17 @@ class Element(object):
 
         return u.Quantity(ioneq)
 
-    def __add__(self, value):
-        return fiasco.IonCollection(self, value)
-
-    def __radd__(self, value):
-        return fiasco.IonCollection(value, self)
-
     def __getitem__(self, value):
-        if type(value) is int:
-            value = self.ions[value]
-        return fiasco.Ion(value, self.temperature, **self._ion_kwargs)
-
-    def __contains__(self, value):
-        return value in self.ions
+        if type(value) is str:
+            el, ion = value.split()
+            if '+' in ion:
+                value = int(ion.strip('+'))
+            else:
+                value = int(ion) - 1
+        return super().__getitem__(value)
 
     def __repr__(self):
-        ion_list = '\n'.join(self.ions)
+        ion_list = '\n'.join([i.ion_name for i in self._ion_list])
         return f"""Element
 -------
 {self.atomic_symbol} ({self.atomic_number}) -- {self.element_name}

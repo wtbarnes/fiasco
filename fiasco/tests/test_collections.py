@@ -17,6 +17,11 @@ def ion():
 
 
 @pytest.fixture
+def another_ion():
+    return fiasco.Ion('Ca 1', temperature)
+
+
+@pytest.fixture
 def element():
     return fiasco.Element('calcium', temperature)
 
@@ -47,8 +52,29 @@ def test_create_collection_from_collection(collection):
     assert isinstance(fiasco.IonCollection(collection), fiasco.IonCollection)
 
 
+def test_getitem(ion, another_ion):
+    collection = fiasco.IonCollection(ion, another_ion)
+    assert collection[0] == ion
+    assert collection[1] == another_ion
+
+
+def test_contains(collection):
+    assert 'H 1' in collection
+    assert 'hydrogen 1' in collection
+    assert 'hydrogen +0' in collection
+    ion = fiasco.Ion('H 1', temperature)
+    assert ion in collection
+
+
 def test_unequal_temperatures_raise_assertion_error():
     first_ion = fiasco.Ion('Fe 12', [1e6, 1e7]*u.K)
     second_ion = fiasco.Ion('Fe 9', [1e4, 1e5]*u.K)
     with pytest.raises(AssertionError):
         fiasco.IonCollection(first_ion, second_ion)
+
+
+def test_create_with_wrong_type_raise_type_error(ion, collection):
+    with pytest.raises(TypeError):
+        fiasco.IonCollection(ion, 0)
+    with pytest.raises(TypeError):
+        collection + 0

@@ -47,7 +47,8 @@ def test_radd_elements(element, another_element):
 
 def test_create_element_number(element):
     other_element = fiasco.Element(element.atomic_number, temperature)
-    assert other_element.ions == element.ions
+    for ion in other_element:
+        assert ion in element
     assert other_element.atomic_symbol == element.atomic_symbol
     assert other_element.atomic_number == element.atomic_number
     assert other_element.element_name == element.element_name
@@ -55,7 +56,8 @@ def test_create_element_number(element):
 
 def test_create_element_name(element):
     other_element = fiasco.Element(element.element_name, temperature)
-    assert other_element.ions == element.ions
+    for ion in other_element:
+        assert ion in element
     assert other_element.atomic_symbol == element.atomic_symbol
     assert other_element.atomic_number == element.atomic_number
     assert other_element.element_name == element.element_name
@@ -63,11 +65,17 @@ def test_create_element_name(element):
 
 def test_create_element_lowercase(element):
     other_element = fiasco.Element(element.atomic_symbol.lower(), temperature)
-    assert other_element.ions == element.ions
+    for ion in other_element:
+        assert ion in element
     assert other_element.atomic_symbol == element.atomic_symbol
     assert other_element.atomic_number == element.atomic_number
     assert other_element.element_name == element.element_name
 
+
+def test_getitem_ion_name(element):
+    assert element['Fe 1'] == element[0]
+    assert element['Fe 27'] == element[-1]
+    
 
 def test_create_element_without_units_raises_units_error():
     with pytest.raises(TypeError):
