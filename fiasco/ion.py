@@ -8,12 +8,12 @@ from scipy.interpolate import splrep, splev, interp1d
 import astropy.units as u
 import astropy.constants as const
 
-from .base import IonBase
+from .base import IonBase, ContinuumBase
 from .collections import IonCollection
 from fiasco.util import needs_dataset
 
 
-class Ion(IonBase):
+class Ion(IonBase, ContinuumBase):
     """
     Ion class
 
@@ -86,7 +86,8 @@ class Ion(IonBase):
         Ionization potential with reasonable units
         """
         if self._ip is not None:
-            return (self._ip[self._dset_names['ip_filename']] * const.h.cgs * const.c.cgs).decompose().cgs
+            return (self._ip[self._dset_names['ip_filename']]
+                    * const.h.cgs * const.c.cgs).decompose().cgs
         else:
             return None
 
@@ -160,8 +161,8 @@ class Ion(IonBase):
         if cross_section is None:
             return None
         term1 = np.sqrt(8./np.pi/const.m_e.cgs)*np.sqrt(kBT)*np.exp(-self.ip/kBT)
-        term2 = ((wgl*xgl)[:,np.newaxis]*cross_section).sum(axis=0)
-        term3 = (wgl[:,np.newaxis]*cross_section).sum(axis=0)*self.ip/kBT
+        term2 = ((wgl*xgl)[:, np.newaxis]*cross_section).sum(axis=0)
+        term3 = (wgl[:, np.newaxis]*cross_section).sum(axis=0)*self.ip/kBT
         
         return term1*(term2 + term3)
     
@@ -256,7 +257,7 @@ class Ion(IonBase):
                 self._easplups['bt_type']]
         upsilon = u.Quantity(list(map(self.burgess_tully_descale, *args)))
         # Rate coefficient
-        rate = c * upsilon * np.exp(-1 / kBTE) / np.sqrt(self.temperature[np.newaxis,:])
+        rate = c * upsilon * np.exp(-1 / kBTE) / np.sqrt(self.temperature[np.newaxis, :])
         
         return rate.sum(axis=0)
     
@@ -326,7 +327,7 @@ class Ion(IonBase):
             E_over_T = (np.outer(self._drparams['E_fit'], 1./self.temperature)
                         * (self._drparams['E_fit'].unit/self.temperature.unit))
             return self.temperature**(-1.5)*(
-                    self._drparams['c_fit'][:,np.newaxis]*np.exp(-E_over_T)).sum(axis=0)
+                    self._drparams['c_fit'][:, np.newaxis]*np.exp(-E_over_T)).sum(axis=0)
         elif self._drparams['fit_type'][0] == 2:
             A = self._drparams['A_fit']
             B = self._drparams['B_fit']

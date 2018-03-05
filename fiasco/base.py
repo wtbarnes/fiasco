@@ -14,6 +14,8 @@ from .io.factory import all_subclasses
 from .io.generic import GenericParser, GenericIonParser
 from .util import download_dbase, build_hdf5_dbase
 
+__all__ = ['DataIndexer', 'IonBase', 'ContinuumBase']
+
 
 class DataIndexer(object):
     """
@@ -116,12 +118,9 @@ Footer
 {footer}"""
 
 
-class IonBase(object):
+class Base(object):
     """
-    Base class for accessing CHIANTI data attached to a particular ion
-
-    Examples
-    --------
+    Base class for setting up ion metadata and building database as needed
     """
 
     def __init__(self, ion_name, hdf5_path=None, **kwargs):
@@ -144,6 +143,63 @@ class IonBase(object):
         download_dbase(fiasco.defaults['ascii_dbase_root'], ask_before=ask_before)
         build_hdf5_dbase(fiasco.defaults['ascii_dbase_root'], self.hdf5_dbase_root,
                          ask_before=ask_before)
+
+
+class ContinuumBase(Base):
+    """
+    Base class for retrieving continuum datasets.
+    """
+
+    @property
+    def _gffgu(self):
+        data_path = '/'.join(['continuum', 'gffgu'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+
+    @property
+    def _gffint(self):
+        data_path = '/'.join(['continuum', 'gffint'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+
+    @property
+    def _klgfb(self):
+        data_path = '/'.join(['continuum', 'klgfb'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+
+    @property
+    def _verner(self):
+        data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, 'continuum',
+                              'verner_short'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+
+    @property
+    def _itoh(self):
+        data_path = '/'.join([self.atomic_symbol.lower(), 'continuum', 'itoh'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+
+    @property
+    def _hseq(self):
+        data_path = '/'.join([self.atomic_symbol.lower(), 'continuum', 'hseq_2photon'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+
+    @property
+    def _heseq(self):
+        data_path = '/'.join([self.atomic_symbol.lower(), 'continuum', 'heseq_2photon'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+
+
+class IonBase(Base):
+    """
+    Base class for accessing CHIANTI data attached to a particular ion
+
+    Parameters
+    ----------
+    ion_name : `str`
+        Name of ion, e.g. for Fe V, 'Fe 5', 'iron 5', 'Fe 4+'
+    hdf5_path : `str`, optional
+    
+    Examples
+    --------
+    """
        
     @property
     def _abundance(self):
@@ -169,7 +225,7 @@ def add_property(cls, filetype):
         data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, filetype])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
-    property_template.__doc__ = 'Data in {} type file'.format(filetype)
+    property_template.__doc__ = f'Data in {filetype} type file'
     property_template.__name__ = '_{}'.format('_'.join(filetype.split('/')))
     setattr(cls, property_template.__name__, property(property_template))
 
