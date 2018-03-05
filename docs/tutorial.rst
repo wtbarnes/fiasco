@@ -50,7 +50,7 @@ The individual columns can easily be accessed as,
                 52732.7,  61854.4,  62238.1,  62321.1,  62364.4,  62914.2,
                 63420. ,  71280.3,  93832.3, 121130.2] 1 / cm>
 
-The above column has units attached to it because each column is an `~astropy.units.Quantity` object and thus has units attached to it if appropriate. Metadata, including the original footer from the raw CHIANTI data and detailed descriptions of each of the columns, is included with each table,
+Each above column is an `~astropy.units.Quantity` object with units attached to it if appropriate. Metadata, including the original footer from the raw CHIANTI data and detailed descriptions of each of the columns, is included with each table,
 
     >>> table.meta.keys()
     odict_keys(['footer', 'chianti_version', 'filename', 'descriptions', 'element', 'ion', 'dielectronic'])
@@ -72,13 +72,76 @@ Note that in the above example we only provided the filename because fiasco is a
 
 Ions
 ------
+The CHIANTI database is organized around individual ions, with multiple types of datafiles attached to each ion. In keeping with the organization of the database, the primary unit of the fiasco library is the `~fiasco.Ion` object which can be created in the following way,
 
+    >>> import numpy as np
+    >>> import astropy.units as u
+    >>> from fiasco import Ion
+    >>> temperature = np.logspace(5, 7, 100) * u.K
+    >>> ion = Ion('Fe 15', temperature)
+
+This creates a `~fiasco.Ion` object for the Fe XV ion. Note also the same object can also be created in the following ways,
+
+    >>> ion = Ion('iron 15', temperature)
+    >>> ion = Ion('iron 14+', temperature)
+
+
+Basic Metadata
+***************
+The `~fiasco.Ion` object holds several basic pieces of metadata related to the particular ion,
+
+    >>> ion.element_name
+    'iron'
+    >>> ion.atomic_symbol
+    'Fe'
+    >>> ion.atomic_number
+    26
+    >>> ion.ion_name
+    'Fe 15'
+    >>> ion.charge_state
+    14
+    >>> ion.ionization_stage
+    15
+    >>> ion.abundance
+    <Quantity 3.16227766e-05>
+    >>> ion.ip
+    <Quantity 7.32203931e-10 erg>
+
+In the cases of the abundance and ionization potential (`ip`), specific datasets available in CHIANTI can be specified using the `abundance_filename` and `ip_filename` keywords, respectively, when instantiating the ion object. For more information on accessing specific datasets, see :ref:`ionbase` section.
+
+The equilibrium population fractions are interpolated to `temperature` and can be accessed using the `ioneq` keyword.
+
+.. plot::
+    :include-source:
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import astropy.units as u
+    from fiasco import Ion
+    ion = Ion('Fe 15', np.logspace(5, 7, 100) * u.K)
+    plt.plot(ion.temperature, ion.ioneq)
+    plt.xlabel(r'$T [K]$')
+    plt.ylabel(r'Population Fraction')
+    plt.xscale('log')
+    plt.show()
+
+Note that these population fractions are those which are stored in the CHIANTI database and outside of the temperature data given in CHIANTI, the population fraction is set to NaN. If you need to calculate the population fractions over a wider temperature range, it is better to do so by calculating the ionization and recombination rates. See the :ref:`elements` section for more info.
+
+Derived Quantities
+******************
+
+Accessing Raw Data
+******************
 
 Working with Multiple Ions
 --------------------------
 
+.. _elements:
+
 Elements
 ---------
+
+.. _ionbase:
 
 The IonBase Object
 ------------------
