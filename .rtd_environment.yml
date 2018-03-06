@@ -1,6 +1,7 @@
 name: fiasco-rtd
 dependencies:
 - python=3.6
+- matplotlib
 - numpy
 - scipy
 - astropy
