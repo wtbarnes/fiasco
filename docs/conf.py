@@ -32,6 +32,16 @@ import sys
 ON_RTD = os.environ.get('READTHEDOCS') == 'True'
 ON_TRAVIS = os.environ.get('TRAVIS') == 'true'
 
+# FIXME: Download and install the database because docs need to build plots
+# Eventually will be removed in favor of data being accessed via some sort of
+# API
+if ON_RTD:
+    import fiasco.util
+    paths = fiasco.util.setup_paths()
+    fiasco.util.download_dbase(paths['ascii_dbase_root'], ask_before=False)
+    fiasco.util.build_hdf5_dbase(paths['ascii_dbase_root'], paths['hdf5_dbase_root'],
+                                 ask_before=False)
+
 try:
     import astropy_helpers
 except ImportError:

@@ -69,7 +69,8 @@ install:
     - source ci-helpers/travis/setup_conda.sh
 
 script:
-   - if [[ $SETUP_CMD == *test* ]]; then python setup.py install && python ci/setup_dbase.py; fi
+   # Remove this at some point in favor of the database being available via some API
+   - if [[ $SETUP_CMD == *test* ]] || [[ $SETUP_CMD == build_docs ]]; then python setup.py install && python ci/setup_dbase.py; fi
    - $MAIN_CMD $SETUP_CMD
 
 after_success:
