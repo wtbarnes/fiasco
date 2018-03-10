@@ -7,10 +7,11 @@ from ._sunpy_init import *
 # ----------------------------------------------------------------------------
 
 if not _ASTROPY_SETUP_:
+    from .util.util import setup_paths
+    defaults = setup_paths()
+    
+    from .datalayer import *
     from .base import *
     from .ion import Ion
     from .collections import IonCollection
     from .element import Element
-
-    from .util import setup_paths
-    defaults = setup_paths()
