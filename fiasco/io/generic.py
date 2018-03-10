@@ -9,7 +9,7 @@ import numpy as np
 from astropy.table import QTable
 import astropy.units as u
 
-from fiasco.util import setup_paths
+import fiasco
 
 
 class GenericParser(object):
@@ -23,7 +23,7 @@ class GenericParser(object):
     
     def __init__(self, filename, **kwargs):
         self.filename = filename
-        self.ascii_dbase_root = kwargs.get('ascii_dbase_root', setup_paths()['ascii_dbase_root'])
+        self.ascii_dbase_root = kwargs.get('ascii_dbase_root', fiasco.defaults['ascii_dbase_root'])
         # Cannot supply a version number if this is a standalone file
         if 'full_path' in kwargs:
             self.chianti_version = ''

@@ -15,30 +15,11 @@ from astropy.utils.console import ProgressBar
 import fiasco.io
 from .yes_no import query_yes_no
 
-__all__ = ['setup_paths', 'download_dbase', 'get_masterlist', 'build_hdf5_dbase']
-
 FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
 CHIANTI_URL = 'http://www.chiantidatabase.org/download/CHIANTI_{version}_data.tar.gz'
 LATEST_VERSION = '8.0.6'
 
-
-def setup_paths():
-    """
-    Parse .rc file and set ASCII and HDF5 database paths.
-    """
-    paths = {}
-    if os.path.isfile(os.path.join(FIASCO_HOME, 'fiascorc')):
-        config = configparser.ConfigParser()
-        config.read(os.path.join(FIASCO_HOME, 'fiascorc'))
-        if 'database' in config:
-            paths = dict(config['database'])
-        
-    if 'ascii_dbase_root' not in paths:
-        paths['ascii_dbase_root'] = os.path.join(FIASCO_HOME, 'chianti_dbase')
-    if 'hdf5_dbase_root' not in paths:
-        paths['hdf5_dbase_root'] = os.path.join(FIASCO_HOME, 'chianti_dbase.h5')
-
-    return paths
+__all__ = ['download_dbase', 'build_hdf5_dbase']
 
 
 def download_dbase(ascii_dbase_root, version=None, ask_before=True):
@@ -99,34 +80,3 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, ask_before=True):
                 else:
                     parser.to_hdf5(hf, df)
                 progress.update()
-
-
-def get_masterlist(ascii_dbase_root):
-    """
-    Parse CHIANTI filetree and return list of all files, separated by category. This will be only
-    be useful when dealing with the raw ASCII data.
-    """
-    skip_dirs = ['version_3', 'deprecated', 'masterlist', 'ioneq', 'dem', 'ancillary_data', 'ip',
-                 'abundance', 'continuum', 'instrument_responses']
-    # List of all files associated with ions
-    ion_files = []
-    for root, sub, files in os.walk(ascii_dbase_root):
-        if not any([sd in root for sd in skip_dirs]) and not any([sd in sub for sd in skip_dirs]):
-            ion_files += [f for f in files if f[0] != '.']
-
-    # List all of the non-ion files, excluding any "dot"/hidden files
-    def walk_sub_dir(subdir):
-        subdir_files = []
-        subdir_root = os.path.join(ascii_dbase_root, subdir)
-        for root, _, files in os.walk(subdir_root):
-            subdir_files += [os.path.relpath(os.path.join(root, f), subdir_root) for f in files
-                             if f[0] != '.']
-        
-        return subdir_files
-
-    non_ion_subdirs = ['abundance', 'ioneq', 'ip', 'continuum']
-    all_files = {f'{sd}_files': walk_sub_dir(sd) for sd in non_ion_subdirs}
-    all_files['ion_files'] = ion_files
-
-    return all_files
-    
