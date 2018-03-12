@@ -3,10 +3,6 @@
 # install Python ourselves using conda.
 language: c
 
-branches:
-    only:
-    - master
-
 os:
     - linux
 
