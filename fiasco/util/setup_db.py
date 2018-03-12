@@ -14,6 +14,7 @@ from astropy.utils.console import ProgressBar
 
 import fiasco.io
 from .yes_no import query_yes_no
+from .util import get_masterlist
 
 FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
 CHIANTI_URL = 'http://www.chiantidatabase.org/download/CHIANTI_{version}_data.tar.gz'
