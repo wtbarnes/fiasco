@@ -83,6 +83,11 @@ class DataIndexerRemote(object):
         return key_in_grp
     
     def __getitem__(self, key):
+        """
+        NOTE: There seems to be a weird in bug in h5pyd where if a dataset
+        is returned directly to a numpy array, the slicing/indexing fails. Thus,
+        all of the gymnastics around returning datasets and casting to types appropriately.
+        """
         if type(key) is int:
             raise NotImplementedError('Iteration not supported.')
         with h5pyd.File(self.domain, 'r', endpoint=self.endpoint) as hf:
@@ -93,10 +98,16 @@ class DataIndexerRemote(object):
                 data = DataIndexerRemote.create_indexer(self.domain, self.endpoint,
                                                         '/'.join([self.top_level_path, key]))
             else:
-                if ds.attrs['unit'] == 'SKIP' or ds.dtype == 'object':
-                    data = (ds[:]).astype(ds.dtype)
+                # Scalars cannot be sliced
+                if not ds.shape:
+                    data = np.array(ds.value)
                 else:
-                    data = u.Quantity(ds[:], ds.attrs['unit'], dtype=ds.dtype)
+                    data = ds[:]
+                # Some things are just arrays
+                if ds.attrs['unit'] == 'SKIP' or ds.dtype == 'object':
+                    data = data.astype(ds.dtype)
+                else:
+                    data = u.Quantity(data, ds.attrs['unit'], dtype=ds.dtype)
                 if '|S' in data.dtype.str:
                     data = data.astype(str)
         return data
