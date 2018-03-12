@@ -47,11 +47,12 @@ class Element(fiasco.IonCollection):
             self.hdf5_dbase_root = hdf5_path
         ion_kwargs = kwargs.get('ion_kwargs', {})
         ion_kwargs['hdf5_path'] = self.hdf5_dbase_root
-        # Build ion list
+        
+        chianti_ions = fiasco.DataIndexer(self.hdf5_dbase_root, self.atomic_symbol.lower()).fields
         ion_list = []
         for i in range(self.atomic_number + 1):
             ion = f'{self.atomic_symbol.lower()}_{i+1}'
-            if ion in fiasco.DataIndexer(self.hdf5_dbase_root, self.atomic_symbol.lower()).fields:
+            if ion in chianti_ions:
                 ion_list.append(fiasco.Ion(f'{self.atomic_symbol} {i+1}', temperature, **ion_kwargs))
         super().__init__(*ion_list)
 
