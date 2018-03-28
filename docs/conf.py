@@ -39,6 +39,7 @@ if ON_RTD:
     if not os.path.exists(FIASCO_HOME):
         os.makedirs(FIASCO_HOME)
     with open(os.path.join(FIASCO_HOME, 'fiascorc'), 'w') as f:
+        c = configparser.ConfigParser()
         c.set('database', 'ascii_dbase_root', os.path.join(FIASCO_HOME, 'ascii_dbase'))
         c.set('database', 'use_remote_data', 'true')
         c.set('database', 'remote_domain', 'chianti.fiasco.org')
