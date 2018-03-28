@@ -30,21 +30,21 @@ import configparser
 import os
 import sys
 
-ON_RTD = os.environ.get('READTHEDOCS') == 'True'
+#ON_RTD = os.environ.get('READTHEDOCS') == 'True'
 
-# FIXME: Potential here for mismatch between raw data and HDF5 data being called remotely
-if ON_RTD:
-    # Configure to use remote data
-    FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
-    if not os.path.exists(FIASCO_HOME):
-        os.makedirs(FIASCO_HOME)
-    with open(os.path.join(FIASCO_HOME, 'fiascorc'), 'w') as f:
-        c = configparser.ConfigParser()
-        c.add_section('database')
-        c.set('database', 'ascii_dbase_root', os.path.join(FIASCO_HOME, 'ascii_dbase'))
-        c.set('database', 'use_remote_data', 'true')
-        c.set('database', 'remote_domain', 'chianti.fiasco.org')
-        c.set('database', 'remote_endpoint', 'http://167.99.1.185')
+## FIXME: Potential here for mismatch between raw data and HDF5 data being called remotely
+#if ON_RTD:
+#    # Configure to use remote data
+#    FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
+#    if not os.path.exists(FIASCO_HOME):
+#        os.makedirs(FIASCO_HOME)
+#    with open(os.path.join(FIASCO_HOME, 'fiascorc'), 'w') as f:
+#        c = configparser.ConfigParser()
+#        c.add_section('database')
+#        c.set('database', 'ascii_dbase_root', os.path.join(FIASCO_HOME, 'ascii_dbase'))
+#        c.set('database', 'use_remote_data', 'true')
+#        c.set('database', 'remote_domain', 'chianti.fiasco.org')
+#        c.set('database', 'remote_endpoint', 'http://167.99.1.185')
 
 try:
     import astropy_helpers
