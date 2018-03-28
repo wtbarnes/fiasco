@@ -26,21 +26,27 @@
 # be accessible, and the documentation will not build correctly.
 
 import datetime
+import configparser
 import os
 import sys
 
 ON_RTD = os.environ.get('READTHEDOCS') == 'True'
-ON_TRAVIS = os.environ.get('TRAVIS') == 'true'
 
-# FIXME: Download and install the database because docs need to build plots
-# Eventually will be removed in favor of data being accessed via some sort of
-# API
+# FIXME: Potential here for mismatch between raw data and HDF5 data being called remotely
 if ON_RTD:
+    # Configure to use remote data
+    FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
+    if not os.path.exists(FIASCO_HOME):
+        os.makedirs(FIASCO_HOME)
+    with open(os.path.join(FIASCO_HOME, 'fiascorc'), 'w') as f:
+        c.set('database', 'ascii_dbase_root', os.path.join(FIASCO_HOME, 'ascii_dbase'))
+        c.set('database', 'use_remote_data', 'true')
+        c.set('database', 'remote_domain', 'chianti.fiasco.org')
+        c.set('database', 'remote_endpoint', 'http://167.99.1.185')
+    # Download the raw data
     import fiasco.util
     paths = fiasco.util.setup_paths()
     fiasco.util.download_dbase(paths['ascii_dbase_root'], ask_before=False)
-    fiasco.util.build_hdf5_dbase(paths['ascii_dbase_root'], paths['hdf5_dbase_root'],
-                                 ask_before=False)
 
 try:
     import astropy_helpers

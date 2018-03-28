@@ -15,9 +15,6 @@ import plasmapy.atomic
 
 import fiasco
 
-REMOTE_DOMAIN = 'chianti.hdfgroup.org'
-REMOTE_ENDPOINT = 'http://127.0.0.1:5000'
-
 __all__ = ['DataIndexer', 'DataIndexerLocal', 'DataIndexerRemote']
 
 
@@ -28,14 +25,16 @@ class DataIndexer(object):
     
     def __new__(cls, *args):
         if fiasco.defaults['use_remote_data']:
-            return DataIndexerRemote(REMOTE_DOMAIN, REMOTE_ENDPOINT, args[1])
+            return DataIndexerRemote(
+                fiasco.defaults['remote_domain'], fiasco.defaults['remote_endpoint'], args[1])
         else:
             return DataIndexerLocal(*args)
 
     @classmethod
     def create_indexer(cls, *args):
         if fiasco.defaults['use_remote_data']:
-            return DataIndexerRemote.create_indexer(REMOTE_DOMAIN, REMOTE_ENDPOINT, args[1])
+            return DataIndexerRemote.create_indexer(
+                fiasco.defaults['remote_domain'], fiasco.defaults['remote_endpoint'], args[1])
         else:
             return DataIndexerLocal.create_indexer(*args)
 
