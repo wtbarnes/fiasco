@@ -45,10 +45,6 @@ if ON_RTD:
         c.set('database', 'use_remote_data', 'true')
         c.set('database', 'remote_domain', 'chianti.fiasco.org')
         c.set('database', 'remote_endpoint', 'http://167.99.1.185')
-    # Download the raw data
-    import fiasco.util
-    paths = fiasco.util.setup_paths()
-    fiasco.util.download_dbase(paths['ascii_dbase_root'], ask_before=False)
 
 try:
     import astropy_helpers

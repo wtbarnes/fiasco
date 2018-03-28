@@ -42,7 +42,7 @@ For example, say we want to parse the energy level file for Fe V (i.e. iron with
 
 The individual columns can easily be accessed as,
 
-    >>> table['E_obs']
+    >>> table['E_obs'] # doctest: +SKIP
     <Quantity [     0. ,    142.1,    417.3,    803.1,   1282.8,  24055.4,
                 24932.5,  24972.9,  25225.9,  25528.5,  26468.3,  26760.7,
                 26842.3,  26974. ,  29817.1,  30147. ,  30430.1,  36586.3,
@@ -52,9 +52,9 @@ The individual columns can easily be accessed as,
 
 Each above column is an `~astropy.units.Quantity` object with units attached to it if appropriate. Metadata, including the original footer from the raw CHIANTI data and detailed descriptions of each of the columns, is included with each table,
 
-    >>> table.meta.keys()
+    >>> table.meta.keys() # doctest: +SKIP
     odict_keys(['footer', 'chianti_version', 'filename', 'descriptions', 'element', 'ion', 'dielectronic'])
-    >>> print(table.meta['footer'])
+    >>> print(table.meta['footer']) # doctest: +SKIP
     filename:  fe_5.elvlc
     Observed energies: Ralchenko, Yu., Kramida, A.E., Reader, J., and NIST ASD Team (2008).
     NIST Atomic Spectra Database (version 3.1.5), [Online]. Available: http://physics.nist.gov/asd3
