@@ -34,6 +34,7 @@ ON_RTD = os.environ.get('READTHEDOCS') == 'True'
 
 # FIXME: Potential here for mismatch between raw data and HDF5 data being called remotely
 if ON_RTD:
+    os.environ['HOME'] = '/home/docs'
     # Configure to use remote data
     FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
     if not os.path.exists(FIASCO_HOME):
