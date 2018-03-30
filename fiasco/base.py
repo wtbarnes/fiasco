@@ -35,11 +35,11 @@ class Base(object):
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
             self.hdf5_dbase_root = hdf5_path
-        if not fiasco.defaults['use_remote_data']:
-            ask_before = kwargs.get('ask_before', True)
-            download_dbase(fiasco.defaults['ascii_dbase_root'], ask_before=ask_before)
-            build_hdf5_dbase(fiasco.defaults['ascii_dbase_root'], self.hdf5_dbase_root,
-                             ask_before=ask_before)
+        # if not fiasco.defaults['use_remote_data']:
+        #     ask_before = kwargs.get('ask_before', True)
+        #     download_dbase(fiasco.defaults['ascii_dbase_root'], ask_before=ask_before)
+        #     build_hdf5_dbase(fiasco.defaults['ascii_dbase_root'], self.hdf5_dbase_root,
+        #                      ask_before=ask_before)
 
 
 class ContinuumBase(Base):
