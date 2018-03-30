@@ -46,6 +46,7 @@ if ON_RTD:
         c.set('database', 'use_remote_data', 'true')
         c.set('database', 'remote_domain', 'chianti.fiasco.org')
         c.set('database', 'remote_endpoint', 'http://167.99.1.185')
+        c.write(f)
 
 try:
     import astropy_helpers
