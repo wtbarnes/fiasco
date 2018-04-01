@@ -21,6 +21,21 @@ def another_ion():
     return fiasco.Ion('Fe 6', temperature)
 
 
+def test_level_indexing(ion):
+    assert isinstance(ion[0], fiasco.ion.Level)
+
+
+def test_level_properties(ion):
+    assert hasattr(ion[0], 'level')
+    assert hasattr(ion[0], 'energy')
+    assert hasattr(ion[0], 'configuration')
+
+
+def test_no_elvlc_raises_index_error():
+    with pytest.raises(IndexError):
+        fiasco.Ion('Cr 1', temperature)[0]
+
+
 def test_ioneq(ion):
     assert ion.ioneq.shape == temperature.shape
 

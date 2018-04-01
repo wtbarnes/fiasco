@@ -50,6 +50,31 @@ class Ion(IonBase, ContinuumBase):
         self._dset_names['abundance_filename'] = kwargs.get('abundance_filename',
                                                             'sun_photospheric_1998_grevesse')
         self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
+
+    def __repr__(self):
+        n_levels = self._elvlc['level'].shape[0] if self._elvlc else 0
+        n_transitions = self._wgfa['lower_level'].shape[0] if self._wgfa else 0
+        return f"""CHIANTI Database Ion
+---------------------
+Name: {self.ion_name}
+Element: {self.element_name} ({self.atomic_number})
+Charge: +{self.charge_state}
+Number of Levels: {n_levels}
+Number of Transitions: {n_transitions}
+
+Temperature range: [{self.temperature[0].to(u.MK)}, {self.temperature[-1].to(u.MK)}]
+
+HDF5 Database: {self.hdf5_dbase_root}
+Using Datasets:
+  ioneq: {self._dset_names['ioneq_filename']}
+  abundance: {self._dset_names['abundance_filename']}
+  ip: {self._dset_names['ip_filename']}"""
+
+    def __getitem__(self, key):
+        if self._elvlc is None:
+            raise IndexError(f'No energy levels available for {self.ion_name}')
+        _ = self._elvlc['level'][key]
+        return Level(key, self._elvlc)
     
     @property
     def ioneq(self):
@@ -354,3 +379,43 @@ class Ion(IonBase, ContinuumBase):
         dr_rate = self.dielectronic_recombination_rate()
         dr_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if dr_rate is None else dr_rate
         return rr_rate + dr_rate
+
+
+class Level(object):
+
+    def __init__(self, index, elvlc):
+        self._index = index
+        self._elvlc = elvlc
+
+    def __repr__(self):
+        return f"""Level: {self.level}
+Configuration: {self.configuration}
+Orbital Angular Momentum: {self.orbital_angular_momentum_label}
+Energy: {self.energy}"""
+
+    @property
+    def level(self):
+        return self._elvlc['level'][self._index]
+
+    @property
+    def configuration(self):
+        return self._elvlc['config'][self._index]
+
+    @property
+    def multiplicity(self):
+        return self._elvlc['mult'][self._index]
+
+    @property
+    def total_angular_momentum(self):
+        return self._elvlc['J'][self._index]
+
+    @property
+    def orbital_angular_momentum_label(self):
+        return self._elvlc['L_label'][self._index]
+
+    @property
+    def energy(self):
+        if self._elvlc['E_obs'][self._index] < 0:
+            return (self._elvlc['E_th'][self._index]*const.h.cgs*const.c.cgs).decompose().cgs
+        else:
+            return (self._elvlc['E_obs'][self._index]*const.h.cgs*const.c.cgs).decompose().cgs
