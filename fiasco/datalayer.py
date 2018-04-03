@@ -15,7 +15,7 @@ import plasmapy.atomic
 
 import fiasco
 
-__all__ = ['DataIndexer', 'DataIndexerLocal', 'DataIndexerRemote']
+__all__ = ['DataIndexer']
 
 
 class DataIndexer(object):

@@ -10,7 +10,7 @@ from builtins import input
 
 FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
 
-__all__ = ['setup_paths', 'get_masterlist', 'query_yes_no']
+__all__ = ['setup_paths', 'get_masterlist']
 
 
 def setup_paths():
