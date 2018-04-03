@@ -13,8 +13,7 @@ from astropy.utils.data import download_file
 from astropy.utils.console import ProgressBar
 
 import fiasco.io
-from .yes_no import query_yes_no
-from .util import get_masterlist
+from .util import get_masterlist, query_yes_no
 
 FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
 CHIANTI_URL = 'http://www.chiantidatabase.org/download/CHIANTI_{version}_data.tar.gz'
@@ -40,7 +39,7 @@ def download_dbase(ascii_dbase_root, version=None, ask_before=True):
         answer = query_yes_no(question, default='no')
         if not answer:
             return None
-    
+
     # Download and extract
     tar_tmp_dir = os.path.join(FIASCO_HOME, 'tmp')
     if not os.path.exists(tar_tmp_dir):
@@ -65,7 +64,7 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, ask_before=True):
         answer = query_yes_no(question, default='yes')
         if not answer:
             return None
-    
+
     # Build database
     all_files = []
     tmp = get_masterlist(ascii_dbase_root)
