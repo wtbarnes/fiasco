@@ -2,13 +2,15 @@
 Basic utilities
 """
 import os
+import sys
 import warnings
 import configparser
 from distutils.util import strtobool
+from builtins import input
 
 FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
 
-__all__ = ['setup_paths', 'get_masterlist']
+__all__ = ['setup_paths', 'get_masterlist', 'query_yes_no']
 
 
 def setup_paths():
@@ -21,7 +23,7 @@ def setup_paths():
         config.read(os.path.join(FIASCO_HOME, 'fiascorc'))
         if 'database' in config:
             paths = dict(config['database'])
-        
+
     if 'ascii_dbase_root' not in paths:
         paths['ascii_dbase_root'] = os.path.join(FIASCO_HOME, 'chianti_dbase')
     if 'hdf5_dbase_root' not in paths:
@@ -58,7 +60,7 @@ def get_masterlist(ascii_dbase_root):
         for root, _, files in os.walk(subdir_root):
             subdir_files += [os.path.relpath(os.path.join(root, f), subdir_root) for f in files
                              if f[0] != '.']
-        
+
         return subdir_files
 
     non_ion_subdirs = ['abundance', 'ioneq', 'ip', 'continuum']
@@ -66,3 +68,35 @@ def get_masterlist(ascii_dbase_root):
     all_files['ion_files'] = ion_files
 
     return all_files
+
+
+def query_yes_no(question, default="yes"):
+    """
+    Ask a yes/no question via raw_input() and return their answer.
+    "question" is a string that is presented to the user.
+    "default" is the presumed answer if the user just hits <Enter>.
+        It must be "yes" (the default), "no" or None (meaning
+        an answer is required of the user).
+    The "answer" return value is one of "yes" or "no".
+
+    See `this gist <https://gist.github.com/hrouault/1358474>`_
+    """
+    valid = {"yes": True, "y": True, "ye": True, "no": False, "n": False}
+    if default is None:
+        prompt = " [y/n] "
+    elif default == "yes":
+        prompt = " [Y/n] "
+    elif default == "no":
+        prompt = " [y/N] "
+    else:
+        raise ValueError("invalid default answer: '%s'" % default)
+
+    while True:
+        sys.stdout.write(question + prompt)
+        choice = input().lower()
+        if default is not None and choice == '':
+            return valid[default]
+        elif choice in valid:
+            return valid[choice]
+        else:
+            sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
