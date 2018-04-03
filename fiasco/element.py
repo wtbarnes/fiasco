@@ -1,5 +1,5 @@
 """
-Element class for logically grouping ions
+Classes and functions for element-level operations
 """
 import numpy as np
 import h5py
