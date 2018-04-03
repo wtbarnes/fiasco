@@ -33,11 +33,11 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
     Parameters
     ----------
     temperature : `~astropy.units.Quantity`
-
-    Other Parameters
-    ----------------
-    See `~fiasco.Ion`
     
+    See Also
+    --------
+    fiasco.Ion : Accepts same keyword arguments for setting dataset names
+
     References
     ----------
     .. [1] Young, P. et al., 2003, ApJS, `144 135 <http://adsabs.harvard.edu/abs/2003ApJS..144..135Y>`_

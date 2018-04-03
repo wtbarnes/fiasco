@@ -23,8 +23,8 @@ class Ion(IonBase, ContinuumBase):
 
     Parameters
     ----------
-    ion_name: `str`
-    temperature: `~astropy.units.Quantity`
+    ion_name : `str`
+    temperature : `~astropy.units.Quantity`
 
     Other Parameters
     ----------------
