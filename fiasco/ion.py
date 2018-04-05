@@ -142,6 +142,21 @@ Using Datasets:
         Convert scaled Burgess-Tully parameters to physical quantities. For more details see
         [1]_.
 
+        Parameters
+        ----------
+        x : `~astropy.units.Quantity`
+        y : `~astropy.units.Quantity`
+        energy_ratio : `~astropy.units.Quantity`
+            Ratio of temperature to photon energy
+        c : `~astropy.units.Quantity`
+            Scaling constant
+        scaling_type : `int`
+
+        Returns
+        -------
+        upsilon : `~numpy.NDArray`
+            Descaled collision strength or cross-section
+
         References
         ----------
         .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_ 
@@ -171,7 +186,76 @@ Using Datasets:
             raise ValueError('Unrecognized BT92 scaling option.')
 
         return upsilon
-    
+
+    @needs_dataset('scups')
+    def effective_collision_strength(self):
+        """
+        Maxwellian-averaged collision strength, typically denoted by :math:`\\Upsilon`
+        
+        Note
+        ----
+        Need a more efficient way of calculating upsilon for all transitions. Current
+        method is slow for ions with many transitions, e.g. Fe IX and Fe XI
+
+        See Also
+        --------
+        burgess_tully_descale : Descale and interpolate :math:`\\Upsilon`
+        """
+        energy_ratio = np.outer(const.k_B.cgs*self.temperature,
+                                1.0/self._scups['delta_energy'].to(u.erg))
+        upsilon = np.array(list(map(self.burgess_tully_descale, self._scups['bt_t'],
+                                    self._scups['bt_upsilon'], energy_ratio.T, self._scups['bt_c'],
+                                    self._scups['bt_type'])))
+        upsilon = u.Quantity(np.where(upsilon > 0., upsilon, 0.))
+        return upsilon.T
+
+    @needs_dataset('elvlc', 'scups')
+    def electron_collision_deexcitation_rate(self):
+        """
+        Collisional de-excitation rate coefficient for electrons.
+
+        According to Eq. (4.12) of [1]_, the rate coefficient for collisional de-excitation
+        is given by,
+
+        .. math::
+
+           C^d_{ji} = I_Ha_0^2\sqrt{\\frac{8\pi}{mk_B}}\\frac{\\Upsilon}{\omega_jT^{1/2}},
+
+        where :math:`j,i` are the upper and lower level indices, respectively, :math:`I_H` is the
+        ionization potential for H, :math:`a_0` is the Bohr radius, :math:`\\Upsilon` is the
+        effective collision strength, and :math:`\omega_j` is the statistical weight of the
+        level :math:`j`.
+
+        Reference
+        ---------
+        .. [1] Phillips, K., et al., 2008, `Ultraviolet and X-ray Spectroscopy of the Solar Atmosphere <http://adsabs.harvard.edu/abs/2008uxss.book.....P>`_
+
+        See Also
+        --------
+        electron_collision_excitation_rate : Excitation rate due to collisions
+        effective_collision_strength : Maxwellian-averaged collision strength, :math:`\\Upsilon`
+        """
+        c = (const.h.cgs**2)/((2. * np.pi * const.m_e.cgs)**(1.5) * np.sqrt(const.k_B.cgs))
+        upsilon = self.effective_collision_strength()
+        omega_upper = 2. * self._elvlc['J'][self._scups['upper_level'] - 1] + 1.
+        return c * upsilon / np.sqrt(self.temperature[:, np.newaxis]) / omega_upper
+
+    @needs_dataset('elvlc', 'scups')
+    def electron_collision_excitation_rate(self):
+        """
+        Collisional excitation rate coefficient for electrons.
+
+        See Also
+        --------
+        electron_collision_deexcitation_rate : De-excitation rate due to collisions
+        """
+        dex_rate = self.electron_collision_deexcitation_rate()
+        omega_upper = 2. * self._elvlc['J'][self._scups['upper_level'] - 1] + 1.
+        omega_lower = 2. * self._elvlc['J'][self._scups['lower_level'] - 1] + 1.
+        energy_ratio = np.outer(1./const.k_B.cgs/self.temperature,
+                                self._scups['delta_energy'].to(u.erg))
+        return omega_upper / omega_lower * dex_rate * np.exp(-energy_ratio)
+
     @needs_dataset('ip')
     def direct_ionization_rate(self):
         """
@@ -273,8 +357,8 @@ Using Datasets:
         """
         # Collision constant
         c = (const.h.cgs**2)/((2. * np.pi * const.m_e.cgs)**(1.5) * np.sqrt(const.k_B.cgs))
-        kBTE = u.Quantity([(const.k_B.cgs * self.temperature) / (de.to(u.erg)) 
-                           for de in self._easplups['delta_energy']])
+        kBTE = u.Quantity(np.outer(
+            const.k_B.cgs*self.temperature, 1.0/self._easplups['delta_energy'].to(u.erg)))
         # Descale upsilon
         shape = self._easplups['bt_upsilon'].shape
         xs = np.tile(np.linspace(0, 1, shape[1]), shape[0]).reshape(shape)
