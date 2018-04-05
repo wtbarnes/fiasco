@@ -56,6 +56,10 @@ class Element(fiasco.IonCollection):
                 ion_list.append(fiasco.Ion(f'{self.atomic_symbol} {i+1}', temperature, **ion_kwargs))
         super().__init__(*ion_list)
 
+    @property
+    def abundance(self):
+        return self[0].abundance
+
     def _rate_matrix(self):
         rate_matrix = np.zeros(self.temperature.shape + (self.atomic_number+1, self.atomic_number+1))
         rate_unit = self[0].ionization_rate().unit
