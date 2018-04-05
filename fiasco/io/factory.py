@@ -52,8 +52,8 @@ class Parser(GenericParser, metaclass=ParserFactory):
     `astropy.table.QTable` from it. A predefined parser is created based
     on the file extension, but a custom parser can also be used.
 
-    Example
-    ------- 
+    Examples
+    --------
     """
     def __init__(self, filename, custom_parser=None, **kwargs):
         super().__init__(filename, **kwargs)
