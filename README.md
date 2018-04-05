@@ -37,7 +37,26 @@ $ cd fiasco && python setup.py install
 ```
 
 ## Example
-See [this notebook](https://gist.github.com/wtbarnes/1a9acc43381a33d016843c666150e8e9)
+```python
+>>> import astropy.units as u
+>>> import fiasco
+>>> iron = fiasco.Element('iron', [1e4, 1e6, 1e8]*u.K)
+# Print some information about the element
+>>> iron.atomic_number
+26
+>>> iron.atomic_symbol
+'Fe'
+>>> iron.abundance
+<Quantity 3.16227766e-05>
+# Select the Fe 16 ion
+>>> iron[15].ion_name
+'Fe 16'
+>>> iron[15].charge_state
+15
+# Ionization fraction
+>>> iron[15].ioneq
+<Quantity [0.000e+00, 2.377e-08, 4.163e-18]>
+```
 
 ## Why *fiasco*?
 A *fiasco*, or flask, is [the typical style of bottle](https://en.wikipedia.org/wiki/Fiasco_(bottle)) used to serve the *Chianti Classico* wine. It is typically larger and rounder at the bottom and is covered by a straw basket. In the same way, the `fiasco` package serves up the CHIANTI atomic database.
