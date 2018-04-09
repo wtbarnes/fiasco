@@ -22,12 +22,13 @@ class ParserFactory(type):
         if 'custom_parser' in kwargs:
             custom_parser = kwargs['custom_parser']
             del kwargs['custom_parser']
-        if custom_parser is not None:   
+        if custom_parser is not None:
             return custom_parser(*args, **kwargs)
         # Create parser based on file extension or name
         filetype_name, filetype_ext = os.path.splitext(os.path.basename(args[0]))
         filetype_ext = filetype_ext[1:]
-        subclass_dict = {c.filetype: c for c in all_subclasses(GenericParser) if hasattr(c, 'filetype')}
+        subclass_dict = {c.filetype: c for c in all_subclasses(GenericParser)
+                         if hasattr(c, 'filetype')}
         if filetype_ext in subclass_dict:
             return subclass_dict[filetype_ext](*args, **kwargs)
         elif filetype_name in subclass_dict:
@@ -47,8 +48,8 @@ def all_subclasses(cls):
 class Parser(GenericParser, metaclass=ParserFactory):
     """
     General parser interface for all CHIANTI datatypes.
-    
-    The Parser ingests the name of a raw ASCII data file and builds an 
+
+    The Parser ingests the name of a raw ASCII data file and builds an
     `astropy.table.QTable` from it. A predefined parser is created based
     on the file extension, but a custom parser can also be used.
 
