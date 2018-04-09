@@ -5,6 +5,8 @@ import plasmapy
 
 import fiasco
 
+__all__ = ['IonCollection']
+
 
 class IonCollection(object):
     """

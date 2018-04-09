@@ -13,6 +13,6 @@ if not _ASTROPY_SETUP_:
     from .datalayer import *
     from .base import *
     from .fiasco import *
-    from .ion import Ion
-    from .collections import IonCollection
-    from .element import Element
+    from .ion import *
+    from .collections import *
+    from .element import *

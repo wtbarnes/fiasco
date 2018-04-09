@@ -8,13 +8,16 @@ import plasmapy
 
 import fiasco
 
+__all__ = ['Element']
+
 
 class Element(fiasco.IonCollection):
     """
     Object containing all ions for a particular element.
 
     The Element object provides a way to logically group together ions of the same
-    element. This provides easy ways to compute element-level derived quantities. 
+    element. This provides easy ways to compute element-level derived quantities such 
+    as the population fractions.
 
     Parameters
     ----------
@@ -47,13 +50,14 @@ class Element(fiasco.IonCollection):
             self.hdf5_dbase_root = hdf5_path
         ion_kwargs = kwargs.get('ion_kwargs', {})
         ion_kwargs['hdf5_path'] = self.hdf5_dbase_root
-        
+
         chianti_ions = fiasco.DataIndexer(self.hdf5_dbase_root, self.atomic_symbol.lower()).fields
         ion_list = []
         for i in range(self.atomic_number + 1):
             ion = f'{self.atomic_symbol.lower()}_{i+1}'
             if ion in chianti_ions:
-                ion_list.append(fiasco.Ion(f'{self.atomic_symbol} {i+1}', temperature, **ion_kwargs))
+                ion_list.append(fiasco.Ion(f'{self.atomic_symbol} {i+1}',
+                                temperature, **ion_kwargs))
         super().__init__(*ion_list)
 
     @property
@@ -61,7 +65,7 @@ class Element(fiasco.IonCollection):
         return self[0].abundance
 
     def _rate_matrix(self):
-        rate_matrix = np.zeros(self.temperature.shape + (self.atomic_number+1, self.atomic_number+1))
+        rate_matrix = np.zeros(self.temperature.shape+(self.atomic_number+1, self.atomic_number+1))
         rate_unit = self[0].ionization_rate().unit
         rate_matrix = rate_matrix * rate_unit
         for i in range(1, self.atomic_number):
