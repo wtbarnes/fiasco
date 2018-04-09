@@ -79,18 +79,14 @@ class Element(fiasco.IonCollection):
 
         return rate_matrix
 
-    def equilibrium_ionization(self, rate_matrix=None):
+    def equilibrium_ionization(self, **kwargs):
         """
         Calculate the ionization equilibrium for all ions of the element.
 
         Calculate the population fractions for every ion of this element as a function of
         temperature, assuming ionization equilibrium.
-
-        Parameters
-        ----------
-        rate_matrix : `~astropy.units.Quantity`, optional
-            Precomputed matrix of total ionization and recombination rates
         """
+        rate_matrix = kwargs.get('rate_matrix', None)
         if rate_matrix is None:
             rate_matrix = self._rate_matrix()
         # Solve system of equations using singular value decomposition
