@@ -10,7 +10,11 @@ import astropy.constants as const
 
 from .base import IonBase, ContinuumBase
 from .collections import IonCollection
-from fiasco.util import needs_dataset
+from fiasco import proton_electron_ratio
+from fiasco.util import (needs_dataset, vectorize_where, vectorize_where_sum,
+                         burgess_tully_descale_vectorize)
+
+__all__ = ['Ion']
 
 
 class Ion(IonBase, ContinuumBase):
@@ -75,7 +79,17 @@ Using Datasets:
             raise IndexError(f'No energy levels available for {self.ion_name}')
         _ = self._elvlc['level'][key]
         return Level(key, self._elvlc)
-    
+
+    def __add__(self, value):
+        return IonCollection(self, value)
+
+    def __radd__(self, value):
+        return IonCollection(value, self)
+
+    @property
+    def transitions(self):
+        return Transitions(self._elvlc, self._wgfa)
+
     @property
     def ioneq(self):
         """
@@ -130,82 +144,19 @@ Using Datasets:
         """
         return (self.atomic_number - self.charge_state == 2) and (self.atomic_number >= 10)
 
-    def __add__(self, value):
-        return IonCollection(self, value)
-
-    def __radd__(self, value):
-        return IonCollection(value, self)
-        
-    @staticmethod
-    def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
-        """
-        Convert scaled Burgess-Tully parameters to physical quantities. For more details see
-        [1]_.
-
-        Parameters
-        ----------
-        x : `~astropy.units.Quantity`
-        y : `~astropy.units.Quantity`
-        energy_ratio : `~astropy.units.Quantity`
-            Ratio of temperature to photon energy
-        c : `~astropy.units.Quantity`
-            Scaling constant
-        scaling_type : `int`
-
-        Returns
-        -------
-        upsilon : `~numpy.NDArray`
-            Descaled collision strength or cross-section
-
-        References
-        ----------
-        .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_ 
-        """
-        nots = splrep(x, y, s=0)
-        if scaling_type == 1:
-            x_new = 1.0 - np.log(c) / np.log(energy_ratio + c)
-            upsilon = splev(x_new, nots, der=0) * np.log(energy_ratio + np.e)
-        elif scaling_type == 2:
-            x_new = energy_ratio / (energy_ratio + c)
-            upsilon = splev(x_new, nots, der=0)
-        elif scaling_type == 3:
-            x_new = energy_ratio / (energy_ratio + c)
-            upsilon = splev(x_new, nots, der=0) / (energy_ratio + 1.0)
-        elif scaling_type == 4:
-            x_new = 1.0 - np.log(c) / np.log(energy_ratio + c)
-            upsilon = splev(x_new, nots, der=0) * np.log(energy_ratio + c)
-        elif scaling_type == 5:
-            # dielectronic
-            x_new = energy_ratio / (energy_ratio + c)
-            upsilon = splev(x_new, nots, der=0) / energy_ratio
-        elif scaling_type == 6:
-            # protons
-            x_new = energy_ratio / (energy_ratio + c)
-            upsilon = 10**splev(x_new, nots, der=0)
-        else:
-            raise ValueError('Unrecognized BT92 scaling option.')
-
-        return upsilon
-
     @needs_dataset('scups')
     def effective_collision_strength(self):
         """
         Maxwellian-averaged collision strength, typically denoted by :math:`\\Upsilon`
-        
-        Note
-        ----
-        Need a more efficient way of calculating upsilon for all transitions. Current
-        method is slow for ions with many transitions, e.g. Fe IX and Fe XI
 
         See Also
         --------
-        burgess_tully_descale : Descale and interpolate :math:`\\Upsilon`
+        fiasco.util.burgess_tully_descale : Descale and interpolate :math:`\\Upsilon`
         """
-        energy_ratio = np.outer(const.k_B.cgs*self.temperature,
-                                1.0/self._scups['delta_energy'].to(u.erg))
-        upsilon = np.array(list(map(self.burgess_tully_descale, self._scups['bt_t'],
-                                    self._scups['bt_upsilon'], energy_ratio.T, self._scups['bt_c'],
-                                    self._scups['bt_type'])))
+        kBTE = np.outer(const.k_B.cgs*self.temperature, 1.0/self._scups['delta_energy'].to(u.erg))
+        upsilon = burgess_tully_descale_vectorize(
+            self._scups['bt_t'], self._scups['bt_upsilon'], kBTE.T, self._scups['bt_c'],
+            self._scups['bt_type'])
         upsilon = u.Quantity(np.where(upsilon > 0., upsilon, 0.))
         return upsilon.T
 
@@ -226,8 +177,8 @@ Using Datasets:
         effective collision strength, and :math:`\omega_j` is the statistical weight of the
         level :math:`j`.
 
-        Reference
-        ---------
+        References
+        ----------
         .. [1] Phillips, K., et al., 2008, `Ultraviolet and X-ray Spectroscopy of the Solar Atmosphere <http://adsabs.harvard.edu/abs/2008uxss.book.....P>`_
 
         See Also
@@ -252,9 +203,177 @@ Using Datasets:
         dex_rate = self.electron_collision_deexcitation_rate()
         omega_upper = 2. * self._elvlc['J'][self._scups['upper_level'] - 1] + 1.
         omega_lower = 2. * self._elvlc['J'][self._scups['lower_level'] - 1] + 1.
-        energy_ratio = np.outer(1./const.k_B.cgs/self.temperature,
-                                self._scups['delta_energy'].to(u.erg))
-        return omega_upper / omega_lower * dex_rate * np.exp(-energy_ratio)
+        kBTE = np.outer(1./const.k_B.cgs/self.temperature, self._scups['delta_energy'].to(u.erg))
+        return omega_upper / omega_lower * dex_rate * np.exp(-kBTE)
+
+    @needs_dataset('psplups')
+    def proton_collision_excitation_rate(self):
+        """
+        Collisional excitation rate coefficient for protons
+        """
+        # Create scaled temperature--these are not stored in the file
+        bt_t = [np.linspace(0, 1, ups.shape[0]) for ups in self._psplups['bt_rate']]
+        # Get excitation rates directly from scaled data
+        kBTE = np.outer(const.k_B.cgs*self.temperature, 1.0/self._psplups['delta_energy'].to(u.erg))
+        ex_rate = burgess_tully_descale_vectorize(
+            bt_t, self._psplups['bt_rate'], kBTe.T, self._psplups['bt_c'], self._psplups['bt_type'])
+        ex_rate = u.Quantity(np.where(ex_rate > 0., ex_rate, 0.), u.cm**3/u.s).T
+        
+        return ex_rate
+
+    @needs_dataset('elvlc', 'psplups')
+    def proton_collision_deexcitation_rate(self):
+        """
+        Collisional de-excitation rate coefficient for protons
+        """
+        kBTE = np.outer(const.k_B.cgs*self.temperature, 1.0/self._psplups['delta_energy'].to(u.erg))
+        ex_rate = self.proton_collision_excitation_rate()
+        omega_upper = 2.*self._elvlc['J'][self._psplups['upper_level'] - 1] + 1.
+        omega_lower = 2.*self._elvlc['J'][self._psplups['lower_level'] - 1] + 1.
+        dex_rate = (omega_lower / omega_upper) * ex_rate * np.exp(1. / kBTE)
+
+        return dex_rate
+
+    @needs_dataset('elvlc', 'wgfa', 'scups')
+    @u.quantity_input
+    def level_populations(self, density: u.cm**(-3), include_protons=True):
+        """
+        Compute energy level populations as a function of temperature and density
+
+        Parameters
+        ----------
+        density : `~astropy.units.Quantity`
+        include_protons : `bool`, optional
+            If True (default), include proton excitation and de-excitation rates
+        """
+        level = self._elvlc['level']
+        lower_level = self._scups['lower_level']
+        upper_level = self._scups['upper_level']
+        coeff_matrix = np.zeros(self.temperature.shape + (level.max(), level.max(),))/u.s
+
+        # Radiative decay out of current level
+        coeff_matrix[:, level-1, level-1] -= vectorize_where_sum(
+            self.transitions.upper_level, level, self.transitions.A.value) * self.transitions.A.unit
+        # Radiative decay into current level from upper levels
+        coeff_matrix[:, self.transitions.lower_level-1, self.transitions.upper_level-1] += (
+            self.transitions.A)
+
+        # Collisional--electrons
+        ex_rate_e = self.electron_collision_excitation_rate()
+        dex_rate_e = self.electron_collision_deexcitation_rate()
+        ex_diagonal_e = vectorize_where_sum(
+            lower_level, level, ex_rate_e.value.T, 0).T * ex_rate_e.unit
+        dex_diagonal_e = vectorize_where_sum(
+            upper_level, level, dex_rate_e.value.T, 0).T * dex_rate_e.unit
+        # Collisional--protons
+        if include_protons and self._psplups is not None:
+            pe_ratio = proton_electron_ratio(self.temperature, **self._dset_names)
+            proton_density = np.outer(pe_ratio, density)[:, :, np.newaxis]
+            ex_rate_p = self.proton_collision_excitation_rate()
+            dex_rate_p = self.proton_collision_deexcitation_rate()
+            ex_diagonal_p = vectorize_where_sum(
+                self._psplups['lower_level'], level, ex_rate_p.value.T, 0).T * ex_rate_p.unit
+            dex_diagonal_p = vectorize_where_sum(
+                self._psplups['upper_level'], level, dex_rate_p.value.T, 0).T * dex_rate_p.unit
+
+        # Solve matrix equation for each density value
+        populations = np.zeros(self.temperature.shape + density.shape + (level.max(),))
+        b = np.zeros(self.temperature.shape + (level.max(),))
+        b[:, -1] = 1.0
+        for i, d in enumerate(density):
+            c_matrix = coeff_matrix.copy()
+            # Collisional excitation and de-excitation out of current state
+            c_matrix[:, level-1, level-1] -= d*(ex_diagonal_e + dex_diagonal_e)
+            # De-excitation from upper states
+            c_matrix[:, lower_level-1, upper_level-1] += d*dex_rate_e
+            # Excitation from lower states
+            c_matrix[:, upper_level-1, lower_level-1] += d*ex_rate_e
+            # Same processes as above, but for protons
+            if include_protons and self._psplups is not None:
+                d_p = proton_density[:, i, :]
+                c_matrix[:, level-1, level-1] -= d_p*(ex_diagonal_p + dex_diagonal_p)
+                c_matrix[:, self._psplups['lower_level']-1, self._psplups['upper_level']-1] += (
+                    d_p * dex_rate_p)
+                c_matrix[:, self._psplups['upper_level']-1, self._psplups['lower_level']-1] += (
+                    d_p * ex_rate_p)
+            # Invert matrix
+            c_matrix[:, -1, :] = 1.*c_matrix.unit
+            pop = np.linalg.solve(c_matrix.value, b)
+            pop = np.where(pop < 0., 0., pop)
+            pop /= pop.sum(axis=1)[:, np.newaxis]
+            populations[:, i, :] = pop
+
+        return u.Quantity(populations)
+
+    @needs_dataset('wgfa')
+    @u.quantity_input
+    def contribution_function(self, density: u.cm**(-3), **kwargs):
+        """
+        Contribution function :math:`G(n,T)` for all transitions
+
+        The contribution function for ion :math:`k` of element :math:`X` for a
+        particular transition :math:`ij` is given by,
+
+        .. math::
+
+           G_{ij} = \\frac{n_H}{n_e}\mathrm{Ab}(X)f_{X,k}N_jA_{ij}\Delta E_{ij}\\frac{1}{n_e},
+
+        and has units erg :math:`\mathrm{cm}^{3}` :math:`\mathrm{s}^{-1}`. Note that the
+        contribution function is often defined in differing ways by different authors. The
+        contribution function is defined as above in [1]_.
+
+        The corresponding wavelengths can be retrieved with,
+
+        .. code-block:: python
+
+           ion.transitions.wavelength[~ion.transitions.is_twophoton]
+
+        Parameters
+        ----------
+        density : `~astropy.units.Quantity`
+            Electron number density
+
+        References
+        ----------
+        .. [1] Young, P. et al., 2016, J. Phys. B: At. Mol. Opt. Phys., `49, 7 <http://iopscience.iop.org/article/10.1088/0953-4075/49/7/074009/meta>`_
+        """
+        populations = self.level_populations(density, **kwargs)
+        p2e = proton_electron_ratio(self.temperature, **self._dset_names)
+        term = np.outer(p2e * self.ioneq, 1./density.value) * self.abundance / density.unit
+        # Exclude two-photon transitions
+        upper_level = self.transitions.upper_level[~self.transitions.is_twophoton]
+        # CHIANTI records theoretical transitions with negative wavelengths
+        wavelength = np.fabs(self.transitions.wavelength[~self.transitions.is_twophoton])
+        A = self.transitions.A[~self.transitions.is_twophoton]
+        energy = ((const.h * const.c) / wavelength).to(u.erg)
+        i_upper = vectorize_where(self._elvlc['level'], upper_level)
+        g = term[:, :, np.newaxis] * populations[:, :, i_upper] * (A * energy)
+        return g
+
+    @u.quantity_input
+    def emissivity(self, density: u.cm**(-3), **kwargs):
+        """
+        Emissivity as a function of temperature and density for all transitions
+
+        The emissivity is given by the expression,
+
+        .. math::
+
+           \epsilon(n,T) = G(n,T)n^2
+
+        which has units erg :math:`\mathrm{cm}^{-3}` :math:`\mathrm{s}^{-1}`.
+
+        Parameters
+        ----------
+        density : `~astropy.units.Quantity`
+            Electron number density
+
+        See Also
+        --------
+        contribution_function : Calculate contribution function, :math:`G(n,T)`
+        """
+        g = self.contribution_function(density, **kwargs)
+        return g * (density**2)[np.newaxis, :, np.newaxis]
 
     @needs_dataset('ip')
     def direct_ionization_rate(self):
@@ -355,21 +474,19 @@ Using Datasets:
         """
         Calculate ionization rate due to excitation autoionization
         """
-        # Collision constant
         c = (const.h.cgs**2)/((2. * np.pi * const.m_e.cgs)**(1.5) * np.sqrt(const.k_B.cgs))
-        kBTE = u.Quantity(np.outer(
-            const.k_B.cgs*self.temperature, 1.0/self._easplups['delta_energy'].to(u.erg)))
-        # Descale upsilon
-        shape = self._easplups['bt_upsilon'].shape
-        xs = np.tile(np.linspace(0, 1, shape[1]), shape[0]).reshape(shape)
-        args = [xs, self._easplups['bt_upsilon'].value, kBTE.value, self._easplups['bt_c'].value, 
-                self._easplups['bt_type']]
-        upsilon = u.Quantity(list(map(self.burgess_tully_descale, *args)))
-        # Rate coefficient
-        rate = c * upsilon * np.exp(-1 / kBTE) / np.sqrt(self.temperature[np.newaxis, :])
-        
+        kBTE = np.outer(const.k_B.cgs*self.temperature, 1.0/self._easplups['delta_energy'].to(u.erg))
+        # NOTE: Transpose here to make final dimensions compatible with multiplication with T
+        # when computing rate
+        kBTE = kBTE.T
+        xs = [np.linspace(0, 1, ups.shape[0]) for ups in self._easplups['bt_upsilon']]
+        upsilon = burgess_tully_descale_vectorize(
+            xs, self._easplups['bt_upsilon'].value, kBTE, self._easplups['bt_c'].value,
+            self._easplups['bt_type'])
+        rate = c * upsilon * np.exp(-1 / kBTE) / np.sqrt(self.temperature)
+
         return rate.sum(axis=0)
-    
+
     def ionization_rate(self):
         """
         Total ionization rate.
@@ -386,7 +503,7 @@ Using Datasets:
         ea_rate = self.excitation_autoionization_rate()
         ea_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if ea_rate is None else ea_rate
         return di_rate + ea_rate
-    
+
     @needs_dataset('rrparams')
     def radiative_recombination_rate(self):
         """
@@ -410,7 +527,7 @@ Using Datasets:
                 B = B + self._rrparams['C_fit']*np.exp(-self._rrparams['T2_fit']/self.temperature)
             T0 = self._rrparams['T0_fit']
             T1 = self._rrparams['T1_fit']
-            
+
             return A/(np.sqrt(self.temperature/T0) * (1 + np.sqrt(self.temperature/T0))**(1. - B)
                       * (1. + np.sqrt(self.temperature/T1))**(1. + B))
         elif self._rrparams['fit_type'][0] == 3:
@@ -418,7 +535,7 @@ Using Datasets:
                     (self.temperature/(1e4*u.K))**(-self._rrparams['eta_fit']))
         else:
             raise ValueError(f"Unrecognized fit type {self._rrparams['fit_type']}")
-    
+
     @needs_dataset('drparams')
     def dielectronic_recombination_rate(self):
         """
@@ -446,7 +563,7 @@ Using Datasets:
                     1. + B * np.exp(-T1/self.temperature))
         else:
             raise ValueError(f"Unrecognized fit type {self._drparams['fit_type']}")
-    
+
     def recombination_rate(self):
         """
         Total recombination rate.
@@ -503,3 +620,52 @@ Energy: {self.energy}"""
             return (self._elvlc['E_th'][self._index]*const.h.cgs*const.c.cgs).decompose().cgs
         else:
             return (self._elvlc['E_obs'][self._index]*const.h.cgs*const.c.cgs).decompose().cgs
+
+
+class Transitions(object):
+
+    def __init__(self, elvlc, wgfa):
+        self._elvlc = elvlc
+        self._wgfa = wgfa
+
+    @property
+    def is_twophoton(self):
+        """
+        True if the transition is a two-photon decay
+        """
+        return self._wgfa['wavelength'] == 0.*u.angstrom
+
+    @property
+    def is_observed(self):
+        """
+        True for transitions that connect two observed energy levels
+        """
+        return self._wgfa['wavelength'] > 0.*u.angstrom
+
+    @property
+    def A(self):
+        """
+        Spontaneous transition probability due to radiative decay
+        """
+        return self._wgfa['A']
+
+    @property
+    def wavelength(self):
+        return np.fabs(self._wgfa['wavelength'])
+
+    @property
+    def upper_level(self):
+        return self._wgfa['upper_level']
+
+    @property
+    def lower_level(self):
+        return self._wgfa['lower_level']
+
+    @property
+    def delta_energy(self):
+        energy = u.Quantity(np.where(
+            self._elvlc['E_obs'].value == -1, self._elvlc['E_th'].value,
+            self._elvlc['E_obs'].value), self._elvlc['E_obs'].unit)
+        indices = np.vstack([vectorize_where(self._elvlc['level'], self.lower_level),
+                             vectorize_where(self._elvlc['level'], self.upper_level)])
+        return np.diff(energy[indices], axis=0).flatten() * const.h.cgs * const.c.cgs
