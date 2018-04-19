@@ -125,10 +125,29 @@ The equilibrium population fractions are interpolated to `temperature` and can b
     plt.xscale('log')
     plt.show()
 
-Note that these population fractions are those which are stored in the CHIANTI database and outside of the temperature data given in CHIANTI, the population fraction is set to NaN. If you need to calculate the population fractions over a wider temperature range, it is better to do so by calculating the ionization and recombination rates. See the :ref:`elements` section for more info.
+Note that these population fractions returned by `Ion.ioneq` are stored in the CHIANTI database and and therefore are set to NaN for temperatures outside of the temperature data given in CHIANTI. If you need to calculate the population fractions over a wider temperature range, it is better to do so by calculating the ionization and recombination rates. See the :ref:`elements` section for more info.
 
 Derived Quantities
 ******************
+In addition to providing an API to the CHIANTI data, `Ion` also provides several methods for computing derived quantities from the data. These include the ionization and recombination rates. 
+
+.. plot::
+    :include-source:
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import astropy.units as u
+    from fiasco import Ion
+    ion = Ion('Fe 18', np.logspace(4, 8, 100) * u.K)
+    plt.plot(ion.temperature, ion.recombination_rate(), label='Total')
+    plt.plot(ion.temperature, ion.dielectronic_recombination_rate(), label='Dielectronic')
+    plt.plot(ion.temperature, ion.radiative_recombination_rate(), label='Radiative')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.ylabel(f'Recombination Rate')
+    plt.xlabel(f'Temperature [K]')
+    plt.legend()
+    plt.show()
 
 Accessing Raw Data
 ******************
