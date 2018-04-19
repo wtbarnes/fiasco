@@ -32,10 +32,9 @@ import sys
 
 ON_RTD = os.environ.get('READTHEDOCS') == 'True'
 
-# FIXME: Potential here for mismatch between raw data and HDF5 data being called remotely
+# On Read the Docs, configure to use remote data to avoid build timeouts
 if ON_RTD:
     os.environ['HOME'] = '/home/docs'
-    # Configure to use remote data
     FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
     if not os.path.exists(FIASCO_HOME):
         os.makedirs(FIASCO_HOME)
