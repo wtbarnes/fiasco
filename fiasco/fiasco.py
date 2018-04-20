@@ -1,7 +1,10 @@
 """
 Package-level functions
 """
+import warnings
+
 import numpy as np
+from scipy.interpolate import interp1d
 import astropy.units as u
 import plasmapy.atomic
 
@@ -43,17 +46,24 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
     .. [1] Young, P. et al., 2003, ApJS, `144 135 <http://adsabs.harvard.edu/abs/2003ApJS..144..135Y>`_
     """
     h_2 = fiasco.Ion('H +1', temperature, **kwargs)
-    numerator = h_2.abundance * h_2.ioneq
+    numerator = h_2.abundance * h_2._ioneq[h_2._dset_names['ioneq_filename']]['ionization_fraction']
     denominator = u.Quantity(np.zeros(numerator.shape))
     for el_name in list_elements():
         el = fiasco.Element(el_name, temperature, ion_kwargs=kwargs)
+        abundance = el.abundance
+        if abundance is None:
+            warnings.warn(f'Not including {el.atomic_symbol}. Abundance not available.')
+            continue
         for ion in el:
-            denominator += ion.ioneq * ion.abundance * ion.charge_state
-            
-    ratio = numerator / denominator
-    # Set out of range values to closest valid values
-    indices_valid, = np.where(~np.isnan(ratio))
-    ratio[:indices_valid[0]] = ratio[indices_valid[0]]
-    ratio[indices_valid[-1]+1:] = ratio[indices_valid[-1]]
+            ioneq = ion._ioneq[ion._dset_names['ioneq_filename']]['ionization_fraction']
+            if ioneq is None:
+                warnings.warn(f'Not including {ion.ion_name}. Ionization fraction not available.')
+                continue
+            denominator += ioneq * abundance * ion.charge_state
 
-    return ratio
+    ratio = numerator / denominator
+    interp = interp1d(ion._ioneq[ion._dset_names['ioneq_filename']]['temperature'].value,
+                      ratio.value, kind='linear', bounds_error=False,
+                      fill_value=(ratio[0], ratio[-1]))
+
+    return u.Quantity(interp(temperature))
