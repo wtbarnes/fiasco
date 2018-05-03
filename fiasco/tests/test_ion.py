@@ -6,6 +6,7 @@ import astropy.units as u
 import pytest
 
 import fiasco
+from fiasco.util import MissingIonError
 
 
 temperature = np.logspace(5, 8, 100)*u.K
@@ -80,3 +81,8 @@ def test_create_ion_without_units_raises_units_error():
 def test_create_ion_with_wrong_units_raises_unit_conversion_error():
     with pytest.raises(u.UnitsError):
         fiasco.Ion('Fe 5', temperature.value*u.s)
+
+
+def test_create_invalid_ion_raises_missing_ion_error():
+    with pytest.raises(MissingIonError):
+        fiasco.Ion('Fe 28', temperature)
