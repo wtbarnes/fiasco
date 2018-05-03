@@ -7,6 +7,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 import astropy.units as u
 import plasmapy.atomic
+from plasmapy.utils import InvalidParticleError
 
 import fiasco
 
@@ -22,8 +23,9 @@ def list_elements():
     for f in dl.fields:
         try:
             elements.append(plasmapy.atomic.atomic_symbol(f.capitalize()))
-        except plasmapy.atomic.names.InvalidParticleError:
+        except InvalidParticleError:
             continue
+    elements = sorted(elements, key=lambda x: plasmapy.atomic.atomic_number(x))
     return elements
 
 
