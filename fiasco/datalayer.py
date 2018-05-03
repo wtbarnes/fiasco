@@ -167,6 +167,15 @@ class DataIndexerLocal(object):
             else:
                 version = None
         return version
+
+    @property
+    def footer(self):
+        with h5py.File(self.hdf5_dbase_root, 'r') as hf:
+            if 'footer' in hf[self.top_level_path].attrs:
+                footer = hf[self.top_level_path].attrs['footer']
+            else:
+                footer = None
+        return footer
     
     @property
     def fields(self):
