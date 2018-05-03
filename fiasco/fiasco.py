@@ -11,7 +11,7 @@ from plasmapy.utils import InvalidParticleError
 
 import fiasco
 
-__all__ = ['list_elements', 'proton_electron_ratio']
+__all__ = ['list_elements', 'list_ions', 'proton_electron_ratio']
 
 
 def list_elements():
@@ -27,6 +27,25 @@ def list_elements():
             continue
     elements = sorted(elements, key=lambda x: plasmapy.atomic.atomic_number(x))
     return elements
+
+
+def list_ions():
+    """
+    List all available ions in the CHIANTI database
+    """
+    dl = fiasco.DataIndexer(fiasco.defaults['hdf5_dbase_root'], '/')
+    ions = []
+    for f in dl.fields:
+        try:
+            el = plasmapy.atomic.atomic_symbol(f.capitalize())
+            for i in dl[f].fields:
+                if f == i.split('_')[0]:
+                    ions.append(f"{el} {i.split('_')[1]}")
+        except InvalidParticleError:
+            continue
+    ions = sorted(ions, key=lambda x: (plasmapy.atomic.atomic_number(x.split()[0]), 
+                                       int(x.split()[1])))
+    return ions
 
 
 @u.quantity_input

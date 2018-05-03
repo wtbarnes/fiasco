@@ -9,8 +9,15 @@ import fiasco
 
 
 def test_list_elements():
+    # FIXME: actually test the expected elements
     elements = fiasco.list_elements()
     assert type(elements) is list
+
+
+def test_list_ions():
+    # FIXME: actually test the expected ions
+    ions = fiasco.list_ions()
+    assert type(ions) is list
 
 
 def test_proton_electron_ratio():
