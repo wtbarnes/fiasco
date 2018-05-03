@@ -7,6 +7,8 @@ import numpy as np
 from scipy.interpolate import splrep, splev, interp1d
 import astropy.units as u
 import astropy.constants as const
+from astropy.convolution import convolve, Model1DKernel
+from astropy.modeling.models import Gaussian1D
 
 from .base import IonBase, ContinuumBase
 from .collections import IonCollection
@@ -87,6 +89,7 @@ Using Datasets:
         return IonCollection(value, self)
 
     @property
+    @needs_dataset('elvlc', 'wgfa')
     def transitions(self):
         return Transitions(self._elvlc, self._wgfa)
 
@@ -216,7 +219,7 @@ Using Datasets:
         # Get excitation rates directly from scaled data
         kBTE = np.outer(const.k_B.cgs*self.temperature, 1.0/self._psplups['delta_energy'].to(u.erg))
         ex_rate = burgess_tully_descale_vectorize(
-            bt_t, self._psplups['bt_rate'], kBTe.T, self._psplups['bt_c'], self._psplups['bt_type'])
+            bt_t, self._psplups['bt_rate'], kBTE.T, self._psplups['bt_c'], self._psplups['bt_type'])
         ex_rate = u.Quantity(np.where(ex_rate > 0., ex_rate, 0.), u.cm**3/u.s).T
         
         return ex_rate
@@ -268,7 +271,7 @@ Using Datasets:
         # Collisional--protons
         if include_protons and self._psplups is not None:
             pe_ratio = proton_electron_ratio(self.temperature, **self._dset_names)
-            proton_density = np.outer(pe_ratio, density)[:, :, np.newaxis]
+            proton_density = np.outer(pe_ratio, density.value)[:, :, np.newaxis] * density.unit
             ex_rate_p = self.proton_collision_excitation_rate()
             dex_rate_p = self.proton_collision_deexcitation_rate()
             ex_diagonal_p = vectorize_where_sum(
@@ -305,7 +308,7 @@ Using Datasets:
 
         return u.Quantity(populations)
 
-    @needs_dataset('wgfa')
+    @needs_dataset('scups', 'elvlc', 'wgfa')
     @u.quantity_input
     def contribution_function(self, density: u.cm**(-3), **kwargs):
         """
@@ -338,18 +341,18 @@ Using Datasets:
         .. [1] Young, P. et al., 2016, J. Phys. B: At. Mol. Opt. Phys., `49, 7 <http://iopscience.iop.org/article/10.1088/0953-4075/49/7/074009/meta>`_
         """
         populations = self.level_populations(density, **kwargs)
-        p2e = proton_electron_ratio(self.temperature, **self._dset_names)
-        term = np.outer(p2e * self.ioneq, 1./density.value) * self.abundance / density.unit
+        term = np.outer(self.ioneq, 1./density.value) * self.abundance * 0.83 / density.unit
         # Exclude two-photon transitions
         upper_level = self.transitions.upper_level[~self.transitions.is_twophoton]
         # CHIANTI records theoretical transitions with negative wavelengths
-        wavelength = np.fabs(self.transitions.wavelength[~self.transitions.is_twophoton])
+        wavelength = self.transitions.wavelength[~self.transitions.is_twophoton]
         A = self.transitions.A[~self.transitions.is_twophoton]
         energy = ((const.h * const.c) / wavelength).to(u.erg)
         i_upper = vectorize_where(self._elvlc['level'], upper_level)
         g = term[:, :, np.newaxis] * populations[:, :, i_upper] * (A * energy)
         return g
 
+    @needs_dataset('scups', 'elvlc', 'wgfa')
     @u.quantity_input
     def emissivity(self, density: u.cm**(-3), **kwargs):
         """
@@ -374,6 +377,53 @@ Using Datasets:
         """
         g = self.contribution_function(density, **kwargs)
         return g * (density**2)[np.newaxis, :, np.newaxis]
+
+    @needs_dataset('scups', 'elvlc', 'wgfa')
+    @u.quantity_input
+    def intensity(self, density: u.cm**(-3), emission_measure: u.cm**(-5), **kwargs):
+        """
+        Line-of-sight intensity computed assuming a particular column emission measure
+
+        The intensity along the line-of-sight can be written as,
+
+        .. math::
+
+           I = \\frac{1}{4\pi}\int\mathrm{d}T,G(n,T)n^2\\frac{dh}{dT}
+
+        which, in the isothermal approximation, can be simplified to,
+
+        .. math::
+
+           I(T_0) \\approx \\frac{1}{4\pi}G(n,T_0)\mathrm{EM}(T_0)
+
+        where,
+
+        .. math::
+
+           \mathrm{EM}(T) = \int\mathrm{d}h\,n^2
+
+        is the column emission measure. 
+
+        Parameters
+        ----------
+        density : `~astropy.units.Quantity`
+            Electron number density
+        emission_measure : `~astropy.units.Quantity`
+            Column emission measure
+        """
+        g = self.contribution_function(density, **kwargs)
+        return 1/(4.*np.pi*u.steradian) * g * emission_measure[:, np.newaxis, np.newaxis]
+
+    def spectrum(self, *args, **kwargs):
+        """
+        Construct the spectrum using a given filter over a specified wavelength range.
+
+        See Also
+        --------
+        fiasco.IonCollection.spectrum : Compute spectrum for multiple ions
+        intensity : Compute LOS intensity for all transitions
+        """
+        return IonCollection(self).spectrum(*args, **kwargs)
 
     @needs_dataset('ip')
     def direct_ionization_rate(self):
