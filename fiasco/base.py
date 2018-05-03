@@ -5,11 +5,12 @@ import numpy as np
 import astropy.units as u
 from astropy.table import QTable
 import plasmapy.atomic
+from plasmapy.utils import InvalidIonError
 
 import fiasco
 from .io.factory import all_subclasses
 from .io.generic import GenericParser, GenericIonParser
-from .util import download_dbase, build_hdf5_dbase
+from .util import download_dbase, build_hdf5_dbase, MissingIonError
 
 __all__ = ['IonBase', 'ContinuumBase']
 
@@ -40,6 +41,8 @@ class Base(object):
             download_dbase(fiasco.defaults['ascii_dbase_root'], ask_before=ask_before)
             build_hdf5_dbase(fiasco.defaults['ascii_dbase_root'], self.hdf5_dbase_root,
                              ask_before=ask_before)
+        if self.ion_name not in fiasco.list_ions():
+            raise MissingIonError(f'{self.ion_name} not found in {self.hdf5_dbase_root}')
 
 
 class ContinuumBase(Base):

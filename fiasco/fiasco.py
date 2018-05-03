@@ -43,7 +43,7 @@ def list_ions():
                     ions.append(f"{el} {i.split('_')[1]}")
         except InvalidParticleError:
             continue
-    ions = sorted(ions, key=lambda x: (plasmapy.atomic.atomic_number(x.split()[0]), 
+    ions = sorted(ions, key=lambda x: (plasmapy.atomic.atomic_number(x.split()[0]),
                                        int(x.split()[1])))
     return ions
 

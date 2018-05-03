@@ -1,12 +1,15 @@
 """
 Classes and functions for element-level operations
 """
+import warnings
+
 import numpy as np
 import h5py
 import astropy.units as u
 import plasmapy
 
 import fiasco
+from .util import MissingIonError
 
 __all__ = ['Element']
 
@@ -37,27 +40,19 @@ class Element(fiasco.IonCollection):
     """
 
     @u.quantity_input
-    def __init__(self, element_name, temperature: u.K, hdf5_path=None, **kwargs):
+    def __init__(self, element_name, temperature: u.K, **kwargs):
         self.temperature = temperature
         if type(element_name) is str:
             element_name = element_name.capitalize()
         self.atomic_symbol = plasmapy.atomic.atomic_symbol(element_name)
         self.atomic_number = plasmapy.atomic.atomic_number(element_name)
         self.element_name = plasmapy.atomic.element_name(element_name)
-        if hdf5_path is None:
-            self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
-        else:
-            self.hdf5_dbase_root = hdf5_path
-        ion_kwargs = kwargs.get('ion_kwargs', {})
-        ion_kwargs['hdf5_path'] = self.hdf5_dbase_root
 
-        chianti_ions = fiasco.DataIndexer(self.hdf5_dbase_root, self.atomic_symbol.lower()).fields
         ion_list = []
         for i in range(self.atomic_number + 1):
-            ion = f'{self.atomic_symbol.lower()}_{i+1}'
-            if ion in chianti_ions:
-                ion_list.append(fiasco.Ion(f'{self.atomic_symbol} {i+1}',
-                                temperature, **ion_kwargs))
+            ion = fiasco.Ion(f'{self.atomic_symbol} {i+1}', temperature, **kwargs)
+            ion_list.append(ion)
+
         super().__init__(*ion_list)
 
     @property
