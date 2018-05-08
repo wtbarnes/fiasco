@@ -4,6 +4,7 @@ Package-level functions
 import warnings
 
 import numpy as np
+import h5py
 from scipy.interpolate import interp1d
 import astropy.units as u
 import plasmapy.atomic
@@ -18,14 +19,13 @@ def list_elements():
     """
     List all available elements in the CHIANTI database.
     """
-    dl = fiasco.DataIndexer(fiasco.defaults['hdf5_dbase_root'], '/')
     elements = []
-    for f in dl.fields:
-        try:
-            elements.append(plasmapy.atomic.atomic_symbol(f.capitalize()))
-        except InvalidParticleError:
-            continue
-    elements = sorted(elements, key=lambda x: plasmapy.atomic.atomic_number(x))
+    with h5py.File(fiasco.defaults['hdf5_dbase_root'], 'r') as hf:
+        for f in hf.keys():
+            try:
+                elements.append(plasmapy.atomic.atomic_symbol(f.capitalize()))
+            except InvalidParticleError:
+                continue
     return elements
 
 
@@ -33,18 +33,16 @@ def list_ions():
     """
     List all available ions in the CHIANTI database
     """
-    dl = fiasco.DataIndexer(fiasco.defaults['hdf5_dbase_root'], '/')
     ions = []
-    for f in dl.fields:
-        try:
-            el = plasmapy.atomic.atomic_symbol(f.capitalize())
-            for i in dl[f].fields:
-                if f == i.split('_')[0]:
-                    ions.append(f"{el} {i.split('_')[1]}")
-        except InvalidParticleError:
-            continue
-    ions = sorted(ions, key=lambda x: (plasmapy.atomic.atomic_number(x.split()[0]),
-                                       int(x.split()[1])))
+    with h5py.File(fiasco.defaults['hdf5_dbase_root'], 'r') as hf:
+        for f in hf.keys():
+            try:
+                el = plasmapy.atomic.atomic_symbol(f.capitalize())
+                for i in hf[f].keys():
+                    if f == i.split('_')[0]:
+                        ions.append(f"{el} {i.split('_')[1]}")
+            except InvalidParticleError:
+                continue
     return ions
 
 
