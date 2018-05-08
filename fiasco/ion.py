@@ -5,6 +5,7 @@ import warnings
 
 import numpy as np
 from scipy.interpolate import splrep, splev, interp1d
+from scipy.ndimage import map_coordinates
 import astropy.units as u
 import astropy.constants as const
 from astropy.convolution import convolve, Model1DKernel
@@ -344,7 +345,6 @@ Using Datasets:
         term = np.outer(self.ioneq, 1./density.value) * self.abundance * 0.83 / density.unit
         # Exclude two-photon transitions
         upper_level = self.transitions.upper_level[~self.transitions.is_twophoton]
-        # CHIANTI records theoretical transitions with negative wavelengths
         wavelength = self.transitions.wavelength[~self.transitions.is_twophoton]
         A = self.transitions.A[~self.transitions.is_twophoton]
         energy = ((const.h * const.c) / wavelength).to(u.erg)
@@ -630,6 +630,119 @@ Using Datasets:
         dr_rate = self.dielectronic_recombination_rate()
         dr_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if dr_rate is None else dr_rate
         return rr_rate + dr_rate
+
+    @u.quantity_input
+    def free_free(self, wavelength: u.angstrom):
+        """
+        """
+        prefactor = (const.c / 3. / const.m_e
+                     * (const.alpha * const.h / np.pi)**3
+                     * np.sqrt(2. * np.pi / 3. / const.m_e / const.k_B))
+        # NOTE: should this allow for optionally including abundance and ionization eq?
+        prefactor *= self.atomic_number**2 / np.sqrt(self.temperature) * self.abundance * self.ioneq
+        # define exponential factor
+        tmp = np.outer(
+            self.temperature.value, wavelength.value) * self.temperature.unit * wavelength.unit
+        exp_factor = np.exp(-const.h * const.c / const.k_B / tmp) / (wavelength**2)
+        gf = self._gaunt_factor_free_free(wavelength)
+
+        return (prefactor[:, np.newaxis] * exp_factor * gf).cgs
+
+    def free_bound(self, wavelength: u.angstrom):
+        ...
+
+    def free_free_loss(self):
+        ...
+
+    def free_bound_loss(self):
+        ...
+
+    @u.quantity_input
+    def _gaunt_factor_free_free(self, wavelength: u.angstrom):
+        """
+        Compute free-free gaunt factor using the approaches of [1]_
+        and [2]_ where appropriate.
+
+        References
+        ----------
+        .. [1] Itoh, N. et al., 2000, ApJS, `128, 125
+            <http://adsabs.harvard.edu/abs/2000ApJS..128..125I>`_
+        .. [2] Sutherland, R. S., 1998, MNRAS, `300, 321
+            <http://adsabs.harvard.edu/abs/1998MNRAS.300..321S>`_
+        """
+        gf_itoh = self._gaunt_factor_free_free_itoh(wavelength)
+        gf_sutherland = self._gaunt_factor_free_free_sutherland(wavelength)
+        gf = np.where(np.isnan(gf_itoh), gf_sutherland, gf_itoh)
+
+        return gf
+
+    @u.quantity_input
+    def _gaunt_factor_free_free_itoh(self, wavelength: u.angstrom):
+        """
+        Calculates the free-free gaunt factor of [1]_.
+            
+        Need some equations here...
+
+        Notes
+        -----
+        The relativistic values are valid for :math:`6<\log_{10}(T)< 8.5` and 
+        :math:`-4<\log_{10}(u)<1`
+
+        References
+        ----------
+        .. [1] Itoh, N. et al., 2000, ApJS, `128, 125
+            <http://adsabs.harvard.edu/abs/2000ApJS..128..125I>`_
+        """
+        log10_temperature = np.log10(self.temperature.to(u.K).value)
+        # calculate scaled energy and temperature
+        tmp = np.outer(self.temperature, wavelength) * self.temperature.unit * wavelength.unit
+        lower_u = const.h * const.c / const.k_B / tmp
+        upper_u = 1. / 2.5 * (np.log10(lower_u) + 1.5)
+        t = 1. / 1.25 * (log10_temperature - 7.25)
+        itoh_coefficients = self._itoh['a']
+        # calculate Gaunt factor
+        gf = u.Quantity(np.zeros(upper_u.shape))
+        for j in range(11):
+            for i in range(11):
+                gf += (itoh_coefficients[i, j] * (t**i))[:, np.newaxis] * (upper_u**j)
+        # apply NaNs where Itoh approximation is not valid
+        gf = np.where(np.logical_and(np.log10(lower_u) >= -4., np.log10(lower_u) <= 1.0),
+                      gf, np.nan)
+        gf[np.where(np.logical_or(log10_temperature <= 6.0, log10_temperature >= 8.5)), :] = np.nan
+
+        return gf
+
+    @u.quantity_input
+    def _gaunt_factor_free_free_sutherland(self, wavelength: u.angstrom):
+        """
+        Calculates the free-free gaunt factor calculations of [1]_.
+        
+        Need some equations here.
+        
+        References
+        ----------
+        .. [1] Sutherland, R. S., 1998, MNRAS, `300, 321
+            <http://adsabs.harvard.edu/abs/1998MNRAS.300..321S>`_
+        """
+        Ry = const.h * const.c * const.Ryd
+        tmp = np.outer(self.temperature, wavelength) * self.temperature.unit * wavelength.unit
+        lower_u = const.h * const.c / const.k_B / tmp
+        gamma_squared = ((self.atomic_number**2) * Ry / const.k_B / self.temperature[:, np.newaxis]
+                         * np.ones(lower_u.shape))
+        # convert to index coordinates
+        i_lower_u = (np.log10(lower_u) + 4.) * 10.
+        i_gamma_squared = (np.log10(gamma_squared) + 4.) * 5.
+        # interpolate data to scaled quantities
+        # FIXME: interpolate without reshaping?
+        gf_data = self._gffgu['gaunt_factor'].reshape(
+            np.unique(self._gffgu['u']).shape[0],
+            np.unique(self._gffgu['gamma_squared']).shape[0],
+        )
+        gf = map_coordinates(
+            gf_data, [i_gamma_squared.flatten(), i_lower_u.flatten()]
+        ).reshape(lower_u.shape)
+
+        return u.Quantity(np.where(gf < 0., 0., gf))
 
 
 class Level(object):
