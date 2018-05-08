@@ -41,7 +41,7 @@ class Base(object):
             download_dbase(fiasco.defaults['ascii_dbase_root'], ask_before=ask_before)
             build_hdf5_dbase(fiasco.defaults['ascii_dbase_root'], self.hdf5_dbase_root,
                              ask_before=ask_before)
-        if self.ion_name not in fiasco.list_ions():
+        if self.ion_name not in fiasco.list_ions(sort=False):
             raise MissingIonError(f'{self.ion_name} not found in {self.hdf5_dbase_root}')
 
 

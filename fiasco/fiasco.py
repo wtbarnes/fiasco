@@ -15,7 +15,7 @@ import fiasco
 __all__ = ['list_elements', 'list_ions', 'proton_electron_ratio']
 
 
-def list_elements():
+def list_elements(sort=True):
     """
     List all available elements in the CHIANTI database.
     """
@@ -26,10 +26,12 @@ def list_elements():
                 elements.append(plasmapy.atomic.atomic_symbol(f.capitalize()))
             except InvalidParticleError:
                 continue
+    if sort:
+        elements = sorted(elements, key=lambda x: plasmapy.atomic.atomic_number(x))
     return elements
 
 
-def list_ions():
+def list_ions(sort=True):
     """
     List all available ions in the CHIANTI database
     """
@@ -43,6 +45,10 @@ def list_ions():
                         ions.append(f"{el} {i.split('_')[1]}")
             except InvalidParticleError:
                 continue
+    # Optional because adds significant overhead
+    if sort:
+        ions = sorted(ions, key=lambda x: (plasmapy.atomic.atomic_number(x.split()[0]),
+                                           int(x.split()[1])))
     return ions
 
 
