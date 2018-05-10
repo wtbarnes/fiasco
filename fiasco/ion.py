@@ -634,19 +634,20 @@ Using Datasets:
     @u.quantity_input
     def free_free(self, wavelength: u.angstrom):
         """
+        Compute free-free continuum emission or bremsstrahlung
         """
-        prefactor = (const.c / 3. / const.m_e
-                     * (const.alpha * const.h / np.pi)**3
-                     * np.sqrt(2. * np.pi / 3. / const.m_e / const.k_B))
+        prefactor = (const.c.cgs / 3. / const.m_e.cgs
+                     * (const.alpha.cgs * const.h.cgs / np.pi)**3
+                     * np.sqrt(2. * np.pi / 3. / const.m_e.cgs / const.k_B.cgs))
         # NOTE: should this allow for optionally including abundance and ionization eq?
-        prefactor *= self.atomic_number**2 / np.sqrt(self.temperature) * self.abundance * self.ioneq
-        # define exponential factor
+        prefactor = (prefactor * self.atomic_number**2 / np.sqrt(self.temperature) * self.abundance
+                     * self.ioneq)
         tmp = np.outer(
             self.temperature.value, wavelength.value) * self.temperature.unit * wavelength.unit
-        exp_factor = np.exp(-const.h * const.c / const.k_B / tmp) / (wavelength**2)
+        exp_factor = np.exp(-const.h.cgs * const.c.cgs / const.k_B.cgs / tmp) / (wavelength**2)
         gf = self._gaunt_factor_free_free(wavelength)
 
-        return (prefactor[:, np.newaxis] * exp_factor * gf).cgs
+        return prefactor[:, np.newaxis] * exp_factor * gf
 
     def free_bound(self, wavelength: u.angstrom):
         ...
