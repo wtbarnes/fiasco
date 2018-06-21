@@ -34,7 +34,7 @@ env:
         - SETUP_CMD='test'
         - PIP_DEPENDENCIES='fortranformat plasmapy'
         - CONDA_DEPENDENCIES='h5py scipy'
-        - EVENT_TYPE='pull_request push'
+        - EVENT_TYPE='pull_request push cron'
 
         # If there are matplotlib or other GUI tests, uncomment the following
         # line to use the X virtual framebuffer.
