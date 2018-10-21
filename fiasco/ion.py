@@ -634,7 +634,7 @@ Using Datasets:
     @u.quantity_input
     def free_free(self, wavelength: u.angstrom):
         """
-        Compute free-free continuum emission or bremsstrahlung
+        Free-free continuum emission or bremsstrahlung
         """
         prefactor = (const.c / 3. / const.m_e
                      * (const.alpha * const.h / np.pi)**3
@@ -649,13 +649,27 @@ Using Datasets:
 
         return prefactor[:, np.newaxis] * exp_factor * gf
 
+    @needs_dataset('fblvl')
+    @u.quantity_input
     def free_bound(self, wavelength: u.angstrom):
-        ...
+        """
+        Free-bound continuum emission of the recombined ion.
+        """
+        ion_recombining = Ion(f'{self.element_name} {self.ionization_stage + 1}',
+                              self.temperature, **self._dset_names)
+        omega_0 = 1. if ion_recombining._fblvl is None else ion_recombining._fblvl['multiplicity'][0]
+        photon_energy = const.h * const.c / wavelength
 
     def free_free_loss(self):
+        """
+        Wavelength-integrated radiative losses due to free-free emission
+        """
         ...
 
     def free_bound_loss(self):
+        """
+        Wavelength-integrated radiative losses due to free-bound emission
+        """
         ...
 
     @u.quantity_input
@@ -743,6 +757,43 @@ Using Datasets:
             gf_data, [i_gamma_squared.flatten(), i_lower_u.flatten()]).reshape(lower_u.shape)
 
         return u.Quantity(np.where(gf < 0., 0., gf))
+
+    @needs_dataset('verner')
+    @u.quantity_input
+    def _verner_cross_section(self, energy: u.erg):
+        """
+        Ground state photoionization cross-section using the method of [1]_.
+
+        Parameters
+        ----------
+        energy : `~astropy.units.Quantity`
+            Photon energy
+
+        References
+        ----------
+        .. [1] Verner & Yakovlev, 1995, A&AS, `109, 125
+            <http://adsabs.harvard.edu/abs/1995A%26AS..109..125V>`_
+        """
+        v = self._verner
+        # decompose simplifies units and makes sure y is unitless
+        y = (energy / v['E_0_fit']).decompose()
+        Q = 5.5 + v['l'] + 0.5*v['P_fit']
+        F = ((y - 1)**2 + v['y_w_fit'])*(y**(-Q))*(1. + np.sqrt(y / v['y_a_fit']))**(-v['P_fit'])
+        return np.where(energy < v['E_thresh'], 0., F.decompose().value) * v['sigma_0']
+
+    def _karzas_cross_section(self,):
+        """
+        Photoionization cross-section using the method of [1]_.
+
+        Parameters
+        ----------
+
+        References
+        ----------
+        .. [1] Karzas and Latter, 1961, ApJSS, `6, 167
+            <http://adsabs.harvard.edu/abs/1961ApJS....6..167K>`_
+        """
+        ...
 
 
 class Level(object):
