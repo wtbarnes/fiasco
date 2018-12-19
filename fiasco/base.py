@@ -1,15 +1,11 @@
 """
 Base classes for access to CHIANTI ion data
 """
-import numpy as np
-import astropy.units as u
-from astropy.table import QTable
 import plasmapy.atomic
-from plasmapy.utils import InvalidIonError
 
 import fiasco
 from .io.factory import all_subclasses
-from .io.generic import GenericParser, GenericIonParser
+from .io.generic import GenericIonParser
 from .util import download_dbase, build_hdf5_dbase, MissingIonError
 
 __all__ = ['IonBase', 'ContinuumBase']
@@ -128,6 +124,7 @@ def add_property(cls, filetype):
     property_template.__doc__ = f'Data in {filetype} type file'
     property_template.__name__ = '_{}'.format('_'.join(filetype.split('/')))
     setattr(cls, property_template.__name__, property(property_template))
+
 
 # Collect the filetypes and add the methods
 all_ext = [cls.filetype for cls in all_subclasses(GenericIonParser) if hasattr(cls, 'filetype')]

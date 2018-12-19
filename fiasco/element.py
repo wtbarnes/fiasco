@@ -1,15 +1,11 @@
 """
 Classes and functions for element-level operations
 """
-import warnings
-
 import numpy as np
-import h5py
 import astropy.units as u
 import plasmapy
 
 import fiasco
-from .util import MissingIonError
 
 __all__ = ['Element']
 
@@ -41,7 +37,6 @@ class Element(fiasco.IonCollection):
 
     @u.quantity_input
     def __init__(self, element_name, temperature: u.K, **kwargs):
-        self.temperature = temperature
         if type(element_name) is str:
             element_name = element_name.capitalize()
         self.atomic_symbol = plasmapy.atomic.atomic_symbol(element_name)
