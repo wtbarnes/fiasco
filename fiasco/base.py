@@ -6,6 +6,7 @@ import plasmapy.atomic
 import fiasco
 from .io.factory import all_subclasses
 from .io.generic import GenericIonParser
+from .io.datalayer import DataIndexer
 from .util import download_dbase, build_hdf5_dbase, MissingIonError
 
 __all__ = ['IonBase', 'ContinuumBase']
@@ -49,38 +50,38 @@ class ContinuumBase(Base):
     @property
     def _gffgu(self):
         data_path = '/'.join(['continuum', 'gffgu'])
-        return fiasco.DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @property
     def _gffint(self):
         data_path = '/'.join(['continuum', 'gffint'])
-        return fiasco.DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @property
     def _klgfb(self):
         data_path = '/'.join(['continuum', 'klgfb'])
-        return fiasco.DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @property
     def _verner(self):
         data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, 'continuum',
                               'verner_short'])
-        return fiasco.DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @property
     def _itoh(self):
         data_path = '/'.join([self.atomic_symbol.lower(), 'continuum', 'itoh'])
-        return fiasco.DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @property
     def _hseq(self):
         data_path = '/'.join([self.atomic_symbol.lower(), 'continuum', 'hseq_2photon'])
-        return fiasco.DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @property
     def _heseq(self):
         data_path = '/'.join([self.atomic_symbol.lower(), 'continuum', 'heseq_2photon'])
-        return fiasco.DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
 
 class IonBase(Base):
@@ -100,17 +101,17 @@ class IonBase(Base):
     @property
     def _abundance(self):
         data_path = '/'.join([self.atomic_symbol.lower(), 'abundance'])
-        return fiasco.DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @property
     def _ip(self):
         data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, 'ip'])
-        return fiasco.DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @property
     def _ioneq(self):
         data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, 'ioneq'])
-        return fiasco.DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
 
 def add_property(cls, filetype):
@@ -119,7 +120,7 @@ def add_property(cls, filetype):
     """
     def property_template(self):
         data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, filetype])
-        return fiasco.DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     property_template.__doc__ = f'Data in {filetype} type file'
     property_template.__name__ = '_{}'.format('_'.join(filetype.split('/')))
