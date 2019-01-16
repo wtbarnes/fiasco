@@ -1,14 +1,11 @@
 """
 Ion object. Holds all methods and properties of a CHIANTI ion.
 """
-import warnings
-
 import numpy as np
 from scipy.interpolate import splrep, splev, interp1d
+from scipy.ndimage import map_coordinates
 import astropy.units as u
 import astropy.constants as const
-from astropy.convolution import convolve, Model1DKernel
-from astropy.modeling.models import Gaussian1D
 
 from .base import IonBase, ContinuumBase
 from .collections import IonCollection
@@ -44,7 +41,7 @@ class Ion(IonBase, ContinuumBase):
     Examples
     --------
     """
-    
+
     @u.quantity_input
     def __init__(self, ion_name, temperature: u.K, *args, **kwargs):
         super().__init__(ion_name, *args, **kwargs)
@@ -79,6 +76,7 @@ Using Datasets:
     def __getitem__(self, key):
         if self._elvlc is None:
             raise IndexError(f'No energy levels available for {self.ion_name}')
+        # Throw an index error to stop iteration
         _ = self._elvlc['level'][key]
         return Level(key, self._elvlc)
 
@@ -114,7 +112,7 @@ Using Datasets:
         isfinite = np.isfinite(ioneq)
         ioneq[isfinite] = np.where(ioneq[isfinite] < 0., 0., ioneq[isfinite])
         return u.Quantity(ioneq)
-    
+
     @property
     def abundance(self):
         """
@@ -128,8 +126,7 @@ Using Datasets:
         Ionization potential with reasonable units
         """
         if self._ip is not None:
-            return (self._ip[self._dset_names['ip_filename']]
-                    * const.h.cgs * const.c.cgs).decompose().cgs
+            return (self._ip[self._dset_names['ip_filename']] * const.h * const.c).cgs
         else:
             return None
 
@@ -220,9 +217,7 @@ Using Datasets:
         kBTE = np.outer(const.k_B.cgs*self.temperature, 1.0/self._psplups['delta_energy'].to(u.erg))
         ex_rate = burgess_tully_descale_vectorize(
             bt_t, self._psplups['bt_rate'], kBTE.T, self._psplups['bt_c'], self._psplups['bt_type'])
-        ex_rate = u.Quantity(np.where(ex_rate > 0., ex_rate, 0.), u.cm**3/u.s).T
-        
-        return ex_rate
+        return u.Quantity(np.where(ex_rate > 0., ex_rate, 0.), u.cm**3/u.s).T
 
     @needs_dataset('elvlc', 'psplups')
     def proton_collision_deexcitation_rate(self):
@@ -344,7 +339,6 @@ Using Datasets:
         term = np.outer(self.ioneq, 1./density.value) * self.abundance * 0.83 / density.unit
         # Exclude two-photon transitions
         upper_level = self.transitions.upper_level[~self.transitions.is_twophoton]
-        # CHIANTI records theoretical transitions with negative wavelengths
         wavelength = self.transitions.wavelength[~self.transitions.is_twophoton]
         A = self.transitions.A[~self.transitions.is_twophoton]
         energy = ((const.h * const.c) / wavelength).to(u.erg)
@@ -402,7 +396,7 @@ Using Datasets:
 
            \mathrm{EM}(T) = \int\mathrm{d}h\,n^2
 
-        is the column emission measure. 
+        is the column emission measure.
 
         Parameters
         ----------
@@ -429,7 +423,7 @@ Using Datasets:
     def direct_ionization_rate(self):
         """
         Calculate direct ionization rate in cm3/s
-        
+
         Needs an equation reference or explanation
         """
         xgl, wgl = np.polynomial.laguerre.laggauss(12)
@@ -441,9 +435,8 @@ Using Datasets:
         term1 = np.sqrt(8./np.pi/const.m_e.cgs)*np.sqrt(kBT)*np.exp(-self.ip/kBT)
         term2 = ((wgl*xgl)[:, np.newaxis]*cross_section).sum(axis=0)
         term3 = (wgl[:, np.newaxis]*cross_section).sum(axis=0)*self.ip/kBT
-        
         return term1*(term2 + term3)
-    
+
     @u.quantity_input
     def direct_ionization_cross_section(self, energy: u.erg):
         """
@@ -490,7 +483,7 @@ Using Datasets:
             if not hasattr(cross_section_total, 'unit'):
                 cross_section_total = cross_section_total*cross_section.unit
             cross_section_total += cross_section
-            
+
         return cross_section_total
 
     @needs_dataset('ip')
@@ -516,7 +509,7 @@ Using Datasets:
 
         Qrp = 1./U * (A * np.log(U) + D * (1. - 1./U)**2 + C * U * (1. - 1./U)**4
                       + (c / U + d / U**2) * (1. - 1. / U))
-        
+
         return B * (np.pi * const.a0.cgs**2) * F * Qrp / (self.ip.to(u.Ry).value**2)
 
     @needs_dataset('easplups')
@@ -525,9 +518,10 @@ Using Datasets:
         Calculate ionization rate due to excitation autoionization
         """
         c = (const.h.cgs**2)/((2. * np.pi * const.m_e.cgs)**(1.5) * np.sqrt(const.k_B.cgs))
-        kBTE = np.outer(const.k_B.cgs*self.temperature, 1.0/self._easplups['delta_energy'].to(u.erg))
-        # NOTE: Transpose here to make final dimensions compatible with multiplication with T
-        # when computing rate
+        kBTE = np.outer(const.k_B.cgs*self.temperature,
+                        1.0/self._easplups['delta_energy'].to(u.erg))
+        # NOTE: Transpose here to make final dimensions compatible with multiplication with
+        # temperature when computing rate
         kBTE = kBTE.T
         xs = [np.linspace(0, 1, ups.shape[0]) for ups in self._easplups['bt_upsilon']]
         upsilon = burgess_tully_descale_vectorize(
@@ -630,6 +624,238 @@ Using Datasets:
         dr_rate = self.dielectronic_recombination_rate()
         dr_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if dr_rate is None else dr_rate
         return rr_rate + dr_rate
+
+    @u.quantity_input
+    def free_free(self, wavelength: u.angstrom):
+        """
+        Free-free continuum emission or bremsstrahlung
+
+        .. note:: Does not include ionization equilibrium or abundance
+
+        Parameters
+        ----------
+        wavelength : `~astropy.units.Quantity`
+        """
+        prefactor = (const.c / 3. / const.m_e
+                     * (const.alpha * const.h / np.pi)**3
+                     * np.sqrt(2. * np.pi / 3. / const.m_e / const.k_B))
+        tmp = np.outer(
+            self.temperature.value, wavelength.value) * self.temperature.unit * wavelength.unit
+        exp_factor = np.exp(-const.h * const.c / const.k_B / tmp) / (wavelength**2)
+        gf = self._gaunt_factor_free_free(wavelength)
+
+        return (prefactor * self.atomic_number**2 * exp_factor * gf
+                / np.sqrt(self.temperature)[:, np.newaxis])
+
+    @needs_dataset('fblvl', 'ip')
+    @u.quantity_input
+    def free_bound(self, wavelength: u.angstrom, use_verner=True):
+        """
+        Free-bound continuum emission of the recombined ion.
+
+        .. note:: Does not include ionization equilibrium or abundance
+
+        Parameters
+        ----------
+        wavelength : `~astropy.units.Quantity`
+        use_verner : `bool`, optional
+            If True, evaluate ground-state cross-sections using method of Verner and Yakovlev
+
+        See Also
+        --------
+        _verner_cross_section
+        """
+        prefactor = (2/np.sqrt(2*np.pi)/(4*np.pi)/(
+            const.h*(const.c**3) * (const.m_e * const.k_B)**(3/2)))
+        recombining = Ion(f'{self.element_name} {self.ionization_stage + 1}', self.temperature,
+                          **self._dset_names)
+        omega_0 = 1. if recombining._fblvl is None else recombining._fblvl['multiplicity'][0]
+        E_photon = const.h * const.c / wavelength
+        energy_temperature_factor = np.outer(self.temperature**(-3/2), E_photon**5)
+        # Units lost in np.outer
+        energy_temperature_factor *= (E_photon.unit**5) * (self.temperature.unit**(-3/2))
+        # Sum over levels of recombined ion
+        sum_factor = u.Quantity(np.zeros(self.temperature.shape+wavelength.shape), 'cm^2')
+        for omega, E, n, L, level in zip(self._fblvl['multiplicity'],
+                                         self._fblvl['E_obs']*const.h*const.c,
+                                         self._fblvl['n'],
+                                         self._fblvl['L'],
+                                         self._fblvl['level']):
+            # Energy required to ionize ion from level i
+            E_ionize = self.ip - E
+            # Check if ionization potential and photon energy sufficient
+            if (E_ionize < 0*u.erg) or (E_photon.max() < E):
+                continue
+            # Only use Verner cross-section for ground state
+            if level == 1 and use_verner:
+                cross_section = self._verner_cross_section(E_photon)
+            else:
+                cross_section = self._karzas_cross_section(E_photon, E_ionize, n, L)
+            # Lose units here so make sure numerator and denominator have same units
+            E_scaled = np.outer(1/(const.k_B*self.temperature).to(u.eV),
+                                (E_photon - E_ionize).to(u.eV))
+            # Scaled energy can blow up at low temperatures; not an issue when cross-section is 0
+            E_scaled[:, np.where(cross_section == 0*cross_section.unit)] = 0.0
+            sum_factor += omega / omega_0 * np.exp(-E_scaled) * cross_section
+
+        return (prefactor * energy_temperature_factor * sum_factor)
+   
+    def free_free_loss(self):
+        """
+        Wavelength-integrated radiative losses due to free-free emission
+        """
+        ...
+
+    def free_bound_loss(self):
+        """
+        Wavelength-integrated radiative losses due to free-bound emission
+        """
+        ...
+
+    @u.quantity_input
+    def _gaunt_factor_free_free(self, wavelength: u.angstrom):
+        """
+        Compute free-free gaunt factor using the approaches of [1]_
+        and [2]_ where appropriate.
+
+        References
+        ----------
+        .. [1] Itoh, N. et al., 2000, ApJS, `128, 125
+            <http://adsabs.harvard.edu/abs/2000ApJS..128..125I>`_
+        .. [2] Sutherland, R. S., 1998, MNRAS, `300, 321
+            <http://adsabs.harvard.edu/abs/1998MNRAS.300..321S>`_
+        """
+        gf_itoh = self._gaunt_factor_free_free_itoh(wavelength)
+        gf_sutherland = self._gaunt_factor_free_free_sutherland(wavelength)
+        gf = np.where(np.isnan(gf_itoh), gf_sutherland, gf_itoh)
+
+        return gf
+
+    @u.quantity_input
+    def _gaunt_factor_free_free_itoh(self, wavelength: u.angstrom):
+        """
+        Calculates the free-free gaunt factor of [1]_.
+
+        Need some equations here...
+
+        Notes
+        -----
+        The relativistic values are valid for :math:`6<\log_{10}(T)< 8.5` and
+        :math:`-4<\log_{10}(u)<1`
+
+        References
+        ----------
+        .. [1] Itoh, N. et al., 2000, ApJS, `128, 125
+            <http://adsabs.harvard.edu/abs/2000ApJS..128..125I>`_
+        """
+        log10_temperature = np.log10(self.temperature.to(u.K).value)
+        # calculate scaled energy and temperature
+        tmp = np.outer(self.temperature, wavelength) * self.temperature.unit * wavelength.unit
+        lower_u = const.h * const.c / const.k_B / tmp
+        upper_u = 1. / 2.5 * (np.log10(lower_u) + 1.5)
+        t = 1. / 1.25 * (log10_temperature - 7.25)
+        itoh_coefficients = self._itoh['a']
+        # calculate Gaunt factor
+        gf = u.Quantity(np.zeros(upper_u.shape))
+        for j in range(11):
+            for i in range(11):
+                gf += (itoh_coefficients[i, j] * (t**i))[:, np.newaxis] * (upper_u**j)
+        # apply NaNs where Itoh approximation is not valid
+        gf = np.where(np.logical_and(np.log10(lower_u) >= -4., np.log10(lower_u) <= 1.0),
+                      gf, np.nan)
+        gf[np.where(np.logical_or(log10_temperature <= 6.0, log10_temperature >= 8.5)), :] = np.nan
+
+        return gf
+
+    @u.quantity_input
+    def _gaunt_factor_free_free_sutherland(self, wavelength: u.angstrom):
+        """
+        Calculates the free-free gaunt factor calculations of [1]_.
+
+        Need some equations here.
+
+        References
+        ----------
+        .. [1] Sutherland, R. S., 1998, MNRAS, `300, 321
+            <http://adsabs.harvard.edu/abs/1998MNRAS.300..321S>`_
+        """
+        Ry = const.h * const.c * const.Ryd
+        tmp = np.outer(self.temperature, wavelength) * self.temperature.unit * wavelength.unit
+        lower_u = const.h * const.c / const.k_B / tmp
+        gamma_squared = ((self.atomic_number**2) * Ry / const.k_B / self.temperature[:, np.newaxis]
+                         * np.ones(lower_u.shape))
+        # convert to index coordinates
+        i_lower_u = (np.log10(lower_u) + 4.) * 10.
+        i_gamma_squared = (np.log10(gamma_squared) + 4.) * 5.
+        # interpolate data to scaled quantities
+        # FIXME: interpolate without reshaping?
+        gf_data = self._gffgu['gaunt_factor'].reshape(
+            np.unique(self._gffgu['u']).shape[0],
+            np.unique(self._gffgu['gamma_squared']).shape[0],
+        )
+        gf = map_coordinates(
+            gf_data, [i_gamma_squared.flatten(), i_lower_u.flatten()]).reshape(lower_u.shape)
+
+        return u.Quantity(np.where(gf < 0., 0., gf))
+
+    @needs_dataset('verner')
+    @u.quantity_input
+    def _verner_cross_section(self, energy: u.erg):
+        """
+        Ground state photoionization cross-section using the method of [1]_.
+
+        Parameters
+        ----------
+        energy : `~astropy.units.Quantity`
+            Photon energy
+
+        References
+        ----------
+        .. [1] Verner & Yakovlev, 1995, A&AS, `109, 125
+            <http://adsabs.harvard.edu/abs/1995A%26AS..109..125V>`_
+        """
+        # decompose simplifies units and makes sure y is unitless
+        y = (energy / self._verner['E_0_fit']).decompose()
+        Q = 5.5 + self._verner['l'] - 0.5*self._verner['P_fit']
+        F = ((y - 1)**2 + self._verner['y_w_fit']**2) * (y**(-Q))*(
+            1. + np.sqrt(y / self._verner['y_a_fit']))**(-self._verner['P_fit'])
+        return np.where(energy < self._verner['E_thresh'], 0.,
+                        F.decompose().value) * self._verner['sigma_0']
+
+    @u.quantity_input
+    def _karzas_cross_section(self, photon_energy: u.erg, ionization_energy: u.erg, n, l):
+        """
+        Photoionization cross-section using the method of [1]_.
+
+        Parameters
+        ----------
+        photon_energy : `~astropy.units.Quantity`
+            Energy of emitted photon
+        ionization_energy : `~astropy.units.Quantity`
+            Ionization potential of recombined ion for level `n`
+        n : `int`
+            Principal quantum number
+        l : `int`
+            Orbital angular momentum number
+
+        References
+        ----------
+        .. [1] Karzas and Latter, 1961, ApJSS, `6, 167
+            <http://adsabs.harvard.edu/abs/1961ApJS....6..167K>`_
+        """
+        prefactor = (2**4)*const.h*(const.e.gauss**2)/(3*np.sqrt(3)*const.m_e*const.c)
+        index_nl = np.where(np.logical_and(self._klgfb['n'] == n, self._klgfb['l'] == l))[0]
+        # If there is no Gaunt factor for n, l, set it to 1
+        if index_nl.shape == (0,):
+            gaunt_factor = 1
+        else:
+            E_scaled = np.log(photon_energy/ionization_energy)
+            gf_interp = splrep(self._klgfb['log_pe'][index_nl, :].squeeze(),
+                               self._klgfb['log_gaunt_factor'][index_nl, :].squeeze())
+            gaunt_factor = np.exp(splev(E_scaled, gf_interp))
+        cross_section = prefactor * ionization_energy**2 * photon_energy**(-3) * gaunt_factor / n
+        cross_section[np.where(photon_energy < ionization_energy)] = 0.*cross_section.unit
+        return cross_section
 
 
 class Level(object):

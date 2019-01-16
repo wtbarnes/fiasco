@@ -20,7 +20,7 @@ class IonCollection(object):
     Examples
     --------
     """
-    
+
     def __init__(self, *args, **kwargs):
         self._ion_list = []
         for item in args:
@@ -34,10 +34,10 @@ class IonCollection(object):
         # TODO: check for duplicates
         assert all([all(self[0].temperature == ion.temperature) for ion in self]), (
             'Temperatures for all ions in collection must be the same.')
-        
+
     def __getitem__(self, value):
         return self._ion_list[value]
-    
+
     def __contains__(self, value):
         if type(value) is str:
             el, ion = value.split()
@@ -53,6 +53,48 @@ class IonCollection(object):
     
     def __radd__(self, value):
         return IonCollection(value, self)
+
+    @property
+    def temperature(self,):
+        # Temperatures for all ions must be the same
+        return self[0].temperature
+
+    @u.quantity_input
+    def free_free(self, wavelength: u.angstrom):
+        """
+        Compute combined free-free continuum emission (bremsstrahlung).
+
+        .. note:: Both abundance and ionization equilibrium are included here
+        
+        Parameters
+        ----------
+        wavelength : `~astropy.units.Quantity`
+        """
+        free_free = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape),
+                               'erg cm^3 s^-1 Angstrom^-1')
+        for ion in self:
+            free_free += ion.free_free(wavelength) * ion.abundance * ion.ioneq[:, np.newaxis]
+        return free_free
+
+    @u.quantity_input
+    def free_bound(self, wavelength: u.angstrom, **kwargs):
+        """
+        Compute combined free-bound continuum emission.
+
+        .. note:: Both abundance and ionization equilibrium are included here
+
+        Parameters
+        ----------
+        wavelength : `~astropy.units.Quantity`
+        """
+        free_bound = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape),
+                                'erg cm^3 s^-1 Angstrom^-1')
+        for ion in self:
+            fb = ion.free_bound(wavelength, **kwargs)
+            # Not valid for all ions
+            if fb is not None:
+                free_bound += fb * ion.abundance * ion.ioneq[:, np.newaxis]
+        return free_bound
 
     @u.quantity_input
     def spectrum(self, density: u.cm**(-3), emission_measure: u.cm**(-5), wavelength_range=None,
@@ -115,8 +157,7 @@ class IonCollection(object):
             std_eff = (std/bin_width).value  # Scale sigma by bin width
             # Kernel size must be odd
             x_size = int(8*std_eff)+1 if (int(8*std_eff) % 2) == 0 else int(8*std_eff)
-            m = Gaussian1D(amplitude=1./np.sqrt(2.*np.pi)/std.value,
-                           mean=0., stddev=std_eff)
+            m = Gaussian1D(amplitude=1./np.sqrt(2.*np.pi)/std.value, mean=0., stddev=std_eff)
             kernel = Model1DKernel(m,  x_size=x_size)
         # FIXME: This is very inefficient! Vectorize somehow...
         spectrum = np.zeros(intensity.shape[:2]+(num_bins,))
@@ -134,8 +175,7 @@ class IonCollection(object):
         """
         Calculate radiative loss curve which includes multiple ions
         """
-        rad_loss = u.Quantity(
-            np.zeros(self[0].temperature.shape + density.shape), 'erg cm^3 s^-1')
+        rad_loss = u.Quantity(np.zeros(self.temperature.shape + density.shape), 'erg cm^3 s^-1')
         for ion in self:
             g = ion.contribution_function(density, **kwargs)
             if g is None:
