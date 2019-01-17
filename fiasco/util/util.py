@@ -3,7 +3,6 @@ Basic utilities
 """
 import os
 import sys
-import warnings
 import configparser
 from distutils.util import strtobool
 from builtins import input

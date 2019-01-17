@@ -108,7 +108,10 @@ class GenericIonParser(GenericParser):
             self.dielectronic = True
             self.ion_name = self.ion_name[:-1]
         self.element = self.ion_name.split('_')[0]
-        self.full_path = kwargs.get('full_path', os.path.join(self.ascii_dbase_root, self.element, os.path.splitext(self.filename)[0], self.filename))
+        self.full_path = kwargs.get('full_path', os.path.join(self.ascii_dbase_root,
+                                                              self.element,
+                                                              os.path.splitext(self.filename)[0],
+                                                              self.filename))
 
     def postprocessor(self, df):
         df = super().postprocessor(df)

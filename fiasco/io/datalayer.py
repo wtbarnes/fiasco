@@ -1,8 +1,6 @@
 """
 Access layer for interfacing with CHIANTI stored in HDF5
 """
-import os
-
 import numpy as np
 import h5py
 try:
@@ -11,7 +9,6 @@ except ImportError:
     pass
 import astropy.units as u
 from astropy.table import QTable
-import plasmapy.atomic
 
 import fiasco
 
@@ -22,7 +19,7 @@ class DataIndexer(object):
     """
     Data access layer for CHIANTI data
     """
-    
+
     def __new__(cls, *args):
         if fiasco.defaults['use_remote_data']:
             return DataIndexerRemote(
@@ -63,7 +60,7 @@ class DataIndexerRemote(object):
             else:
                 version = None
         return version
-    
+
     @property
     def fields(self):
         with h5pyd.File(self.domain, 'r', endpoint=self.endpoint) as hf:
@@ -75,12 +72,12 @@ class DataIndexerRemote(object):
         for field in self.fields:
             qt[field] = self[field]
         return qt
-    
+
     def __contains__(self, key):
         with h5pyd.File(self.domain, 'r', endpoint=self.endpoint) as hf:
             key_in_grp = key in hf[self.top_level_path]
         return key_in_grp
-    
+
     def __getitem__(self, key):
         """
         NOTE: There seems to be a weird in bug in h5pyd where if a dataset
@@ -110,13 +107,13 @@ class DataIndexerRemote(object):
                 if '|S' in data.dtype.str:
                     data = data.astype(str)
         return data
-    
+
     def __repr__(self):
         with h5pyd.File(self.domain, 'r', endpoint=self.endpoint) as hf:
             grp = hf[self.top_level_path]
             var_names = [key for key in grp]
             footer = '' if 'footer' not in grp.attrs else grp.attrs['footer']
-            
+
         name_strs = '\n'.join(var_names)
         version = '' if self.version is None else f'-- v{self.version}'
         return f"""{self.top_level_path} {version}
@@ -145,7 +142,7 @@ class DataIndexerLocal(object):
     hdf5_path : `str`
     top_level_path : `str`
     """
-    
+
     def __init__(self, hdf5_path, top_level_path):
         self.top_level_path = top_level_path
         self.hdf5_dbase_root = hdf5_path
@@ -176,7 +173,7 @@ class DataIndexerLocal(object):
             else:
                 footer = None
         return footer
-    
+
     @property
     def fields(self):
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
@@ -188,12 +185,12 @@ class DataIndexerLocal(object):
         for field in self.fields:
             qt[field] = self[field]
         return qt
-    
+
     def __contains__(self, key):
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
             key_in_grp = key in hf[self.top_level_path]
         return key_in_grp
-    
+
     def __getitem__(self, key):
         if type(key) is int:
             raise NotImplementedError('Iteration not supported.')
@@ -212,7 +209,7 @@ class DataIndexerLocal(object):
                 if '|S' in data.dtype.str:
                     data = data.astype(str)
         return data
-    
+
     def __repr__(self):
 
         def ufilter(x):
@@ -226,7 +223,7 @@ class DataIndexerLocal(object):
             grp = hf[self.top_level_path]
             var_names = [(key, ufilter(grp[key]), dfilter(grp[key])) for key in grp]
             footer = '' if 'footer' not in grp.attrs else grp.attrs['footer']
-            
+
         name_strs = '\n'.join(['{} {} -- {}'.format(*v) for v in var_names])
         version = '' if self.version is None else f'-- v{self.version}'
         return f"""{self.top_level_path} {version}

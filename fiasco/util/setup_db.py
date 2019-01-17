@@ -5,7 +5,6 @@ Various functions for downloading and setting up the database
 import os
 import warnings
 import tarfile
-import configparser
 
 import h5py
 from astropy.config import set_temp_cache
