@@ -44,6 +44,8 @@ class Element(fiasco.IonCollection):
         self.element_name = plasmapy.atomic.element_name(element_name)
 
         ion_list = []
+        # NOTE: check only the first ion to see if it is in the database as
+        # checking all of them is very slow
         for i in range(self.atomic_number + 1):
             ion = fiasco.Ion(f'{self.atomic_symbol} {i+1}', temperature, **kwargs)
             ion_list.append(ion)
