@@ -10,3 +10,4 @@ dependencies:
   - fortranformat
   - plasmapy
   - h5pyd
+  - sphinx-astropy
