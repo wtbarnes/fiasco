@@ -7,7 +7,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 import astropy.units as u
 import plasmapy.atomic
-from plasmapy.utils import InvalidParticleError
+from plasmapy.atomic.exceptions import InvalidParticleError
 
 import fiasco
 from fiasco.io import DataIndexer
@@ -61,7 +61,7 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
     Parameters
     ----------
     temperature : `~astropy.units.Quantity`
-    
+
     See Also
     --------
     fiasco.Ion : Accepts same keyword arguments for setting dataset names

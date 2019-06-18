@@ -46,6 +46,9 @@ env:
         - SETUP_CMD='install'
         - SETUP_CMD='test --coverage'
         - SETUP_CMD='build_docs'
+        - env:
+            - PYTHON=3.7
+            - SETUP_CMD='test'
 
 matrix:
 
