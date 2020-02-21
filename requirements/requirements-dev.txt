@@ -1,0 +1,10 @@
+-r requirements.txt
+pytest
+pytest-astropy
+coverage<5
+coveralls
+flake8
+doc8
+sphinx
+sphinx-rtd-theme
+sphinx-astropy
