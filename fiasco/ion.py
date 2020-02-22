@@ -488,13 +488,12 @@ Using Datasets:
                                                     self._diparams['bt_c'],
                                                     self._diparams['bt_e'],
                                                     self._diparams['bt_cross_section']):
-            U = energy/(ip.to(u.erg))
+            U = energy/ip
             scaled_energy = 1. - np.log(bt_c)/np.log(U - 1. + bt_c)
-            f_interp = interp1d(bt_e.value, bt_cross_section.value, kind='cubic',
-                                fill_value='extrapolate')
-            scaled_cross_section = f_interp(scaled_energy.value)*bt_cross_section.unit
+            f_interp = interp1d(bt_e, bt_cross_section, kind='cubic', fill_value='extrapolate')
+            scaled_cross_section = f_interp(scaled_energy) * bt_cross_section.unit
             # Only nonzero at energies above the ionization potential
-            scaled_cross_section *= (U.value > 1.)
+            scaled_cross_section *= (U > 1.)
             cross_section = scaled_cross_section * (np.log(U) + 1.) / U / (ip**2)
             if not hasattr(cross_section_total, 'unit'):
                 cross_section_total = cross_section_total*cross_section.unit
