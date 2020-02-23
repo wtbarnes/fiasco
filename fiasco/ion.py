@@ -108,7 +108,9 @@ Using Datasets:
         """
         f = interp1d(self._ioneq[self._dset_names['ioneq_filename']]['temperature'],
                      self._ioneq[self._dset_names['ioneq_filename']]['ionization_fraction'],
-                     kind='linear', bounds_error=False, fill_value=np.nan)
+                     kind='linear',
+                     bounds_error=False,
+                     fill_value=np.nan)
         ioneq = f(self.temperature)
         isfinite = np.isfinite(ioneq)
         ioneq[isfinite] = np.where(ioneq[isfinite] < 0., 0., ioneq[isfinite])
@@ -122,12 +124,13 @@ Using Datasets:
         return self._abundance[self._dset_names['abundance_filename']]
 
     @property
-    def ip(self):
+    @u.quantity_input
+    def ip(self) -> u.erg:
         """
         Ionization potential with reasonable units
         """
         if self._ip is not None:
-            return (self._ip[self._dset_names['ip_filename']] * const.h * const.c).cgs
+            return self._ip[self._dset_names['ip_filename']] * const.h * const.c
         else:
             return None
 
@@ -156,13 +159,11 @@ Using Datasets:
         fiasco.util.burgess_tully_descale : Descale and interpolate :math:`\\Upsilon`
         """
         kBTE = np.outer(const.k_B*self.temperature, 1.0/self._scups['delta_energy'])
-        upsilon = burgess_tully_descale_vectorize(
-            self._scups['bt_t'],
-            self._scups['bt_upsilon'],
-            kBTE.T,
-            self._scups['bt_c'],
-            self._scups['bt_type']
-        )
+        upsilon = burgess_tully_descale_vectorize(self._scups['bt_t'],
+                                                  self._scups['bt_upsilon'],
+                                                  kBTE.T,
+                                                  self._scups['bt_c'],
+                                                  self._scups['bt_type'])
         upsilon = u.Quantity(np.where(upsilon > 0., upsilon, 0.))
         return upsilon.T
 
@@ -193,7 +194,7 @@ Using Datasets:
         electron_collision_excitation_rate : Excitation rate due to collisions
         effective_collision_strength : Maxwellian-averaged collision strength, :math:`\\Upsilon`
         """
-        c = (const.h.cgs**2)/((2. * np.pi * const.m_e.cgs)**(1.5) * np.sqrt(const.k_B.cgs))
+        c = (const.h**2)/((2. * np.pi * const.m_e)**(1.5) * np.sqrt(const.k_B))
         upsilon = self.effective_collision_strength()
         omega_upper = 2. * self._elvlc['J'][self._scups['upper_level'] - 1] + 1.
         return c * upsilon / np.sqrt(self.temperature[:, np.newaxis]) / omega_upper
@@ -277,19 +278,19 @@ Using Datasets:
             upper_level, level, dex_rate_e.value.T, 0).T * dex_rate_e.unit
         # Collisional--protons
         if include_protons and self._psplups is not None:
+            lower_level_p = self._psplups['lower_level']
+            upper_level_p = self._psplups['upper_level']
             pe_ratio = proton_electron_ratio(self.temperature, **self._dset_names)
             proton_density = np.outer(pe_ratio, density)[:, :, np.newaxis]
             ex_rate_p = self.proton_collision_excitation_rate()
             dex_rate_p = self.proton_collision_deexcitation_rate()
             ex_diagonal_p = vectorize_where_sum(
-                self._psplups['lower_level'], level, ex_rate_p.value.T, 0).T * ex_rate_p.unit
+                lower_level_p, level, ex_rate_p.value.T, 0).T * ex_rate_p.unit
             dex_diagonal_p = vectorize_where_sum(
-                self._psplups['upper_level'], level, dex_rate_p.value.T, 0).T * dex_rate_p.unit
+                upper_level_p, level, dex_rate_p.value.T, 0).T * dex_rate_p.unit
 
-        # Solve matrix equation for each density value
+        # Populate density dependent terms and solve matrix equation for each density value
         populations = np.zeros(self.temperature.shape + density.shape + (level.max(),))
-        b = np.zeros(self.temperature.shape + (level.max(),))
-        b[:, -1] = 1.0
         for i, d in enumerate(density):
             c_matrix = coeff_matrix.copy()
             # Collisional excitation and de-excitation out of current state
@@ -302,15 +303,18 @@ Using Datasets:
             if include_protons and self._psplups is not None:
                 d_p = proton_density[:, i, :]
                 c_matrix[:, level-1, level-1] -= d_p*(ex_diagonal_p + dex_diagonal_p)
-                c_matrix[:, self._psplups['lower_level']-1, self._psplups['upper_level']-1] += (
-                    d_p * dex_rate_p)
-                c_matrix[:, self._psplups['upper_level']-1, self._psplups['lower_level']-1] += (
-                    d_p * ex_rate_p)
+                c_matrix[:, lower_level_p-1, upper_level_p-1] += d_p * dex_rate_p
+                c_matrix[:, upper_level_p-1, lower_level_p-1] += d_p * ex_rate_p
             # Invert matrix
-            c_matrix[:, -1, :] = 1.*c_matrix.unit
-            pop = np.linalg.solve(c_matrix.value, b)
-            pop = np.where(pop < 0., 0., pop)
-            pop /= pop.sum(axis=1)[:, np.newaxis]
+            val, vec = np.linalg.eig(c_matrix.value)
+            # Eigenvectors with eigenvalues closest to zero are the solutions to the homogeneous
+            # system of linear equations
+            i_min = np.argmin(np.fabs(val), axis=1)
+            pop = np.take(vec, i_min, axis=2)[range(vec.shape[0]), :, range(vec.shape[0])]
+            # NOTE: The eigenvectors can only be determined up to a sign so we must enforce
+            # positivity
+            np.fabs(pop, out=pop)
+            np.divide(pop, pop.sum(axis=1)[:, np.newaxis], out=pop)
             populations[:, i, :] = pop
 
         return u.Quantity(populations)
@@ -328,9 +332,8 @@ Using Datasets:
 
            G_{ij} = \\frac{n_H}{n_e}\mathrm{Ab}(X)f_{X,k}N_jA_{ij}\Delta E_{ij}\\frac{1}{n_e},
 
-        and has units erg :math:`\mathrm{cm}^{3}` :math:`\mathrm{s}^{-1}`. Note that the
-        contribution function is often defined in differing ways by different authors. The
-        contribution function is defined as above in [1]_.
+        Note that the contribution function is often defined in differing ways by different authors.
+        The contribution function is defined as above in [1]_.
 
         The corresponding wavelengths can be retrieved with,
 
@@ -353,7 +356,7 @@ Using Datasets:
         upper_level = self.transitions.upper_level[~self.transitions.is_twophoton]
         wavelength = self.transitions.wavelength[~self.transitions.is_twophoton]
         A = self.transitions.A[~self.transitions.is_twophoton]
-        energy = ((const.h * const.c) / wavelength).to(u.erg)
+        energy = const.h * const.c / wavelength
         i_upper = vectorize_where(self._elvlc['level'], upper_level)
         g = term[:, :, np.newaxis] * populations[:, :, i_upper] * (A * energy)
         return g
@@ -370,7 +373,8 @@ Using Datasets:
 
            \epsilon(n,T) = G(n,T)n^2
 
-        which has units erg :math:`\mathrm{cm}^{-3}` :math:`\mathrm{s}^{-1}`.
+        Note that, like the contribution function, emissivity is often defined in
+        in differing ways by different authors.
 
         Parameters
         ----------
@@ -447,7 +451,7 @@ Using Datasets:
         cross_section = self.direct_ionization_cross_section(energy)
         if cross_section is None:
             return None
-        term1 = np.sqrt(8./np.pi/const.m_e.cgs)*np.sqrt(kBT)*np.exp(-self.ip/kBT)
+        term1 = np.sqrt(8./np.pi/const.m_e)*np.sqrt(kBT)*np.exp(-self.ip/kBT)
         term2 = ((wgl*xgl)[:, np.newaxis]*cross_section).sum(axis=0)
         term3 = (wgl[:, np.newaxis]*cross_section).sum(axis=0)*self.ip/kBT
         return term1*(term2 + term3)
@@ -525,7 +529,9 @@ Using Datasets:
         Qrp = 1./U * (A * np.log(U) + D * (1. - 1./U)**2 + C * U * (1. - 1./U)**4
                       + (c / U + d / U**2) * (1. - 1. / U))
 
-        return B * (np.pi * const.a0.cgs**2) * F * Qrp / (self.ip.to(u.Ry).value**2)
+        # NOTE: conversion to Rydbergs equivalent to scaling to the ionization energy
+        # of hydrogen such that it is effectively unitless
+        return B * (np.pi * const.a0**2) * F * Qrp / (self.ip.to(u.Ry).value**2)
 
     @needs_dataset('easplups')
     @u.quantity_input
@@ -539,9 +545,11 @@ Using Datasets:
         # temperature when computing rate
         kBTE = kBTE.T
         xs = [np.linspace(0, 1, ups.shape[0]) for ups in self._easplups['bt_upsilon']]
-        upsilon = burgess_tully_descale_vectorize(
-            xs, self._easplups['bt_upsilon'].value, kBTE, self._easplups['bt_c'].value,
-            self._easplups['bt_type'])
+        upsilon = burgess_tully_descale_vectorize(xs,
+                                                  self._easplups['bt_upsilon'].value,
+                                                  kBTE,
+                                                  self._easplups['bt_c'].value,
+                                                  self._easplups['bt_type'])
         # NOTE: The 1/omega multiplicity factor is already included in the scaled upsilon
         # values provided by CHIANTI
         rate = c * upsilon * np.exp(-1 / kBTE) / np.sqrt(self.temperature)
@@ -710,7 +718,6 @@ Using Datasets:
                 cross_section = self._verner_cross_section(E_photon)
             else:
                 cross_section = self._karzas_cross_section(E_photon, E_ionize, n, L)
-            # Lose units here so make sure numerator and denominator have same units
             E_scaled = np.outer(1/(const.k_B*self.temperature), E_photon - E_ionize)
             # Scaled energy can blow up at low temperatures; not an issue when cross-section is 0
             E_scaled[:, np.where(cross_section == 0*cross_section.unit)] = 0.0
