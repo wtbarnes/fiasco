@@ -124,15 +124,13 @@ Using Datasets:
         return self._abundance[self._dset_names['abundance_filename']]
 
     @property
+    @needs_dataset('ip')
     @u.quantity_input
     def ip(self) -> u.erg:
         """
         Ionization potential with reasonable units
         """
-        if self._ip is not None:
-            return self._ip[self._dset_names['ip_filename']] * const.h * const.c
-        else:
-            return None
+        return self._ip[self._dset_names['ip_filename']] * const.h * const.c
 
     @property
     def hydrogenic(self):
