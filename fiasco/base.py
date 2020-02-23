@@ -96,11 +96,11 @@ class IonBase(Base):
     ion_name : `str`
         Name of ion, e.g. for Fe V, 'Fe 5', 'iron 5', 'Fe 4+'
     hdf5_path : `str`, optional
-    
+
     Examples
     --------
     """
-       
+
     @property
     def _abundance(self):
         data_path = '/'.join([self.atomic_symbol.lower(), 'abundance'])
