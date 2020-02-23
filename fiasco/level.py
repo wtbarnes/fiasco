@@ -43,11 +43,10 @@ Energy: {self.energy}"""
         return self._elvlc['L_label'][self._index]
 
     @property
-    def energy(self):
-        if self._elvlc['E_obs'][self._index] < 0:
-            return (self._elvlc['E_th'][self._index]*const.h.cgs*const.c.cgs).decompose().cgs
-        else:
-            return (self._elvlc['E_obs'][self._index]*const.h.cgs*const.c.cgs).decompose().cgs
+    @u.quantity_input
+    def energy(self) -> u.erg:
+        key = 'E_th' if self._elvlc['E_obs'][self._index] < 0 else 'E_obs'
+        return self._elvlc[key][self._index]*const.h*const.c
 
 
 class Transitions(object):
@@ -71,14 +70,16 @@ class Transitions(object):
         return self._wgfa['wavelength'] > 0.*u.angstrom
 
     @property
-    def A(self):
+    @u.quantity_input
+    def A(self) -> u.s**(-1):
         """
         Spontaneous transition probability due to radiative decay
         """
         return self._wgfa['A']
 
     @property
-    def wavelength(self):
+    @u.quantity_input
+    def wavelength(self) -> u.angstrom:
         return np.fabs(self._wgfa['wavelength'])
 
     @property
@@ -90,10 +91,11 @@ class Transitions(object):
         return self._wgfa['lower_level']
 
     @property
-    def delta_energy(self):
+    @u.quantity_input
+    def delta_energy(self) -> u.erg:
         energy = u.Quantity(np.where(
             self._elvlc['E_obs'].value == -1, self._elvlc['E_th'].value,
             self._elvlc['E_obs'].value), self._elvlc['E_obs'].unit)
         indices = np.vstack([vectorize_where(self._elvlc['level'], self.lower_level),
                              vectorize_where(self._elvlc['level'], self.upper_level)])
-        return np.diff(energy[indices], axis=0).flatten() * const.h.cgs * const.c.cgs
+        return np.diff(energy[indices], axis=0).flatten() * const.h * const.c
