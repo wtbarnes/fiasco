@@ -104,8 +104,6 @@ The `~fiasco.Ion` object holds several basic pieces of metadata related to the p
     15
     >>> ion.abundance
     <Quantity 3.16227766e-05>
-    >>> ion.ip
-    <Quantity 7.32203943e-10 erg>
 
 In the cases of the abundance and ionization potential (`ip`), specific datasets available in CHIANTI can be specified using the `abundance_filename` and `ip_filename` keywords, respectively, when instantiating the ion object. For more information on accessing specific datasets, see :ref:`ionbase` section.
 
