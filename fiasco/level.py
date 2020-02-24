@@ -20,7 +20,7 @@ class Level(object):
         return f"""Level: {self.level}
 Configuration: {self.configuration}
 Orbital Angular Momentum: {self.orbital_angular_momentum_label}
-Energy: {self.energy}"""
+Energy: {self.energy.to(u.eV)}"""
 
     @property
     def level(self):
