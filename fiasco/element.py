@@ -85,7 +85,7 @@ class Element(fiasco.IonCollection):
         _, _, V = np.linalg.svd(rate_matrix.value)
         # Select columns of V with smallest eigenvalues (returned in descending order)
         ioneq = np.fabs(V[:, -1, :])
-        ioneq /= np.sum(ioneq, axis=1)[:, np.newaxis]
+        ioneq /= ioneq.sum(axis=1)[:, np.newaxis]
 
         return u.Quantity(ioneq)
 
