@@ -307,8 +307,10 @@ Using Datasets:
             val, vec = np.linalg.eig(c_matrix.value)
             # Eigenvectors with eigenvalues closest to zero are the solutions to the homogeneous
             # system of linear equations
-            i_min = np.argmin(np.fabs(val), axis=1)
-            pop = np.take(vec, i_min, axis=2)[range(vec.shape[0]), :, range(vec.shape[0])]
+            # NOTE: Sometimes eigenvalues may have complex component due to numerical stability.
+            # We will take only the real component as our rate matrix is purely real
+            i_min = np.argmin(np.fabs(np.real(val)), axis=1)
+            pop = np.take(np.real(vec), i_min, axis=2)[range(vec.shape[0]), :, range(vec.shape[0])]
             # NOTE: The eigenvectors can only be determined up to a sign so we must enforce
             # positivity
             np.fabs(pop, out=pop)
