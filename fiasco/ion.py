@@ -254,6 +254,13 @@ Using Datasets:
         density : `~astropy.units.Quantity`
         include_protons : `bool`, optional
             If True (default), include proton excitation and de-excitation rates
+
+        Returns
+        -------
+        `~astropy.units.Quantity`
+            A ``(l, m, n)`` shaped quantity, where ``l`` is the number number of
+            temperatures, ``m`` is the number of densities, and ``n``
+            is the energy level.
         """
         level = self._elvlc['level']
         lower_level = self._scups['lower_level']
@@ -724,7 +731,7 @@ Using Datasets:
             sum_factor += omega / omega_0 * np.exp(-E_scaled) * cross_section
 
         return (prefactor * energy_temperature_factor * sum_factor)
-   
+
     def free_free_loss(self):
         """
         Wavelength-integrated radiative losses due to free-free emission
