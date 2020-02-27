@@ -1,6 +1,8 @@
 """
 Multi-ion container
 """
+import warnings
+
 import numpy as np
 import astropy.units as u
 from astropy.convolution import convolve, Model1DKernel
@@ -65,7 +67,7 @@ class IonCollection(object):
         Compute combined free-free continuum emission (bremsstrahlung).
 
         .. note:: Both abundance and ionization equilibrium are included here
-        
+
         Parameters
         ----------
         wavelength : `~astropy.units.Quantity`
@@ -128,6 +130,7 @@ class IonCollection(object):
         """
         if wavelength_range is None:
             wavelength_range = u.Quantity([0, np.inf], 'angstrom')
+
         # Compute all intensities
         intensity, wavelength = None, None
         for ion in self:
@@ -144,8 +147,10 @@ class IonCollection(object):
             else:
                 wavelength = np.concatenate((wavelength, wave[i_wavelength].value))
                 intensity = np.concatenate((intensity, intens[:, :, i_wavelength].value), axis=2)
+
         if np.any(np.isinf(wavelength_range)):
             wavelength_range = u.Quantity([wavelength.min(), wavelength.max()], wave.unit)
+
         # Setup bins
         if bin_width is None:
             bin_width = np.diff(wavelength_range)[0]/100.
@@ -153,21 +158,23 @@ class IonCollection(object):
         wavelength_edges = np.linspace(*wavelength_range.value, num_bins+1)
         # Setup convolution kernel
         if kernel is None:
+            warnings.warn('Using 0.1 Angstroms (ie. not the actual thermal width) for thermal broadening')
             std = 0.1*u.angstrom  # FIXME: should default to thermal width
             std_eff = (std/bin_width).value  # Scale sigma by bin width
             # Kernel size must be odd
             x_size = int(8*std_eff)+1 if (int(8*std_eff) % 2) == 0 else int(8*std_eff)
             m = Gaussian1D(amplitude=1./np.sqrt(2.*np.pi)/std.value, mean=0., stddev=std_eff)
             kernel = Model1DKernel(m,  x_size=x_size)
+
         # FIXME: This is very inefficient! Vectorize somehow...
         spectrum = np.zeros(intensity.shape[:2]+(num_bins,))
         for i in range(spectrum.shape[0]):
             for j in range(spectrum.shape[1]):
                 tmp, _ = np.histogram(wavelength, bins=wavelength_edges, weights=intensity[i, j, :])
                 spectrum[i, j, :] = convolve(tmp, kernel, normalize_kernel=False)
-        wavelength = (wavelength_edges[1:] + wavelength_edges[:-1])/2.
-        spectrum = spectrum * intens.unit / bin_width.unit
 
+        wavelength = (wavelength_edges[1:] + wavelength_edges[:-1])/2. * wave.unit
+        spectrum = spectrum * intens.unit / bin_width.unit
         return wavelength, spectrum
 
     @u.quantity_input
