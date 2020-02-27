@@ -258,9 +258,9 @@ Using Datasets:
         Returns
         -------
         `~astropy.units.Quantity`
-            A ``(l, m, n)`` shaped quantity, where ``l`` is the number number of
+            A ``(l, m, n)`` shaped quantity, where ``l`` is the number of
             temperatures, ``m`` is the number of densities, and ``n``
-            is the energy level.
+            is the number of energy levels.
         """
         level = self._elvlc['level']
         lower_level = self._scups['lower_level']
