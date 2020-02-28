@@ -4,7 +4,6 @@ Various functions for downloading and setting up the database
 
 import hashlib
 import os
-import warnings
 import tarfile
 
 import numpy as np
