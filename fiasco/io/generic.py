@@ -2,7 +2,6 @@
 Base class for file parser
 """
 import os
-import warnings
 
 import h5py
 import numpy as np
@@ -10,6 +9,7 @@ from astropy.table import QTable
 import astropy.units as u
 
 import fiasco
+from fiasco.util.exceptions import MissingASCIIFileError
 
 
 class GenericParser(object):
@@ -20,26 +20,27 @@ class GenericParser(object):
     units = []
     headings = []
     descriptions = []
-    
+
     def __init__(self, filename, **kwargs):
         self.filename = filename
         self.ascii_dbase_root = kwargs.get('ascii_dbase_root', fiasco.defaults['ascii_dbase_root'])
+        standalone = kwargs.get('standalone', False)  
         # Cannot supply a version number if this is a standalone file
-        if 'full_path' in kwargs:
+        if standalone:
             self.chianti_version = ''
         else:
             with open(os.path.join(self.ascii_dbase_root, 'VERSION'), 'r') as f:
                 lines = f.readlines()
                 self.chianti_version = lines[0].strip()
-        self.full_path = kwargs.get('full_path', os.path.join(self.ascii_dbase_root, self.filename))
-        
+        self.full_path = filename if standalone else os.path.join(self.ascii_dbase_root, self.filename)
+
     def parse(self):
         """
         Generate Astropy QTable from a CHIANTI ion file
         """
+        # NOTE: put this here and not in __init__ as __init__ may be overwritten in a subclass
         if not os.path.isfile(self.full_path):
-            warnings.warn('Could not find file {}'.format(self.full_path), stacklevel=2)
-            return None
+            raise MissingASCIIFileError('Could not find file {}'.format(self.full_path))
         with open(self.full_path, 'r') as f:
             lines = f.readlines()
         table = []
@@ -53,12 +54,12 @@ class GenericParser(object):
         for name, unit, dtype in zip(self.headings, self.units, self.dtypes):
             df[name].unit = unit
             df[name] = df[name].astype(dtype)
-        
+
         df.meta['footer'] = self.extract_footer(lines)
         df.meta['chianti_version'] = self.chianti_version
 
         df = self.postprocessor(df)
-        
+
         return df
 
     def extract_footer(self, lines):
@@ -72,7 +73,7 @@ class GenericParser(object):
 
         footer = '\n'.join([l.strip('%').strip() for l in comment if l.strip('%').strip().strip('-1')])
         return footer
-    
+
     def preprocessor(self, table, line, *args):
         """
         Default preprocessor method run on each line ingested.
@@ -83,7 +84,7 @@ class GenericParser(object):
             line = line.strip().split()
         line = [item.strip() if type(item) is str else item for item in line]
         table.append(line)
-        
+
     def postprocessor(self, df):
         """
         Default postprocessor method run on the whole dataframe
@@ -94,7 +95,7 @@ class GenericParser(object):
 
     def to_hdf5(self, *args, **kwargs):
         raise NotImplementedError('No method for converting QTable to HDF5')
-        
+
 
 class GenericIonParser(GenericParser):
     """
@@ -103,15 +104,18 @@ class GenericIonParser(GenericParser):
     def __init__(self, ion_filename, **kwargs):
         super().__init__(ion_filename, **kwargs)
         self.dielectronic = False
-        self.ion_name = self.filename.split('.')[0]
+        self.ion_name, _ = os.path.splitext(os.path.basename(self.filename))
         if self.ion_name and self.ion_name[-1] == 'd':
             self.dielectronic = True
             self.ion_name = self.ion_name[:-1]
         self.element = self.ion_name.split('_')[0]
-        self.full_path = kwargs.get('full_path', os.path.join(self.ascii_dbase_root,
-                                                              self.element,
-                                                              os.path.splitext(self.filename)[0],
-                                                              self.filename))
+        if kwargs.get('standalone', False):
+            self.full_path = self.filename
+        else:
+            self.full_path = os.path.join(self.ascii_dbase_root,
+                                          self.element,
+                                          os.path.splitext(self.filename)[0],
+                                          self.filename)
 
     def postprocessor(self, df):
         df = super().postprocessor(df)

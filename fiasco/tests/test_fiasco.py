@@ -10,13 +10,13 @@ import fiasco
 
 def test_list_elements():
     # FIXME: actually test the expected elements
-    elements = fiasco.list_elements()
+    elements = fiasco.list_elements(fiasco.defaults['hdf5_dbase_root'])
     assert type(elements) is list
 
 
 def test_list_ions():
     # FIXME: actually test the expected ions
-    ions = fiasco.list_ions()
+    ions = fiasco.list_ions(fiasco.defaults['hdf5_dbase_root'])
     assert type(ions) is list
 
 

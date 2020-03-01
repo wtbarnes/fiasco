@@ -7,17 +7,18 @@ import fiasco
 from .io.factory import all_subclasses
 from .io.generic import GenericIonParser
 from .io.datalayer import DataIndexer
-from .util import download_dbase, build_hdf5_dbase, MissingIonError
+from .util import check_database
+from .util.exceptions import MissingIonError
 
 __all__ = ['IonBase', 'ContinuumBase']
 
 
 class Base(object):
     """
-    Base class for setting up ion metadata and building database as needed
+    Base class for setting up ion metadata and building database if necessary.
     """
 
-    def __init__(self, ion_name, hdf5_path=None, **kwargs):
+    def __init__(self, ion_name, hdf5_dbase_root=None, **kwargs):
         element, ion = ion_name.split()
         if '+' in ion:
             ion = f"{int(ion.strip('+')) + 1}"
@@ -27,19 +28,20 @@ class Base(object):
         self.ionization_stage = int(ion)
         self.charge_state = self.ionization_stage - 1
         self.ion_name = f'{self.atomic_symbol} {self.ionization_stage}'
-        # This is the preferred CHIANTI format and is only preserved for internal data access
+        # Old CHIANTI format, only preserved for internal data access
         self._ion_name = f'{self.atomic_symbol.lower()}_{self.ionization_stage}'
-        if hdf5_path is None:
+
+        if hdf5_dbase_root is None:
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
-            self.hdf5_dbase_root = hdf5_path
+            self.hdf5_dbase_root = hdf5_dbase_root
+        # NOTE: if using the remote option, don't need to worry about building or
+        # downloading the database
         if not fiasco.defaults['use_remote_data']:
-            ask_before = kwargs.get('ask_before', True)
-            download_dbase(fiasco.defaults['ascii_dbase_root'], ask_before=ask_before)
-            build_hdf5_dbase(fiasco.defaults['ascii_dbase_root'], self.hdf5_dbase_root,
-                             ask_before=ask_before)
-        # TODO: this is a bottleneck when creating many ions
-        if self.ion_name not in fiasco.list_ions(sort=False):
+            check_database(self.hdf5_dbase_root, **kwargs)
+
+        # FIXME: this is a bottleneck when creating many ions
+        if self.ion_name not in fiasco.list_ions(self.hdf5_dbase_root, sort=False):
             source = (self.hdf5_dbase_root if not fiasco.defaults['use_remote_data']
                       else fiasco.defaults['remote_endpoint'])
             raise MissingIonError(f'{self.ion_name} not found in {source}')
@@ -48,6 +50,9 @@ class Base(object):
 class ContinuumBase(Base):
     """
     Base class for retrieving continuum datasets.
+
+    .. note:: This is not meant to be instantiated directly by the user
+              and primarily serves as a base class for `~fiasco.Ion`.
     """
 
     @property
@@ -91,6 +96,9 @@ class IonBase(Base):
     """
     Base class for accessing CHIANTI data attached to a particular ion
 
+    .. note:: This is not meant to be instantiated directly by the user
+              and primarily serves as a base class for `~fiasco.Ion`.
+
     Parameters
     ----------
     ion_name : `str`
@@ -106,16 +114,6 @@ class IonBase(Base):
         data_path = '/'.join([self.atomic_symbol.lower(), 'abundance'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
-    @property
-    def _ip(self):
-        data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, 'ip'])
-        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
-
-    @property
-    def _ioneq(self):
-        data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, 'ioneq'])
-        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
-
 
 def add_property(cls, filetype):
     """
@@ -126,7 +124,7 @@ def add_property(cls, filetype):
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     property_template.__doc__ = f'Data in {filetype} type file'
-    property_template.__name__ = '_{}'.format('_'.join(filetype.split('/')))
+    property_template.__name__ = f'_{"_".join(filetype.split("/"))}'
     setattr(cls, property_template.__name__, property(property_template))
 
 
@@ -135,3 +133,5 @@ all_ext = [cls.filetype for cls in all_subclasses(GenericIonParser) if hasattr(c
 for filetype in all_ext:
     add_property(IonBase, filetype)
     add_property(IonBase, '/'.join(['dielectronic', filetype]))
+add_property(IonBase, 'ip')
+add_property(IonBase, 'ioneq')

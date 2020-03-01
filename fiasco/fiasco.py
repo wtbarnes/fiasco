@@ -15,12 +15,12 @@ from fiasco.io import DataIndexer
 __all__ = ['list_elements', 'list_ions', 'proton_electron_ratio']
 
 
-def list_elements(sort=True):
+def list_elements(hdf5_dbase_root, sort=True):
     """
     List all available elements in the CHIANTI database.
     """
     elements = []
-    root = DataIndexer.create_indexer(fiasco.defaults['hdf5_dbase_root'], '/')
+    root = DataIndexer.create_indexer(hdf5_dbase_root, '/')
     for f in root.fields:
         try:
             elements.append(plasmapy.atomic.atomic_symbol(f.capitalize()))
@@ -31,12 +31,12 @@ def list_elements(sort=True):
     return elements
 
 
-def list_ions(sort=True):
+def list_ions(hdf5_dbase_root, sort=True):
     """
     List all available ions in the CHIANTI database
     """
     ions = []
-    root = DataIndexer.create_indexer(fiasco.defaults['hdf5_dbase_root'], '/')
+    root = DataIndexer.create_indexer(hdf5_dbase_root, '/')
     for f in root.fields:
         try:
             el = plasmapy.atomic.atomic_symbol(f.capitalize())
@@ -64,7 +64,7 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
 
     See Also
     --------
-    fiasco.Ion : Accepts same keyword arguments for setting dataset names
+    fiasco.Ion : Accepts same keyword arguments for setting database and dataset names
 
     References
     ----------
@@ -73,8 +73,8 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
     h_2 = fiasco.Ion('H +1', temperature, **kwargs)
     numerator = h_2.abundance * h_2._ioneq[h_2._dset_names['ioneq_filename']]['ionization_fraction']
     denominator = u.Quantity(np.zeros(numerator.shape))
-    for el_name in list_elements():
-        el = fiasco.Element(el_name, temperature, ion_kwargs=kwargs)
+    for el_name in list_elements(h_2.hdf5_dbase_root):
+        el = fiasco.Element(el_name, temperature, **kwargs)
         abundance = el.abundance
         if abundance is None:
             warnings.warn(f'Not including {el.atomic_symbol}. Abundance not available.')
@@ -88,7 +88,9 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
 
     ratio = numerator / denominator
     interp = interp1d(ion._ioneq[ion._dset_names['ioneq_filename']]['temperature'].value,
-                      ratio.value, kind='linear', bounds_error=False,
+                      ratio.value,
+                      kind='linear',
+                      bounds_error=False,
                       fill_value=(ratio[0], ratio[-1]))
 
     return u.Quantity(interp(temperature))

@@ -19,15 +19,22 @@ class ElvlcParser(GenericIonParser):
     Energy levels and configurations for each level in an ion.
     """
     filetype = 'elvlc'
-    dtypes = [int,str,str,int,str,float,float,float]
-    units = [None,None,None,u.dimensionless_unscaled,None,u.dimensionless_unscaled,1/u.cm,1/u.cm]
-    headings = ['level','config','label','multiplicity','L_label','J','E_obs','E_th']
-    descriptions = ['level index','configuration','level label','multiplicity, 2s+1',
-                    'orbital angular momentum','total angular momentum',
-                    'observed energy','theoretical energy']
+    dtypes = [int, str, str, int, str, float, float, float]
+    units = [None, None, None, u.dimensionless_unscaled, None, u.dimensionless_unscaled, 1/u.cm, 1/u.cm]
+    headings = ['level', 'config', 'label', 'multiplicity', 'L_label', 'J', 'E_obs', 'E_th']
+    descriptions = [
+        'level index',
+        'configuration',
+        'level label',
+        'multiplicity, 2s+1',
+        'orbital angular momentum',
+        'total angular momentum',
+        'observed energy',
+        'theoretical energy'
+    ]
     fformat = fortranformat.FortranRecordReader('(I7,A30,A5,I5,A5,F5.1,F15.3,F15.3)')
 
-    
+
 class FblvlParser(GenericIonParser):
     """
     Energy levels and configuration related to the calculation of the free-bound
@@ -35,15 +42,22 @@ class FblvlParser(GenericIonParser):
     continuum can be calculated.
     """
     filetype = 'fblvl'
-    dtypes = [int,str,int,int,str,int,float,float]
-    units = [None,None,None,None,None,None,1/u.cm,1/u.cm]
+    dtypes = [int, str, int, int, str, int, float, float]
+    units = [None, None, None, None, None, None, 1/u.cm, 1/u.cm]
     headings = ['level', 'config', 'n', 'L', 'L_label', 'multiplicity', 'E_obs', 'E_th']
-    descriptions = ['level index', 'configuration', 'principal quantum number',
-                    'azimuthal quantum number', 'orbital angular momentum',
-                    'multiplicity, 2s+1', 'observed energy', 'theoretical energy']
+    descriptions = [
+        'level index',
+        'configuration',
+        'principal quantum number',
+        'azimuthal quantum number',
+        'orbital angular momentum',
+        'multiplicity, 2s+1',
+        'observed energy',
+        'theoretical energy'
+    ]
     fformat = fortranformat.FortranRecordReader('(I5,A20,2I5,A3,I5,2F20.3)')
 
-    
+
 class ScupsParser(GenericIonParser):
     """
     Scaled collisions strengths (denoted by upsilon) between energy levels as described
@@ -54,17 +68,44 @@ class ScupsParser(GenericIonParser):
     .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_ 
     """
     filetype = 'scups'
-    dtypes = [int,int,float,float,float,int,int,float,'object','object']
-    units = [None,None,u.Ry,u.dimensionless_unscaled,1/u.Ry,None,None,
-             u.dimensionless_unscaled,u.dimensionless_unscaled,
-             u.dimensionless_unscaled]
-    headings = ['lower_level', 'upper_level', 'delta_energy', 'gf', 'high_t_limit', 'n_t', 'bt_type',
-                'bt_c', 'bt_t', 'bt_upsilon']
-    descriptions = ['lower level index', 'upper level index', 'delta energy','oscillator strength',
-                    'high-temperature limit', 'number of scaled temperatures', 'Burgess-Tully scaling type',
-                    'Burgess-Tully scaling parameter', 'Burgess-Tully scaled temperatures',
-                    'Burgess-Tully scaled effective collision strengths']
-    
+    dtypes = [int, int, float, float, float, int, int, float, 'object', 'object']
+    units = [
+        None,
+        None,
+        u.Ry,
+        u.dimensionless_unscaled,
+        1/u.Ry,
+        None,
+        None,
+        u.dimensionless_unscaled,
+        u.dimensionless_unscaled,
+        u.dimensionless_unscaled
+    ]
+    headings = [
+        'lower_level',
+        'upper_level',
+        'delta_energy',
+        'gf',
+        'high_t_limit',
+        'n_t',
+        'bt_type',
+        'bt_c',
+        'bt_t',
+        'bt_upsilon'
+    ]
+    descriptions = [
+        'lower level index',
+        'upper level index',
+        'delta energy',
+        'oscillator strength',
+        'high-temperature limit',
+        'number of scaled temperatures',
+        'Burgess-Tully scaling type',
+        'Burgess-Tully scaling parameter',
+        'Burgess-Tully scaled temperatures',
+        'Burgess-Tully scaled effective collision strengths'
+    ]
+
     def preprocessor(self, table, line, index):
         if index % 3 == 0:
             super().preprocessor(table, line, index)
@@ -101,14 +142,27 @@ class PsplupsParser(ScupsParser):
     .. [2] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_ 
     """
     filetype = 'psplups'
-    dtypes = [int,int,int,float,float,float,'object']
-    units = [None,None,None,u.dimensionless_unscaled,u.Ry,u.dimensionless_unscaled,
-             u.dimensionless_unscaled]
+    dtypes = [int, int, int, float, float, float, 'object']
+    units = [
+        None,
+        None,
+        None,
+        u.dimensionless_unscaled,
+        u.Ry,
+        u.dimensionless_unscaled,
+        u.dimensionless_unscaled
+    ]
     headings = ['lower_level', 'upper_level', 'bt_type', 'gf', 'delta_energy', 'bt_c', 'bt_rate']
-    descriptions = ['lower level index', 'upper level index', 'Burgess-Tully scaling type',
-                    'oscillator strength', 'delta energy', 'Burgess-Tully scaling parameter',
-                    'Burgess-Tully scaled collision rate']
-    
+    descriptions = [
+        'lower level index',
+        'upper level index',
+        'Burgess-Tully scaling type',
+        'oscillator strength',
+        'delta energy',
+        'Burgess-Tully scaling parameter',
+        'Burgess-Tully scaled collision rate'
+    ]
+
     def preprocessor(self, table, line, index):
         tmp = line.strip().split()
         # 5-point fit for type 6, 9-point fit for type 2
@@ -117,8 +171,8 @@ class PsplupsParser(ScupsParser):
         line = fformat.read(line)
         row = line[:6] + [np.array(line[6:])]
         table.append(row)
-        
-            
+
+
 class EasplomParser(GenericIonParser):
     """
     Spline fits to the excitation-autoionization scaled cross-sections. See [1]_ and [2]_
@@ -130,83 +184,99 @@ class EasplomParser(GenericIonParser):
     .. [2] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
     """
     filetype = 'easplom'
-    dtypes = [int,int,int,float,float,float,float]
-    units = [None,None,None,u.dimensionless_unscaled,u.Ry,u.dimensionless_unscaled,
-             u.dimensionless_unscaled]
+    dtypes = [int, int, int, float, float, float, float]
+    units = [None, None, None, u.dimensionless_unscaled, u.Ry, u.dimensionless_unscaled, u.dimensionless_unscaled]
     headings = ['lower_level', 'upper_level', 'bt_type', 'gf', 'delta_energy', 'bt_c', 'bt_cross_section']
-    descriptions = ['lower level index','upper level index','Burgess-Tully scaling type',
-                    'oscillator strength','delta energy','Burgess-Tully scaling parameter',
-                    'Burgess-Tully scaled cross-section']
+    descriptions = [
+        'lower level index',
+        'upper level index',
+        'Burgess-Tully scaling type',
+        'oscillator strength',
+        'delta energy',
+        'Burgess-Tully scaling parameter',
+        'Burgess-Tully scaled cross-section'
+    ]
     
     def preprocessor(self, table, line, index):
         line = line.strip().split()
-        scaled_cs = np.array(line[8:],dtype=float)
+        scaled_cs = np.array(line[8:], dtype=float)
         row = line[2:8] + [scaled_cs]
         table.append(row)
         
         
 class EasplupsParser(EasplomParser):
     """
-    Scaled collision strengths for calculating ionization rates due to excitation autoionization. 
+    Scaled collision strengths for calculating ionization rates due to excitation autoionization.
     """
     filetype = 'easplups'
-    dtypes = [int,int,int,float,float,float,float]
-    units = [None,None,None,u.dimensionless_unscaled,u.Ry,u.dimensionless_unscaled,
-             u.dimensionless_unscaled]
+    dtypes = [int, int, int, float, float, float, float]
+    units = [None, None, None, u.dimensionless_unscaled, u.Ry, u.dimensionless_unscaled, u.dimensionless_unscaled]
     headings = ['lower_level', 'upper_level', 'bt_type', 'gf', 'delta_energy', 'bt_c', 'bt_upsilon']
-    descriptions = ['lower level index','upper level index','Burgess-Tully scaling type',
-                    'oscillator strength','delta energy','upsilon coefficient',
-                    'Burgess-Tully scaled effective collision strength']
-    
-    
+    descriptions = [
+        'lower level index',
+        'upper level index',
+        'Burgess-Tully scaling type',
+        'oscillator strength',
+        'delta energy',
+        'upsilon coefficient',
+        'Burgess-Tully scaled effective collision strength'
+    ]
+
+
 class WgfaParser(GenericIonParser):
     """
     Information about each possible transition in an ion, including level indices, wavelengths, 
     and decay rates.
     """
     filetype = 'wgfa'
-    dtypes = [int,int,float,float,float,str,str]
-    units = [None,None,u.angstrom,u.dimensionless_unscaled,1/u.s,None,None]
+    dtypes = [int, int, float, float, float, str, str]
+    units = [None, None, u.angstrom, u.dimensionless_unscaled, 1/u.s, None, None]
     headings = ['lower_level', 'upper_level', 'wavelength', 'gf', 'A', 'lower_label', 'upper_label']
-    descriptions = ['lower level index','upper level index',
-                    'transition wavelength','oscillator strength','radiative decay rate',
-                    'lower level label','upper level label']
+    descriptions = [
+        'lower level index',
+        'upper level index',
+        'transition wavelength',
+        'oscillator strength',
+        'radiative decay rate',
+        'lower level label',
+        'upper level label'
+    ]
     fformat = fortranformat.FortranRecordReader('(2I5,F15.3,2E15.3,A30,A30)')
-    
+
     def preprocessor(self, table, line, index):
-        super().preprocessor(table,line,index)
+        super().preprocessor(table, line, index)
         # remove the dash in the second-to-last entry
-        table[-1][-2] = table[-1][-2].split('-')[0].strip() 
-        
-        
+        table[-1][-2] = table[-1][-2].split('-')[0].strip()
+
+
 class CilvlParser(GenericIonParser):
     filetype = 'cilvl'
-    dtypes = [int,int,float,float]
-    units = [None,None,u.K,(u.cm**3)/u.s]
+    dtypes = [int, int, float, float]
+    units = [None, None, u.K, (u.cm**3)/u.s]
     headings = ['lower_level', 'upper_level', 'temperature', 'ionization_rate']
     descriptions = ['lower level index', 'upper level index', 'temperature', 'ionization rate coefficient']
-    
+
     def preprocessor(self, table, line, index):
         line = line.strip().split()
-        if index%2 == 0:
+        if index % 2 == 0:
             row = line[2:4]
-            temperature = 10.**np.array(line[4:],dtype=float)
+            temperature = 10.**np.array(line[4:], dtype=float)
             row += [temperature]
             table.append(row)
         else:
-            rate_coefficient = np.array(line[4:],dtype=float)
+            rate_coefficient = np.array(line[4:], dtype=float)
             table[-1].append(rate_coefficient)
 
-            
+
 class ReclvlParser(CilvlParser):
     filetype = 'reclvl'
     headings = ['lower_level', 'upper_level', 'temperature', 'recombination_rate']
     descriptions = ['lower level index', 'upper level index', 'temperature', 'recombination rate coefficient']
-    
-    
+
+
 class RrparamsParser(GenericIonParser):
     """
-    Fit parameters for calculating radiative recombination rates. The first two fit types are 
+    Fit parameters for calculating radiative recombination rates. The first two fit types are
     given in Eqs. 1 and 2 of [1]_ and the third fit type is given by Eq. 4 of [2]_.
 
     References
@@ -222,23 +292,34 @@ class RrparamsParser(GenericIonParser):
             filetype = int(line[0])
             table.append([filetype])
             if filetype == 1:
-                self.dtypes = [int,float,float,float,float]
-                self.units = [None,(u.cm**3)/u.s,None,u.K,u.K]
+                self.dtypes = [int, float, float, float, float]
+                self.units = [None, (u.cm**3)/u.s, None, u.K, u.K]
                 self.headings = ['fit_type', 'A_fit', 'B_fit', 'T0_fit', 'T1_fit']
-                self.descriptions = ['fit type','A fit parameter','B fit parameter',
-                                     'T0 fit parameter','T1 fit parameter']
+                self.descriptions = [
+                    'fit type',
+                    'A fit parameter',
+                    'B fit parameter',
+                    'T0 fit parameter',
+                    'T1 fit parameter'
+                ]
             elif filetype == 2:
-                self.dtypes = [int,float,float,float,float,float,float]
-                self.units = [None,(u.cm**3)/u.s,None,u.K,u.K,None,u.K]
+                self.dtypes = [int, float, float, float, float, float, float]
+                self.units = [None, (u.cm**3)/u.s, None, u.K, u.K, None, u.K]
                 self.headings = ['fit_type', 'A_fit', 'B_fit', 'T0_fit', 'T1_fit', 'C_fit', 'T2_fit']
-                self.descriptions = ['fit type','A fit parameter','B fit parameter',
-                                     'T0 fit parameter','T1 fit parameter','C fit parameter',
-                                     'T2 fit parameter']
+                self.descriptions = [
+                    'fit type',
+                    'A fit parameter',
+                    'B fit parameter',
+                    'T0 fit parameter',
+                    'T1 fit parameter',
+                    'C fit parameter',
+                    'T2 fit parameter'
+                ]
             elif filetype == 3:
-                self.dtypes = [int,float,float]
-                self.units = [None,(u.cm**3)/u.s,None]
+                self.dtypes = [int, float, float]
+                self.units = [None, (u.cm**3)/u.s, None]
                 self.headings = ['fit_type', 'A_fit', 'eta_fit']
-                self.descriptions = ['fit type','A rad fit parameter','eta fit parameter']
+                self.descriptions = ['fit type', 'A rad fit parameter', 'eta fit parameter']
             else:
                 raise ValueError('Unrecognized .rrparams filetype {}'.format(filetype))
         else:
@@ -246,20 +327,20 @@ class RrparamsParser(GenericIonParser):
                 table[0] += line[3:]
             else:
                 table[0] += line[2:]
-                
-                
+
+
 class TrparamsParser(GenericIonParser):
     filetype = 'trparams'
-    dtypes = [float,float]
-    units = [u.K,(u.cm**3)/u.s]
+    dtypes = [float, float]
+    units = [u.K, (u.cm**3)/u.s]
     headings = ['temperature', 'recombination_rate']
-    descriptions = ['temperature','total recombination rate']
-    
+    descriptions = ['temperature', 'total recombination rate']
+
     def preprocessor(self, table, line, index):
         if index > 0:
             super().preprocessor(table, line, index)
-            
-            
+
+
 class DrparamsParser(GenericIonParser):
     """
     Fit parameters for calculating dielectronic recombination. The first fit type is given by Eq. 3 
@@ -271,40 +352,45 @@ class DrparamsParser(GenericIonParser):
     .. [2] Shull, J. M. and M. van Steenberg, 1982, ApJS, `48 95 <http://adsabs.harvard.edu/abs/1982ApJS...48...95S>`_
     """
     filetype = 'drparams'
-      
+
     def preprocessor(self, table, line, index):
         line = line.strip().split()
         if index == 0:
             self._drparams_filetype = int(line[0])
             if self._drparams_filetype == 1:
                 # Badnell type
-                self.dtypes = [int,float,float]
-                self.units = [None,u.K,(u.cm**3)/u.s*(u.K**(3/2))]
+                self.dtypes = [int, float, float]
+                self.units = [None, u.K, (u.cm**3)/u.s*(u.K**(3/2))]
                 self.headings = ['fit_type', 'E_fit', 'c_fit']
-                self.descriptions = ['fit type', 'E fit parameter','c fit parameter']
+                self.descriptions = ['fit type', 'E fit parameter', 'c fit parameter']
             elif self._drparams_filetype == 2:
                 # Shull type
-                self.dtypes = [int,float,float,float,float]
-                self.units = [None,(u.cm**3)/u.s*(u.K**(3/2)),u.dimensionless_unscaled,u.K,u.K]
+                self.dtypes = [int, float, float, float, float]
+                self.units = [None, (u.cm**3)/u.s*(u.K**(3/2)), u.dimensionless_unscaled, u.K, u.K]
                 self.headings = ['fit_type', 'A_fit', 'B_fit', 'T0_fit', 'T1_fit']
-                self.descriptions = ['fit type','A fit coefficient','B fit coefficient',
-                                     'T0 fit coefficient','T1 fit coefficient']
+                self.descriptions = [
+                    'fit type',
+                    'A fit coefficient',
+                    'B fit coefficient',
+                    'T0 fit coefficient',
+                    'T1 fit coefficient'
+                ]
             else:
-                raise ValueError('Unrecognized drparams filetype {}'.format(self._drparams_filetype))
+                raise ValueError(f'Unrecognized drparams filetype {self._drparams_filetype}')
         else:
             if self._drparams_filetype == 1:
-                tmp = np.array(line[2:],dtype=float)
-                if index%2 == 0:
+                tmp = np.array(line[2:], dtype=float)
+                if index % 2 == 0:
                     tmp_col = table[-1]
                     for i in range(tmp.shape[0]):
-                        table.append([self._drparams_filetype,tmp_col[i],tmp[i]])
+                        table.append([self._drparams_filetype, tmp_col[i], tmp[i]])
                     del table[0]
                 else:
                     table.append(tmp)
             else:
                 table.append([self._drparams_filetype]+line[2:])
 
-        
+
 class DiparamsParser(GenericIonParser):
     """
     Scaled cross-sections for calculating the ionization rate due to direct ionization. See [1]_ 
@@ -320,27 +406,31 @@ class DiparamsParser(GenericIonParser):
     .. [2] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
     """
     filetype = 'diparams'
-    dtypes = [float,float,float,float,float]
+    dtypes = [float, float, float, float, float]
     units = [u.eV, u.dimensionless_unscaled, u.dimensionless_unscaled, u.cm**2*u.eV**2, None]
     headings = ['ip', 'bt_c', 'bt_e', 'bt_cross_section', 'ea']
-    descriptions = ['ionization potential','Burgess-Tully scaling factor',
-                    'Burgess-Tully scaled energy','Burgess-Tully scaled cross-section','excitation autoionization']
-    
+    descriptions = [
+        'ionization potential',
+        'Burgess-Tully scaling factor',
+        'Burgess-Tully scaled energy',
+        'Burgess-Tully scaled cross-section',
+        'excitation autoionization'
+    ]
+
     def preprocessor(self, table, line, index):
         tmp = line.strip().split()
         if index == 0:
             self._num_fits = int(tmp[2])
             self._num_lines = int(tmp[3])
             self._has_excitation_autoionization = bool(int(tmp[4]))
-        elif index==self._num_lines*2 + 1 and self._has_excitation_autoionization:
+        elif index == self._num_lines*2 + 1 and self._has_excitation_autoionization:
             for t in table:
                 t[-1] = float(tmp[0])
-        elif index%2 != 0:
+        elif index % 2 != 0:
             bt_factor = tmp[0]
             u_spline = np.array(tmp[1:], dtype=float)
-            table.append([bt_factor,u_spline])
+            table.append([bt_factor, u_spline])
         else:
             ionization_potential = tmp[0]
             cs_spline = np.array(tmp[1:], dtype=float)*1e-14
             table[-1] = [ionization_potential] + table[-1] + [cs_spline] + [0.0]
-            

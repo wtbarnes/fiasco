@@ -1,6 +1,8 @@
 """
 Access layer for interfacing with CHIANTI stored in HDF5
 """
+import os
+
 import numpy as np
 import h5py
 try:
@@ -11,6 +13,7 @@ import astropy.units as u
 from astropy.table import QTable
 
 import fiasco
+from fiasco.util.exceptions import MissingDatabaseError
 
 __all__ = ['DataIndexer']
 
@@ -150,8 +153,12 @@ class DataIndexerLocal(object):
     @classmethod
     def create_indexer(cls, hdf5_path, top_level_path):
         """
-        Create an instance as long as the dataset exists
+        Create an instance as long as the dataset exists. This class method
+        exists so that None can be returned if the dataset specified by
+        `top_level_path` does not exist.
         """
+        if not os.path.isfile(hdf5_path):
+            raise MissingDatabaseError(f'No HDF5 database found at {hdf5_path}')
         with h5py.File(hdf5_path, 'r') as hf:
             path_is_valid = True if top_level_path in hf else False
         return cls(hdf5_path, top_level_path) if path_is_valid else None
@@ -194,13 +201,13 @@ class DataIndexerLocal(object):
     def __getitem__(self, key):
         if type(key) is int:
             raise NotImplementedError('Iteration not supported.')
+        if key not in self:
+            return None
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
-            if key not in self:
-                return None
             ds = hf[self.top_level_path][key]
             if isinstance(ds, h5py.Group):
-                data = DataIndexer.create_indexer(self.hdf5_dbase_root,
-                                                  '/'.join([self.top_level_path, key]))
+                data = DataIndexer.create_indexer(
+                    self.hdf5_dbase_root, '/'.join([self.top_level_path, key]))
             else:
                 if ds.attrs['unit'] == 'SKIP' or ds.dtype == 'object':
                     data = np.array(ds, dtype=ds.dtype)

@@ -67,8 +67,8 @@ More details for how to access data from these tables can be found in the `Astro
 
 Note that in the above example we only provided the filename because fiasco is able to infer the path to the file using the information in `~fiasco.defaults`. However, the parser can be used on standalone files as well, i.e. CHIANTI data files that are outside the directory specificied in `fiasco.defaults['ascii_dbase_root']`,
 
-    >>> p = Parser('/path/to/standalone/chianti/data/fe_5.elvlc')
-    >>> table = p.parse()
+    >>> p = Parser('/path/to/standalone/chianti/data/fe_5.elvlc') # doctest: +SKIP
+    >>> table = p.parse() # doctest: +SKIP
 
 Ions
 ------
