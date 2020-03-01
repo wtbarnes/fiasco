@@ -16,7 +16,7 @@ class ParserFactory(type):
     def __call__(cls, *args, **kwargs):
         # Allow for standalone files
         if os.path.exists(args[0]):
-            kwargs['full_path'] = args[0]
+            kwargs['standalone'] = True
         # Use custom parser if desired
         custom_parser = None
         if 'custom_parser' in kwargs:
