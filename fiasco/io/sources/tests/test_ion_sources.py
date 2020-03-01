@@ -26,12 +26,14 @@ def test_elvlcparser(tmpdir):
     # Make model dataframe
     table = QTable(data=[[1], ['1s'], [''], [2], ['S'], [0.5], [0.000], [0.000]],
                    names=ElvlcParser.headings,
-                   meta={'element': 'h', 'ion': 'h_1', 'filename': 'h_1.elvlc',
+                   meta={'element': 'h',
+                         'ion': 'h_1',
+                         'filename': os.path.join(f.dirname, f.basename),
                          'footer': "filename: h_1.elvlc\nobserved energy levels: Fuhr et al, 1999, NIST Atomic Spectra Database Version 2.0\nproduced as part of the Arcetri/Cambridge/NRL 'CHIANTI' atomic data base collaboration\nKen Dere  May 3 2001"})
     for h, unit in zip(ElvlcParser.headings, ElvlcParser.units):
         table[h].unit = unit
     # Read file
-    p = ElvlcParser('h_1.elvlc', full_path=os.path.join(f.dirname, f.basename))
+    p = ElvlcParser(os.path.join(f.dirname, f.basename), standalone=True)
     table_parsed = p.parse()
     # Check columns
     for c in table.colnames:
@@ -60,11 +62,13 @@ def test_fblvlparser(tmpdir):
  -1""")
     table = QTable(data=[[1], ['1s'], [1], [0], ['s'], [2], [0.000], [0.000]],
                    names=FblvlParser.headings,
-                   meta={'element': 'h', 'ion': 'h_1', 'filename': 'h_1.fblvl',
+                   meta={'element': 'h',
+                         'ion': 'h_1',
+                         'filename': os.path.join(f.dirname, f.basename),
                          'footer': "filename: h_1.fblvl\nobserved energy levels: Fuhr et al, 1999, NIST Atomic Spectra Database Version 2.0\nadditional energy levels: NIST Atomic Spectra Database Version 2.0\ncomment: free-bound data file developed from .elvlc file\nproduced as part of the Arcetri/Cambridge/NRL 'CHIANTI' atomic data base collaboration\nKen Dere - Jul 17 2002"})
     for h, unit in zip(FblvlParser.headings, FblvlParser.units):
         table[h].unit = unit
-    p = FblvlParser('h_1.fblvl', full_path=os.path.join(f.dirname, f.basename))
+    p = FblvlParser(os.path.join(f.dirname, f.basename), standalone=True)
     table_parsed = p.parse()
     for c in table.colnames:
         assert all(table[c] == table_parsed[c])
@@ -101,11 +105,13 @@ def test_scupsparser(tmpdir):
                          [np.array([0, 0.25, 0.5, 0.75, 1])],
                          [np.array([0.2117, 0.3088, 0.3327, 0.3891, 0.5751])]],
                    names=ScupsParser.headings,
-                   meta={'element': 'h', 'ion': 'h_1', 'filename': 'h_1.scups',
+                   meta={'element': 'h',
+                         'ion': 'h_1',
+                         'filename': os.path.join(f.dirname, f.basename),
                          'footer': "produced as part of the Arcetri/Cambridge/NRL atomic data base collaboration\nA values:  Parpia, F. A., and Johnson, W. R., 1972, Phys. Rev. A, 26, 1142.\nproduced as part of the Arcetri/Cambridge/NRL atomic data base\ncollaboration 'CHIANTI'\nKen Dere   Wed Jul 26 08:24:54 2000\nenergy levels:    NIST Atomic Spectra Database Version 2.0\nhttp://physics.nist.gov/cgi-bin/AtData/main_asd\noscillator strengths:  Wiese, W. L., Smith, M. W., and Glennon, B. M., 1966,\nAtomic Transition Probabilities, NSRDS-NBS-4.\nnote:  hydrogenic f values\ncollision strengths:  Anderson, H., Ballance, C.P., Badnell, N.R., Summers, H.P., 2000, J. Phys. B, 33,1255, revised 2002\nnote:  fine structure collision assumes LS coupling or distribution according to statistical weights\ncompiled by Ken Dere (NRL)  Thu Feb  7 15:11:55 2002"})
     for h, unit in zip(ScupsParser.headings, ScupsParser.units):
         table[h].unit = unit
-    p = ScupsParser('h_1.scups', full_path=os.path.join(f.dirname, f.basename))
+    p = ScupsParser(os.path.join(f.dirname, f.basename), standalone=True)
     table_parsed = p.parse()
     for c in table.colnames:
         for row, row_parsed in zip(table[c], table_parsed[c]):
@@ -136,11 +142,13 @@ def test_psplupsparser(tmpdir):
     table = QTable(data=[[1], [2], [2], [0.0], [0.000583], [290.0],
                          [np.array([6.029e-11, 5.015e-10, 3.796e-09, 7.844e-09, 1.140e-08, 1.433e-08, 1.685e-08, 1.906e-08, 1.883e-08])]],
                    names=PsplupsParser.headings,
-                   meta={'element': 'c', 'ion': 'c_2', 'filename': 'c_2.psplups',
+                   meta={'element': 'c',
+                         'ion': 'c_2',
+                         'filename': os.path.join(f.dirname, f.basename),
                          'footer': "filename: c_2.psplups\nrates: Foster VJ, Keenan FP, Reid RHG, ADNDT 67, 99, 1997\nenergies: From .elvlc file, experimental energies\ncomment: The rate coefficients are in units cm^3/s.\ncomment: Fits are valid for temperatures 2e3 to 4e5 K.\nproduced as part of the Arcetri/Cambridge/NRL 'CHIANTI' atomic data base collaboration\nPeter Young   15-May-2001"})
     for h, unit in zip(PsplupsParser.headings, PsplupsParser.units):
         table[h].unit = unit
-    p = PsplupsParser('c_2.psplups', full_path=os.path.join(f.dirname, f.basename))
+    p = PsplupsParser(os.path.join(f.dirname, f.basename), standalone=True)
     table_parsed = p.parse()
     for c in table.colnames:
         for row, row_parsed in zip(table[c], table_parsed[c]):
@@ -167,14 +175,16 @@ ADS ref:  http://adsabs.harvard.edu/abs/2007A%26A...466..771D
  created for CHIANTI database for astrophysical spectroscopy
   created by Ken Dere  (GMU)  Fri Jan 26 12:40:26 2007
 -1""")
-    table = QTable(data=[[1], [3], [1], [0.7551], [8.649], [1.7], 
+    table = QTable(data=[[1], [3], [1], [0.7551], [8.649], [1.7],
                          [np.array([0.09785, 0.1007, 0.1147, 0.1415, 0.1749])]],
                    names=EasplomParser.headings,
-                   meta={'element': 'be', 'ion': 'be_2', 'filename': 'be_2.easplom',
+                   meta={'element': 'be',
+                         'ion': 'be_2',
+                         'filename': os.path.join(f.dirname, f.basename),
                          'footer': "file:  be_2.easplom\nexcitation autoionization cross section parameter file\nderived from fits to experimental and theoretical data\nDere, K. P., 2007, A&A, 466, 771\nADS ref:  http://adsabs.harvard.edu/abs/2007A%26A...466..771D\ncreated for CHIANTI database for astrophysical spectroscopy\ncreated by Ken Dere  (GMU)  Fri Jan 26 12:40:26 2007"})
     for h, unit in zip(EasplomParser.headings, EasplomParser.units):
         table[h].unit = unit
-    p = EasplomParser('be_2.easplom', full_path=os.path.join(f.dirname, f.basename))
+    p = EasplomParser(os.path.join(f.dirname, f.basename), standalone=True)
     table_parsed = p.parse()
     for c in table.colnames:
         for row, row_parsed in zip(table[c], table_parsed[c]):

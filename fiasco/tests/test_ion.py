@@ -6,7 +6,7 @@ import astropy.units as u
 import pytest
 
 import fiasco
-from fiasco.util import MissingIonError
+from fiasco.util.exceptions import MissingIonError
 
 
 temperature = np.logspace(5, 8, 100)*u.K
