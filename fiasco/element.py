@@ -14,25 +14,19 @@ class Element(fiasco.IonCollection):
     """
     Object containing all ions for a particular element.
 
-    The Element object provides a way to logically group together ions of the same
-    element. This provides easy ways to compute element-level derived quantities such 
-    as the population fractions.
+    The `Element` object provides a way to logically group together ions of the same
+    element. This provides an easy way to compute element-level derived quantities such
+    as the ionization fraction as a function of temperature.
 
     Parameters
     ----------
     element_name : `str`, `int`
         Symbol, atomic number, or full name of the element
     temperature : `~astropy.units.Quantity`
-    hdf5_path : `str`, optional
-        Path to HDF5 database; defaults to that listed in `~fiasco.defaults`
 
-    Other Parameters
-    ----------------
-    ion_kwargs : `dict`
-        Possible keyword arguments for individual ions
-
-    Examples
+    See Also
     --------
+    fiasco.Ion : All the same keyword arguments can also be passed here.
     """
 
     @u.quantity_input
@@ -84,6 +78,8 @@ class Element(fiasco.IonCollection):
         # Solve system of equations using singular value decomposition
         _, _, V = np.linalg.svd(rate_matrix.value)
         # Select columns of V with smallest eigenvalues (returned in descending order)
+        # NOTE: must take the absolute value as the SVD solution is only accurate up
+        # to the sign. We require that the solutions must be positive.
         ioneq = np.fabs(V[:, -1, :])
         ioneq /= ioneq.sum(axis=1)[:, np.newaxis]
 
