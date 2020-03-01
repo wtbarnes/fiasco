@@ -2,7 +2,6 @@
 Base class for file parser
 """
 import os
-import warnings
 
 import h5py
 import numpy as np
@@ -21,7 +20,7 @@ class GenericParser(object):
     units = []
     headings = []
     descriptions = []
-    
+
     def __init__(self, filename, **kwargs):
         self.filename = filename
         self.ascii_dbase_root = kwargs.get('ascii_dbase_root', fiasco.defaults['ascii_dbase_root'])
@@ -55,12 +54,12 @@ class GenericParser(object):
         for name, unit, dtype in zip(self.headings, self.units, self.dtypes):
             df[name].unit = unit
             df[name] = df[name].astype(dtype)
-        
+
         df.meta['footer'] = self.extract_footer(lines)
         df.meta['chianti_version'] = self.chianti_version
 
         df = self.postprocessor(df)
-        
+
         return df
 
     def extract_footer(self, lines):
@@ -74,7 +73,7 @@ class GenericParser(object):
 
         footer = '\n'.join([l.strip('%').strip() for l in comment if l.strip('%').strip().strip('-1')])
         return footer
-    
+
     def preprocessor(self, table, line, *args):
         """
         Default preprocessor method run on each line ingested.
@@ -85,7 +84,7 @@ class GenericParser(object):
             line = line.strip().split()
         line = [item.strip() if type(item) is str else item for item in line]
         table.append(line)
-        
+
     def postprocessor(self, df):
         """
         Default postprocessor method run on the whole dataframe
@@ -96,7 +95,7 @@ class GenericParser(object):
 
     def to_hdf5(self, *args, **kwargs):
         raise NotImplementedError('No method for converting QTable to HDF5')
-        
+
 
 class GenericIonParser(GenericParser):
     """
