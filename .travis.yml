@@ -6,21 +6,19 @@ python:
 - 3.8
 
 install: pip install -r requirements/requirements-dev.txt
-script: python setup.py $MAIN_CMD
+script: python setup.py $SETUP_CMD
 env: SETUP_CMD='test'
-before_script: if [[ $MAIN_CMD == *test* ]] || [[ $MAIN_CMD == build_docs ]]; then python setup.py install && python ci/setup_dbase.py; fi
+before_script: if [[ $SETUP_CMD == *test* ]] || [[ $SETUP_CMD == build_docs ]]; then python setup.py install && python ci/setup_dbase.py; fi
 
 jobs:
   include:
   - env: MAIN_CMD='install'
-  - env: MAIN_CMD='test --coverage'
+  - env: SETUP_CMD='test --coverage'
     after_success: coveralls --rcfile='fiasco/tests/coveragerc'
   - os: osx
   - allow_failures:
-    - script:
-        - python setup.py test --pep8
-  - stage: docs
-    env: SETUP_CMD='build_docs'
+        env: SETUP_CMD='test --pep8'
+  - env: SETUP_CMD='build_docs'
 
 stages:
 - name: install
