@@ -105,19 +105,9 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
 
 def _xnew(energy_ratio, c, scaling_type):
     energy_ratio = energy_ratio.T
-    if scaling_type == 1:
+    if scaling_type in [1, 4]:
         return 1.0 - np.log(c) / np.log(energy_ratio + c)
-    elif scaling_type == 2:
-        return energy_ratio / (energy_ratio + c)
-    elif scaling_type == 3:
-        return energy_ratio / (energy_ratio + c)
-    elif scaling_type == 4:
-        return 1.0 - np.log(c) / np.log(energy_ratio + c)
-    elif scaling_type == 5:
-        # dielectronic
-        return energy_ratio / (energy_ratio + c)
-    elif scaling_type == 6:
-        # protons
+    elif scaling_type in [2, 3, 5, 6]:
         return energy_ratio / (energy_ratio + c)
 
 def burgess_tully_descale_vectorize(x, y, energy_ratio, c, scaling_type):
