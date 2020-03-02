@@ -114,8 +114,8 @@ def burgess_tully_descale_vectorize(x, y, energy_ratio, c, scaling_type):
     """
     Vectorized version of `burgess_tully_descale`
     """
-    x = np.atleast_2d(x)
-    y = np.atleast_2d(y)
+    x = np.array(x)
+    y = np.array(y)
     energy_ratio = energy_ratio.to_value(u.dimensionless_unscaled)
     c = c.to_value(u.dimensionless_unscaled)
 
@@ -127,22 +127,22 @@ def burgess_tully_descale_vectorize(x, y, energy_ratio, c, scaling_type):
 
     for i in range(out.shape[0]):
         # Calculate spline coefficients
-        nots = splrep(x[i, :], y[i, :], s=0)
-        upsilon = splev(xnew[i, :], nots, der=0)
+        nots = splrep(x[i, ...], y[i, ...], s=0)
+        upsilon = splev(xnew[i, ...], nots, der=0)
         out[i, :] = upsilon
 
 
     for type in np.unique(scaling_type):
         idxs = scaling_type == type
         if type == 1:
-            out[idxs, :] *= np.log(energy_ratio[idxs, :] + np.e)
+            out[idxs, ...] *= np.log(energy_ratio[idxs, ...] + np.e)
         elif type == 3:
-            out[idxs, :] /= (energy_ratio[idxs, :] + 1.0)
+            out[idxs, ...] /= (energy_ratio[idxs, ...] + 1.0)
         elif type == 4:
-            out[idxs, :] *= np.log(energy_ratio[idxs, :].T + c[idxs]).T
+            out[idxs, ...] *= np.log(energy_ratio[idxs, ...].T + c[idxs]).T
         elif type == 5:
-            out[idxs, :] /= energy_ratio[idxs, :]
+            out[idxs, ...] /= energy_ratio[idxs, ...]
         elif type == 6:
-            out[idxs, :] = 10**out[idxs]
+            out[idxs, ...] = 10**out[idxs]
 
     return out
