@@ -1,6 +1,7 @@
 """
 Numerical tools
 """
+from functools import partial
 import numpy as np
 from scipy.interpolate import splrep, splev
 import astropy.units as u
@@ -121,16 +122,16 @@ def burgess_tully_descale_vectorize(x, y, energy_ratio, c, scaling_type):
 
     out = np.zeros(energy_ratio.shape)
     xnew = np.zeros(energy_ratio.shape)
+
     for type in np.unique(scaling_type):
         idxs = scaling_type == type
         xnew[idxs, :] = _xnew(energy_ratio[idxs, :], c[idxs], type).T
 
-    for i in range(out.shape[0]):
-        # Calculate spline coefficients
-        nots = splrep(x[i, ...], y[i, ...], s=0)
-        upsilon = splev(xnew[i, ...], nots, der=0)
-        out[i, :] = upsilon
-
+    # Use list(map()) here to allow varying shaped inputs for x, y
+    splrep_szero = partial(splrep, s=0)
+    nots = np.array(list(map(splrep_szero, x, y)))
+    splev_derzero = partial(splev, der=0)
+    out = np.array(list(map(splev_derzero, xnew, nots)))
 
     for type in np.unique(scaling_type):
         idxs = scaling_type == type
