@@ -32,19 +32,32 @@ import sys
 
 ON_RTD = os.environ.get('READTHEDOCS') == 'True'
 
-# On Read the Docs, configure to use remote data to avoid build timeouts
+# On Read the Docs, download the database and build a minimal HDF5 version
 if ON_RTD:
+    from fiasco.util import download_dbase, build_hdf5_dbase
+    from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
     os.environ['HOME'] = '/home/docs'
     FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
     if not os.path.exists(FIASCO_HOME):
         os.makedirs(FIASCO_HOME)
+    ascii_dbase_root = os.path.join(FIASCO_HOME, 'ascii_dbase')
+    hdf5_dbase_root = os.path.join(FIASCO_HOME, 'chianti_dbase.h5')
+    download_dbase(CHIANTI_URL.format(version=LATEST_VERSION), ascii_dbase_root)
+    build_hdf5_dbase(
+        ascii_dbase_root,
+        hdf5_dbase_root,
+        files=['chianti.ip',
+               'chianti.ioneq',
+               'fe_5.elvlc',
+               'fe_15.elvlc',
+               'fe_18.rrparams',
+               'fe_18.drparams']
+    )
     with open(os.path.join(FIASCO_HOME, 'fiascorc'), 'w') as f:
         c = configparser.ConfigParser()
         c.add_section('database')
-        c.set('database', 'ascii_dbase_root', os.path.join(FIASCO_HOME, 'ascii_dbase'))
-        c.set('database', 'use_remote_data', 'true')
-        c.set('database', 'remote_domain', 'chianti.fiasco.org')
-        c.set('database', 'remote_endpoint', 'http://167.99.1.185')
+        c.set('database', 'ascii_dbase_root', ascii_dbase_root)
+        c.set('database', 'hdf5_dbase_root', hdf5_dbase_root)
         c.write(f)
 
 try:
