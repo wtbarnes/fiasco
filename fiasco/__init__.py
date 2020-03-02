@@ -9,8 +9,7 @@ from ._sunpy_init import *
 if not _ASTROPY_SETUP_:
     from .util.util import setup_paths
     defaults = setup_paths()
-    
-    from .base import *
+
     from .fiasco import *
     from .level import *
     from .ion import *
