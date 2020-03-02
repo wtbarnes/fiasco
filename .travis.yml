@@ -12,13 +12,14 @@ before_script: if [[ $SETUP_CMD == *test* ]] || [[ $SETUP_CMD == build_docs ]]; 
 
 jobs:
   include:
-  - env: MAIN_CMD='install'
-  - env: SETUP_CMD='test --coverage'
-    after_success: coveralls --rcfile='fiasco/tests/coveragerc'
-  - os: osx
-  - allow_failures:
-        env: SETUP_CMD='test --pep8'
-  - env: SETUP_CMD='build_docs'
+    - env: SETUP_CMD='install'
+    - env: SETUP_CMD='test --coverage'
+        after_success: coveralls --rcfile='fiasco/tests/coveragerc'
+    - os: osx
+    - env: SETUP_CMD='test --pep8'
+    - env: SETUP_CMD='build_docs'
+  allow_failures:
+    - env: SETUP_CMD='test --pep8'
 
 stages:
 - name: install
