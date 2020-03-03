@@ -1,6 +1,7 @@
 -r requirements.txt
 pytest
 pytest-astropy
+pytest-pep8
 coverage<5
 coveralls
 flake8

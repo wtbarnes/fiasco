@@ -12,25 +12,25 @@ temperature = np.logspace(5, 8, 100)*u.K
 
 
 @pytest.fixture
-def element():
-    return fiasco.Element('Fe', temperature)
+def element(hdf5_dbase_root):
+    return fiasco.Element('H', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
 
 @pytest.fixture
-def another_element():
-    return fiasco.Element('Ca', temperature)
+def another_element(hdf5_dbase_root):
+    return fiasco.Element('He', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
 
 def test_atomic_symbol(element):
-    assert element.atomic_symbol == 'Fe'
+    assert element.atomic_symbol == 'H'
 
 
 def test_atomic_number(element):
-    assert element.atomic_number == 26
+    assert element.atomic_number == 1
 
 
 def test_element_name(element):
-    assert element.element_name == 'iron'
+    assert element.element_name == 'hydrogen'
 
 
 def test_add_elements(element, another_element):
@@ -45,8 +45,10 @@ def test_radd_elements(element, another_element):
     assert collection[0].ion_name == another_element[0].ion_name
 
 
-def test_create_element_number(element):
-    other_element = fiasco.Element(element.atomic_number, temperature)
+def test_create_element_number(element, hdf5_dbase_root):
+    other_element = fiasco.Element(element.atomic_number,
+                                   temperature,
+                                   hdf5_dbase_root=hdf5_dbase_root)
     for ion in other_element:
         assert ion in element
     assert other_element.atomic_symbol == element.atomic_symbol
@@ -54,8 +56,10 @@ def test_create_element_number(element):
     assert other_element.element_name == element.element_name
 
 
-def test_create_element_name(element):
-    other_element = fiasco.Element(element.element_name, temperature)
+def test_create_element_name(element, hdf5_dbase_root):
+    other_element = fiasco.Element(element.element_name,
+                                   temperature,
+                                   hdf5_dbase_root=hdf5_dbase_root)
     for ion in other_element:
         assert ion in element
     assert other_element.atomic_symbol == element.atomic_symbol
@@ -63,8 +67,10 @@ def test_create_element_name(element):
     assert other_element.element_name == element.element_name
 
 
-def test_create_element_lowercase(element):
-    other_element = fiasco.Element(element.atomic_symbol.lower(), temperature)
+def test_create_element_lowercase(element, hdf5_dbase_root):
+    other_element = fiasco.Element(element.atomic_symbol.lower(),
+                                   temperature,
+                                   hdf5_dbase_root=hdf5_dbase_root)
     for ion in other_element:
         assert ion in element
     assert other_element.atomic_symbol == element.atomic_symbol
@@ -73,16 +79,15 @@ def test_create_element_lowercase(element):
 
 
 def test_getitem_ion_name(element):
-    assert element['Fe 1'] == element[0]
-    assert element['Fe 27'] == element[-1]
+    assert element['H 1'] == element[0]
+    assert element['H 2'] == element[-1]
     
 
-def test_create_element_without_units_raises_units_error():
+def test_create_element_without_units_raises_units_error(hdf5_dbase_root):
     with pytest.raises(TypeError):
-        fiasco.Element('Fe', temperature.value)
+        fiasco.Element('H', temperature.value, hdf5_dbase_root=hdf5_dbase_root)
 
 
-def test_create_element_with_wrong_units_raises_unit_conversion_error():
+def test_create_element_with_wrong_units_raises_unit_conversion_error(hdf5_dbase_root):
     with pytest.raises(u.UnitsError):
-        fiasco.Element('Fe', temperature.value*u.s)
-
+        fiasco.Element('H', temperature.value*u.s, hdf5_dbase_root=hdf5_dbase_root)
