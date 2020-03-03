@@ -28,8 +28,8 @@ def test_repr(ion):
     assert 'Fe 5' in ion.__repr__()
 
 
-def test_repr_scalar_temp(ion):
-    assert 'Fe 5' in fiasco.Ion('Fe 5', 1e6 * u.K).__repr__()
+def test_repr_scalar_temp(ion, hdf5_dbase_root):
+    assert 'Fe 5' in fiasco.Ion('Fe 5', 1e6 * u.K, hdf5_dbase_root=hdf5_dbase_root).__repr__()
 
 
 def test_level_properties(ion):
