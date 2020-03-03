@@ -19,7 +19,6 @@ jobs:
     - env: SETUP_CMD='install'
     - env: SETUP_CMD='test --coverage'
       after_success: coveralls --rcfile='fiasco/tests/coveragerc'
-    - os: osx
     - env: SETUP_CMD='test --pep8'
     - env:
       - SETUP_CMD='build_docs'
