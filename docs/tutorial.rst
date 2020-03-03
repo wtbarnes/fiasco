@@ -8,7 +8,7 @@ While the main advantages of fiasco lie in its high-level interface to the CHIAN
 For example, say we want to parse the energy level file for Fe V (i.e. iron with four electrons missing)
 
     >>> from fiasco.io import Parser
-    >>> p = Parser('fe_5.elvlc')
+    >>> p = Parser('fe_5.elvlc', ascii_dbase_root=getfixture('ascii_dbase_root'))
     >>> table = p.parse()
     >>> table # doctest: +SKIP
     <QTable length=34>
@@ -78,12 +78,12 @@ The CHIANTI database is organized around individual ions, with multiple types of
     >>> import astropy.units as u
     >>> from fiasco import Ion
     >>> temperature = np.logspace(5, 7, 100) * u.K
-    >>> ion = Ion('Fe 15', temperature)
+    >>> ion = Ion('Fe 15', temperature, hdf5_dbase_root=getfixture('hdf5_dbase_root'))
 
 This creates a `~fiasco.Ion` object for the Fe XV ion. Note also the same object can also be created in the following ways,
 
-    >>> ion = Ion('iron 15', temperature)
-    >>> ion = Ion('iron 14+', temperature)
+    >>> ion = Ion('iron 15', temperature, hdf5_dbase_root=getfixture('hdf5_dbase_root'))
+    >>> ion = Ion('iron 14+', temperature, hdf5_dbase_root=getfixture('hdf5_dbase_root'))
 
 
 Basic Metadata
@@ -116,7 +116,7 @@ The equilibrium population fractions are interpolated to `temperature` and can b
     import numpy as np
     import astropy.units as u
     from fiasco import Ion
-    ion = Ion('Fe 15', np.logspace(5, 7, 100) * u.K)
+    ion = Ion('Fe 15', np.logspace(5, 7, 100) * u.K, hdf5_dbase_root=getfixture('hdf5_dbase_root'))
     plt.plot(ion.temperature, ion.ioneq)
     plt.xlabel(r'$T [K]$')
     plt.ylabel(r'Population Fraction')
@@ -136,7 +136,7 @@ In addition to providing an API to the CHIANTI data, `Ion` also provides several
     import numpy as np
     import astropy.units as u
     from fiasco import Ion
-    ion = Ion('Fe 18', np.logspace(4, 8, 100) * u.K)
+    ion = Ion('Fe 18', np.logspace(4, 8, 100) * u.K, hdf5_dbase_root=getfixture('hdf5_dbase_root'))
     plt.plot(ion.temperature, ion.recombination_rate(), label='Total')
     plt.plot(ion.temperature, ion.dielectronic_recombination_rate(), label='Dielectronic')
     plt.plot(ion.temperature, ion.radiative_recombination_rate(), label='Radiative')
