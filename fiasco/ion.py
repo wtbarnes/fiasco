@@ -46,7 +46,7 @@ class Ion(IonBase, ContinuumBase):
     @u.quantity_input
     def __init__(self, ion_name, temperature: u.K, *args, **kwargs):
         super().__init__(ion_name, *args, **kwargs)
-        self.temperature = temperature
+        self.temperature = np.atleast_1d(temperature)
         # Get selected datasets
         # TODO: do not hardcode defaults, pull from rc file
         self._dset_names = {}

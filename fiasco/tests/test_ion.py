@@ -24,6 +24,14 @@ def test_level_indexing(ion):
     assert isinstance(ion[0], fiasco.ion.Level)
 
 
+def test_repr(ion):
+    assert 'Fe 5' in ion.__repr__()
+
+
+def test_repr_scalar_temp(ion):
+    assert 'Fe 5' in fiasco.Ion('Fe 5', 1e6 * u.K).__repr__()
+
+
 def test_level_properties(ion):
     assert hasattr(ion[0], 'level')
     assert hasattr(ion[0], 'energy')
