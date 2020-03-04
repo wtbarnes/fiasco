@@ -38,8 +38,8 @@ def test_level_properties(ion):
     assert hasattr(ion[0], 'configuration')
 
 
-def test_scalar_density():
-    ion = fiasco.Ion('O 1', 1 * u.MK)
+def test_scalar_density(hdf5_dbase_root):
+    ion = fiasco.Ion('O 1', 1 * u.MK, hdf5_dbase_root=hdf5_dbase_root)
     ion.level_populations(1e8 * u.cm**-3)
 
 
