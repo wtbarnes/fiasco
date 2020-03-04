@@ -79,4 +79,4 @@ def test_create_ion_element_name(hdf5_dbase_root):
 
 def test_create_invalid_ion_raises_missing_ion_error(hdf5_dbase_root):
     with pytest.raises(MissingIonError):
-        fiasco.IonBase('hydrogen 3', hdf5_dbase_root=hdf5_dbase_root)
+        fiasco.base.IonBase('hydrogen 3', hdf5_dbase_root=hdf5_dbase_root)
