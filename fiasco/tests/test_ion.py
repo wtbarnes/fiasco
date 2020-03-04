@@ -38,6 +38,11 @@ def test_level_properties(ion):
     assert hasattr(ion[0], 'configuration')
 
 
+def test_scalar_density():
+    ion = fiasco.Ion('O 1', 1 * u.MK)
+    ion.level_populations(1e8 * u.cm**-3)
+
+
 def test_no_elvlc_raises_index_error(hdf5_dbase_root):
     with pytest.raises(IndexError):
         fiasco.Ion('H 2', temperature, hdf5_dbase_root=hdf5_dbase_root)[0]
