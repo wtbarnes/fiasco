@@ -115,10 +115,10 @@ def burgess_tully_descale_vectorize(x, y, energy_ratio, c, scaling_type):
     """
     Vectorized version of `burgess_tully_descale`
     """
-    x = np.array(x)
-    y = np.array(y)
-    energy_ratio = energy_ratio.to_value(u.dimensionless_unscaled)
-    c = c.to_value(u.dimensionless_unscaled)
+    x = np.atleast_2d(x)
+    y = np.atleast_2d(y)
+    energy_ratio = np.atleast_2d(u.Quantity(energy_ratio).to_value(u.dimensionless_unscaled))
+    c = u.Quantity(c).to_value(u.dimensionless_unscaled)
 
     out = np.zeros(energy_ratio.shape)
     xnew = np.zeros(energy_ratio.shape)
