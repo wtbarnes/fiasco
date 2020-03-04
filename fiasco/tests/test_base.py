@@ -9,7 +9,7 @@ from fiasco.util.exceptions import MissingIonError
 
 @pytest.fixture
 def ionbase(hdf5_dbase_root):
-    return fiasco.IonBase('fe 5', hdf5_dbase_root=hdf5_dbase_root)
+    return fiasco.base.IonBase('fe 5', hdf5_dbase_root=hdf5_dbase_root)
 
 
 def test_ion_name(ionbase):
@@ -38,7 +38,7 @@ def test_charge_state(ionbase):
 
 
 def test_create_ion_symbol_lower(hdf5_dbase_root):
-    ion = fiasco.IonBase('h 1', hdf5_dbase_root=hdf5_dbase_root)
+    ion = fiasco.base.IonBase('h 1', hdf5_dbase_root=hdf5_dbase_root)
     assert ion.element_name == 'hydrogen'
     assert ion.atomic_symbol == 'H'
     assert ion.atomic_number == 1
@@ -48,7 +48,7 @@ def test_create_ion_symbol_lower(hdf5_dbase_root):
 
 
 def test_create_ion_symbol_upper(hdf5_dbase_root):
-    ion = fiasco.IonBase('H 1', hdf5_dbase_root=hdf5_dbase_root)
+    ion = fiasco.base.IonBase('H 1', hdf5_dbase_root=hdf5_dbase_root)
     assert ion.element_name == 'hydrogen'
     assert ion.atomic_symbol == 'H'
     assert ion.atomic_number == 1
@@ -58,7 +58,7 @@ def test_create_ion_symbol_upper(hdf5_dbase_root):
 
 
 def test_create_ion_charge_state(hdf5_dbase_root):
-    ion = fiasco.IonBase('h +0', hdf5_dbase_root=hdf5_dbase_root)
+    ion = fiasco.base.IonBase('h +0', hdf5_dbase_root=hdf5_dbase_root)
     assert ion.element_name == 'hydrogen'
     assert ion.atomic_symbol == 'H'
     assert ion.atomic_number == 1
@@ -68,7 +68,7 @@ def test_create_ion_charge_state(hdf5_dbase_root):
 
 
 def test_create_ion_element_name(hdf5_dbase_root):
-    ion = fiasco.IonBase('hydrogen 1', hdf5_dbase_root=hdf5_dbase_root)
+    ion = fiasco.base.IonBase('hydrogen 1', hdf5_dbase_root=hdf5_dbase_root)
     assert ion.element_name == 'hydrogen'
     assert ion.atomic_symbol == 'H'
     assert ion.atomic_number == 1
@@ -79,4 +79,4 @@ def test_create_ion_element_name(hdf5_dbase_root):
 
 def test_create_invalid_ion_raises_missing_ion_error(hdf5_dbase_root):
     with pytest.raises(MissingIonError):
-        fiasco.IonBase('hydrogen 3', hdf5_dbase_root=hdf5_dbase_root)
+        fiasco.base.IonBase('hydrogen 3', hdf5_dbase_root=hdf5_dbase_root)
