@@ -116,7 +116,7 @@ The equilibrium population fractions are interpolated to `temperature` and can b
     import numpy as np
     import astropy.units as u
     from fiasco import Ion
-    ion = Ion('Fe 15', np.logspace(5, 7, 100) * u.K, hdf5_dbase_root=getfixture('hdf5_dbase_root'))
+    ion = Ion('Fe 15', np.logspace(5, 7, 100) * u.K)
     plt.plot(ion.temperature, ion.ioneq)
     plt.xlabel(r'$T [K]$')
     plt.ylabel(r'Population Fraction')
@@ -136,7 +136,7 @@ In addition to providing an API to the CHIANTI data, `Ion` also provides several
     import numpy as np
     import astropy.units as u
     from fiasco import Ion
-    ion = Ion('Fe 18', np.logspace(4, 8, 100) * u.K, hdf5_dbase_root=getfixture('hdf5_dbase_root'))
+    ion = Ion('Fe 18', np.logspace(4, 8, 100) * u.K)
     plt.plot(ion.temperature, ion.recombination_rate(), label='Total')
     plt.plot(ion.temperature, ion.dielectronic_recombination_rate(), label='Dielectronic')
     plt.plot(ion.temperature, ion.radiative_recombination_rate(), label='Radiative')

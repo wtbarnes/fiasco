@@ -20,9 +20,7 @@ jobs:
     - env: SETUP_CMD='test --coverage'
       after_success: coveralls --rcfile='fiasco/tests/coveragerc'
     - env: SETUP_CMD='test --pep8'
-    - env:
-      - SETUP_CMD='build_docs'
-      - READTHEDOCS=true  # fake RTD so that the database will be downloaded and built
+    - env: SETUP_CMD='build_docs'
   allow_failures:
     - env: SETUP_CMD='test --pep8'
       python: 3.7
