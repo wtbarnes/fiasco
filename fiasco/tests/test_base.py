@@ -8,13 +8,8 @@ from fiasco.util.exceptions import MissingIonError
 
 
 @pytest.fixture
-<<<<<<< HEAD
 def ionbase(hdf5_dbase_root):
-    return fiasco.IonBase('fe 5', hdf5_dbase_root=hdf5_dbase_root)
-=======
-def ionbase():
-    return fiasco.base.IonBase('fe 5')
->>>>>>> Fix test imports
+    return fiasco.base.IonBase('fe 5', hdf5_dbase_root=hdf5_dbase_root)
 
 
 def test_ion_name(ionbase):
