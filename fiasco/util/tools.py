@@ -111,6 +111,7 @@ def _xnew(energy_ratio, c, scaling_type):
     elif scaling_type in [2, 3, 5, 6]:
         return energy_ratio / (energy_ratio + c)
 
+
 def burgess_tully_descale_vectorize(x, y, energy_ratio, c, scaling_type):
     """
     Vectorized version of `burgess_tully_descale`
