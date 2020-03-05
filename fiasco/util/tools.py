@@ -1,6 +1,7 @@
 """
 Numerical tools
 """
+from functools import partial
 import numpy as np
 from scipy.interpolate import splrep, splev
 import astropy.units as u
@@ -103,14 +104,47 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     return upsilon
 
 
+def _xnew(energy_ratio, c, scaling_type):
+    energy_ratio = energy_ratio.T
+    if scaling_type in [1, 4]:
+        return 1.0 - np.log(c) / np.log(energy_ratio + c)
+    elif scaling_type in [2, 3, 5, 6]:
+        return energy_ratio / (energy_ratio + c)
+
+
 def burgess_tully_descale_vectorize(x, y, energy_ratio, c, scaling_type):
     """
     Vectorized version of `burgess_tully_descale`
     """
-    # Try the fast way; fall back to slower method if x and y are not true matrices
-    # This can happen because the scaled temperatures may have a variable number of points
-    try:
-        func = np.vectorize(burgess_tully_descale, signature='(m),(m),(n),(),()->(n)')
-        return func(x, y, energy_ratio, c, scaling_type)
-    except ValueError:
-        return np.array(list(map(burgess_tully_descale, x, y, energy_ratio, c, scaling_type)))
+    x = np.atleast_2d(x)
+    y = np.atleast_2d(y)
+    energy_ratio = np.atleast_2d(u.Quantity(energy_ratio).to_value(u.dimensionless_unscaled))
+    c = u.Quantity(c).to_value(u.dimensionless_unscaled)
+
+    out = np.zeros(energy_ratio.shape)
+    xnew = np.zeros(energy_ratio.shape)
+
+    for type in np.unique(scaling_type):
+        idxs = scaling_type == type
+        xnew[idxs, :] = _xnew(energy_ratio[idxs, :], c[idxs], type).T
+
+    # Use list(map()) here to allow varying shaped inputs for x, y
+    splrep_szero = partial(splrep, s=0)
+    nots = np.array(list(map(splrep_szero, x, y)))
+    splev_derzero = partial(splev, der=0)
+    out = np.array(list(map(splev_derzero, xnew, nots)))
+
+    for type in np.unique(scaling_type):
+        idxs = scaling_type == type
+        if type == 1:
+            out[idxs, ...] *= np.log(energy_ratio[idxs, ...] + np.e)
+        elif type == 3:
+            out[idxs, ...] /= (energy_ratio[idxs, ...] + 1.0)
+        elif type == 4:
+            out[idxs, ...] *= np.log(energy_ratio[idxs, ...].T + c[idxs]).T
+        elif type == 5:
+            out[idxs, ...] /= energy_ratio[idxs, ...]
+        elif type == 6:
+            out[idxs, ...] = 10**out[idxs]
+
+    return out
