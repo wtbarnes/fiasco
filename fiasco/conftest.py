@@ -1,6 +1,7 @@
 # this contains imports plugins that configure py.test for astropy tests.
 # by importing them here in conftest.py they are discoverable by py.test
 # no matter how it is invoked within the source tree.
+import os
 import pytest
 from astropy.tests.plugins import *
 
@@ -13,6 +14,8 @@ TEST_FILES = [
     'chianti.ip',
     'chianti.ioneq',
     'h_1.elvlc',
+    'h_1.wgfa',
+    'h_1.scups',
     'h_2.rrparams',
     'he_1.elvlc',
     'he_2.elvlc',
