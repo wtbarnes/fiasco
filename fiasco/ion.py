@@ -297,6 +297,7 @@ Using Datasets:
                 upper_level_p, level, dex_rate_p.value.T, 0).T * dex_rate_p.unit
 
         # Populate density dependent terms and solve matrix equation for each density value
+        density = np.atleast_1d(density)
         populations = np.zeros(self.temperature.shape + density.shape + (level.max(),))
         for i, d in enumerate(density):
             c_matrix = coeff_matrix.copy()
