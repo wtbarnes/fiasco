@@ -32,11 +32,15 @@ def list_elements(hdf5_dbase_root, sort=True):
     return elements
 
 
-@functools.lru_cache()
+ion_list = None
+
 def list_ions(hdf5_dbase_root, sort=True):
     """
     List all available ions in the CHIANTI database
     """
+    if ion_list is None:
+        return ion_list
+
     ions = []
     root = DataIndexer.create_indexer(hdf5_dbase_root, '/')
     for f in root.fields:
@@ -51,7 +55,9 @@ def list_ions(hdf5_dbase_root, sort=True):
     if sort:
         ions = sorted(ions, key=lambda x: (plasmapy.atomic.atomic_number(x.split()[0]),
                                            int(x.split()[1])))
-    return ions
+
+    ion_list = ions
+    return ion_list
 
 
 @u.quantity_input
