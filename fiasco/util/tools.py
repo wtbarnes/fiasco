@@ -6,8 +6,7 @@ import numpy as np
 from scipy.interpolate import splrep, splev
 import astropy.units as u
 
-__all__ = ['vectorize_where', 'vectorize_where_sum', 'burgess_tully_descale',
-           'burgess_tully_descale_vectorize']
+__all__ = ['vectorize_where', 'vectorize_where_sum', 'burgess_tully_descale']
 
 
 def vectorize_where(x_1, x_2):
@@ -53,6 +52,14 @@ def vectorize_where_sum(x_1, x_2, y, axis=None):
     return u.Quantity(collect(x_1, x_2, y), unit)
 
 
+def _xnew(energy_ratio, c, scaling_type):
+    energy_ratio = energy_ratio.T
+    if scaling_type in [1, 4]:
+        return 1.0 - np.log(c) / np.log(energy_ratio + c)
+    elif scaling_type in [2, 3, 5, 6]:
+        return energy_ratio / (energy_ratio + c)
+
+
 def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     """
     Convert scaled Burgess-Tully parameters to physical quantities. For more details see
@@ -77,47 +84,15 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     ----------
     .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_
     """
-    nots = splrep(x, y, s=0)
-    if scaling_type == 1:
-        x_new = 1.0 - np.log(c) / np.log(energy_ratio + c)
-        upsilon = splev(x_new, nots, der=0) * np.log(energy_ratio + np.e)
-    elif scaling_type == 2:
-        x_new = energy_ratio / (energy_ratio + c)
-        upsilon = splev(x_new, nots, der=0)
-    elif scaling_type == 3:
-        x_new = energy_ratio / (energy_ratio + c)
-        upsilon = splev(x_new, nots, der=0) / (energy_ratio + 1.0)
-    elif scaling_type == 4:
-        x_new = 1.0 - np.log(c) / np.log(energy_ratio + c)
-        upsilon = splev(x_new, nots, der=0) * np.log(energy_ratio + c)
-    elif scaling_type == 5:
-        # dielectronic
-        x_new = energy_ratio / (energy_ratio + c)
-        upsilon = splev(x_new, nots, der=0) / energy_ratio
-    elif scaling_type == 6:
-        # protons
-        x_new = energy_ratio / (energy_ratio + c)
-        upsilon = 10**splev(x_new, nots, der=0)
-    else:
-        raise ValueError('Unrecognized BT92 scaling option.')
-
-    return upsilon
-
-
-def _xnew(energy_ratio, c, scaling_type):
-    energy_ratio = energy_ratio.T
-    if scaling_type in [1, 4]:
-        return 1.0 - np.log(c) / np.log(energy_ratio + c)
-    elif scaling_type in [2, 3, 5, 6]:
-        return energy_ratio / (energy_ratio + c)
-
-
-def burgess_tully_descale_vectorize(x, y, energy_ratio, c, scaling_type):
-    """
-    Vectorized version of `burgess_tully_descale`
-    """
-    x = np.atleast_2d(x)
-    y = np.atleast_2d(y)
+    # NOTE: Arrays with staggered number of columns, which have an 'object'
+    # dtype (denoted by 'O') appear to be 1D, but should not be cast to 2D
+    # as this will actually add an extra dimension and throw off the function
+    # mapping
+    x = np.asarray(x)
+    y = np.asarray(y)
+    if x.dtype != np.dtype('O'):
+        x = np.atleast_2d(x)
+        y = np.atleast_2d(y)
     energy_ratio = np.atleast_2d(u.Quantity(energy_ratio).to_value(u.dimensionless_unscaled))
     c = u.Quantity(c).to_value(u.dimensionless_unscaled)
 
