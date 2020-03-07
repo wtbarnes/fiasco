@@ -6,6 +6,7 @@ import os
 import warnings
 import tarfile
 
+import numpy as np
 import h5py
 from astropy.config import set_temp_cache
 from astropy.utils.data import download_file
@@ -110,3 +111,8 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
                 else:
                     parser.to_hdf5(hf, df)
                 progress.update()
+            # Build an index for quick lookup of all ions in database
+            from fiasco import list_ions  # import here to avoid circular imports
+            ion_list = list_ions(hdf5_dbase_root)
+            ds = hf.create_dataset('ion_index', data=np.array(ion_list).astype(np.string_))
+            ds.attrs['unit'] = 'SKIP'
