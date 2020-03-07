@@ -35,16 +35,11 @@ class Base(object):
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
             self.hdf5_dbase_root = hdf5_dbase_root
-        # NOTE: if using the remote option, don't need to worry about building or
-        # downloading the database
-        if not fiasco.defaults['use_remote_data']:
-            check_database(self.hdf5_dbase_root, **kwargs)
+        check_database(self.hdf5_dbase_root, **kwargs)
 
         # FIXME: this is a bottleneck when creating many ions
         if self.ion_name not in fiasco.list_ions(self.hdf5_dbase_root, sort=False):
-            source = (self.hdf5_dbase_root if not fiasco.defaults['use_remote_data']
-                      else fiasco.defaults['remote_endpoint'])
-            raise MissingIonError(f'{self.ion_name} not found in {source}')
+            raise MissingIonError(f'{self.ion_name} not found in {self.hdf5_dbase_root}')
 
 
 class ContinuumBase(Base):

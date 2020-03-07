@@ -27,14 +27,6 @@ def setup_paths():
         paths['ascii_dbase_root'] = os.path.join(FIASCO_HOME, 'chianti_dbase')
     if 'hdf5_dbase_root' not in paths:
         paths['hdf5_dbase_root'] = os.path.join(FIASCO_HOME, 'chianti_dbase.h5')
-    if 'use_remote_data' not in paths:
-        paths['use_remote_data'] = False
-    else:
-        paths['use_remote_data'] = bool(strtobool(paths['use_remote_data']))
-    # If using remote data, need endpoint and domain
-    if paths['use_remote_data']:
-        assert 'remote_domain' in paths
-        assert 'remote_endpoint' in paths
 
     return paths
 
