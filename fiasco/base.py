@@ -24,14 +24,11 @@ class Base(object):
             ion = f"{int(ion.strip('+')) + 1}"
         self.ionization_stage = int(ion)
         self.charge_state = self.ionization_stage - 1
-
         if hdf5_dbase_root is None:
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
             self.hdf5_dbase_root = hdf5_dbase_root
         check_database(self.hdf5_dbase_root, **kwargs)
-
-        # FIXME: this is a bottleneck when creating many ions
         if self.ion_name not in fiasco.list_ions(self.hdf5_dbase_root, sort=False):
             raise MissingIonError(f'{self.ion_name} not found in {self.hdf5_dbase_root}')
 
