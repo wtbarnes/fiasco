@@ -19,17 +19,11 @@ class Base(object):
     """
 
     def __init__(self, ion_name, hdf5_dbase_root=None, **kwargs):
-        element, ion = ion_name.split()
+        self._element, ion = ion_name.split()
         if '+' in ion:
             ion = f"{int(ion.strip('+')) + 1}"
-        self.atomic_number = plasmapy.atomic.atomic_number(element.capitalize())
-        self.element_name = plasmapy.atomic.element_name(element.capitalize())
-        self.atomic_symbol = plasmapy.atomic.atomic_symbol(element.capitalize())
         self.ionization_stage = int(ion)
         self.charge_state = self.ionization_stage - 1
-        self.ion_name = f'{self.atomic_symbol} {self.ionization_stage}'
-        # Old CHIANTI format, only preserved for internal data access
-        self._ion_name = f'{self.atomic_symbol.lower()}_{self.ionization_stage}'
 
         if hdf5_dbase_root is None:
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
@@ -40,6 +34,27 @@ class Base(object):
         # FIXME: this is a bottleneck when creating many ions
         if self.ion_name not in fiasco.list_ions(self.hdf5_dbase_root, sort=False):
             raise MissingIonError(f'{self.ion_name} not found in {self.hdf5_dbase_root}')
+
+    @property
+    def atomic_number(self):
+        return plasmapy.atomic.atomic_number(self._element.capitalize())
+
+    @property
+    def element_name(self):
+        return plasmapy.atomic.element_name(self._element.capitalize())
+
+    @property
+    def atomic_symbol(self):
+        return plasmapy.atomic.atomic_symbol(self._element.capitalize())
+
+    @property
+    def ion_name(self):
+        return f'{self.atomic_symbol} {self.ionization_stage}'
+
+    @property
+    def _ion_name(self):
+        # Old CHIANTI format, only preserved for internal data access
+        return f'{self.atomic_symbol.lower()}_{self.ionization_stage}'
 
 
 class ContinuumBase(Base):
