@@ -127,20 +127,19 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     Parameters
     ----------
     x : `array-like`
-        Scaled temperature. First dimension should have shape :math:`N`, the number of
+        Scaled temperature. First dimension should have length ``n``, the number of
         transitions. The second dimension will be the number of spline points, but may
-        be different for each row.
+        be different for each row. If each row has ``l`` spline points, `x` should 
+        have shape ``(n,l)``. If they are not all equal, `x` will have shape ``(n,)``.
     y : `array-like`
-        Scaled collision strength. First dimension should have shape :math:`N`, the number of
-        transitions. The second dimension will be the number of spline points, but may
-        be different for each row.
+        Scaled collision strength. Must have the same dimensions as `x`.
     energy_ratio : `array-like`
-        Ratio between the thermal energy and that of each transition with shape :math:`(N,M)`,
-        where `M` is the dimension of the temperature array.
+        Ratio between the thermal energy and that of each transition with shape ``(n,m)``,
+        where ``m`` is the dimension of the temperature array.
     c : `array-like`
-        Scaling constant for each transiton with shape :math:`N`
+        Scaling constant for each transiton with shape ``(n,)``
     scaling_type : `array-like`
-        The type of descaling to apply for each transition with shape :math:`N`. Must be between
+        The type of descaling to apply for each transition with shape ``(n,)``. Must be between
         1 and 6
 
     Returns
