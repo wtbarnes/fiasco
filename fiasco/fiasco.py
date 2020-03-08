@@ -1,7 +1,6 @@
 """
 Package-level functions
 """
-import functools
 import warnings
 
 import numpy as np
@@ -32,12 +31,12 @@ def list_elements(hdf5_dbase_root, sort=True):
     return elements
 
 
-#@functools.lru_cache()
 def list_ions(hdf5_dbase_root, sort=True):
     """
     List all available ions in the CHIANTI database
     """
     root = DataIndexer(hdf5_dbase_root, '/')
+    # NOTE: get the list from the index if possible. This is ~30x faster
     ions = root['ion_index']
     if ions is None:
         ions = []
