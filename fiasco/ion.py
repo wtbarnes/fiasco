@@ -199,19 +199,35 @@ Using Datasets:
 
     @needs_dataset('elvlc', 'scups')
     @u.quantity_input
-    def electron_collision_excitation_rate(self) -> u.cm**3 / u.s:
+    def electron_collision_excitation_rate(self, deexcitation_rate=None) -> u.cm**3 / u.s:
         """
         Collisional excitation rate coefficient for electrons.
+
+        The rate coefficient for collisional excitation is given by,
+
+        .. math::
+
+            C^e_{ij} = \\frac{\omega_j}{\omega_i}C^d_{ji}e^{-k_BT_e/\Delta E_{ij}}
+
+        where :math:`j,i` are the upper and lower level indices, respectively, :math:`\omega_j,\omega_i` 
+        are the statistical weights of the upper and lower levels, respectively, and :math:`\Delta E_{ij}`
+        is the energy of the transition.
+
+        Parameters
+        ----------
+        deexcitation_rate : `~astropy.units.Quantity`, optional
+            Optionally specify deexcitation rate to speedup calculation
 
         See Also
         --------
         electron_collision_deexcitation_rate : De-excitation rate due to collisions
         """
-        dex_rate = self.electron_collision_deexcitation_rate()
+        if deexcitation_rate is None:
+            deexcitation_rate = self.electron_collision_deexcitation_rate()
         omega_upper = 2. * self._elvlc['J'][self._scups['upper_level'] - 1] + 1.
         omega_lower = 2. * self._elvlc['J'][self._scups['lower_level'] - 1] + 1.
         kBTE = np.outer(1./const.k_B/self.temperature, self._scups['delta_energy'])
-        return omega_upper / omega_lower * dex_rate * np.exp(-kBTE)
+        return omega_upper / omega_lower * deexcitation_rate * np.exp(-kBTE)
 
     @needs_dataset('psplups')
     @u.quantity_input
@@ -232,15 +248,16 @@ Using Datasets:
 
     @needs_dataset('elvlc', 'psplups')
     @u.quantity_input
-    def proton_collision_deexcitation_rate(self) -> u.cm**3 / u.s:
+    def proton_collision_deexcitation_rate(self, excitation_rate=None) -> u.cm**3 / u.s:
         """
         Collisional de-excitation rate coefficient for protons
         """
         kBTE = np.outer(const.k_B*self.temperature, 1.0/self._psplups['delta_energy'])
-        ex_rate = self.proton_collision_excitation_rate()
+        if excitation_rate is None:
+            excitation_rate = self.proton_collision_excitation_rate()
         omega_upper = 2.*self._elvlc['J'][self._psplups['upper_level'] - 1] + 1.
         omega_lower = 2.*self._elvlc['J'][self._psplups['lower_level'] - 1] + 1.
-        dex_rate = (omega_lower / omega_upper) * ex_rate * np.exp(1. / kBTE)
+        dex_rate = (omega_lower / omega_upper) * excitation_rate * np.exp(1. / kBTE)
 
         return dex_rate
 
@@ -278,8 +295,8 @@ Using Datasets:
             self.transitions.A)
 
         # Collisional--electrons
-        ex_rate_e = self.electron_collision_excitation_rate()
         dex_rate_e = self.electron_collision_deexcitation_rate()
+        ex_rate_e = self.electron_collision_excitation_rate(deexcitation_rate=dex_rate_e)
         ex_diagonal_e = vectorize_where_sum(
             lower_level, level, ex_rate_e.value.T, 0).T * ex_rate_e.unit
         dex_diagonal_e = vectorize_where_sum(
@@ -293,7 +310,7 @@ Using Datasets:
                                              hdf5_dbase_root=self.hdf5_dbase_root)
             proton_density = np.outer(pe_ratio, density)[:, :, np.newaxis]
             ex_rate_p = self.proton_collision_excitation_rate()
-            dex_rate_p = self.proton_collision_deexcitation_rate()
+            dex_rate_p = self.proton_collision_deexcitation_rate(excitation_rate=ex_rate_p)
             ex_diagonal_p = vectorize_where_sum(
                 lower_level_p, level, ex_rate_p.value.T, 0).T * ex_rate_p.unit
             dex_diagonal_p = vectorize_where_sum(
@@ -742,13 +759,13 @@ Using Datasets:
         """
         Wavelength-integrated radiative losses due to free-free emission
         """
-        ...
+        raise NotImplementedError
 
     def free_bound_loss(self):
         """
         Wavelength-integrated radiative losses due to free-bound emission
         """
-        ...
+        raise NotImplementedError
 
     @u.quantity_input
     def _gaunt_factor_free_free(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
