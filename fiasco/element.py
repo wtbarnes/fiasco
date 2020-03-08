@@ -12,7 +12,7 @@ __all__ = ['Element']
 
 class Element(fiasco.IonCollection):
     """
-    Object containing all ions for a particular element.
+    Collection of all ions for a particular element.
 
     The `Element` object provides a way to logically group together ions of the same
     element. This provides an easy way to compute element-level derived quantities such
@@ -33,18 +33,25 @@ class Element(fiasco.IonCollection):
     def __init__(self, element_name, temperature: u.K, **kwargs):
         if type(element_name) is str:
             element_name = element_name.capitalize()
-        self.atomic_symbol = plasmapy.atomic.atomic_symbol(element_name)
-        self.atomic_number = plasmapy.atomic.atomic_number(element_name)
-        self.element_name = plasmapy.atomic.element_name(element_name)
-
+        Z = plasmapy.atomic.atomic_number(element_name)
         ion_list = []
-        # NOTE: check only the first ion to see if it is in the database as
-        # checking all of them is very slow
-        for i in range(self.atomic_number + 1):
-            ion = fiasco.Ion(f'{self.atomic_symbol} {i+1}', temperature, **kwargs)
+        for i in range(Z + 1):
+            ion = fiasco.Ion(f'{Z} {i+1}', temperature, **kwargs)
             ion_list.append(ion)
 
         super().__init__(*ion_list)
+
+    @property
+    def atomic_symbol(self):
+        return self[0].atomic_symbol
+
+    @property
+    def atomic_number(self):
+        return self[0].atomic_number
+
+    @property
+    def element_name(self):
+        return self[0].element_name
 
     @property
     def abundance(self):
@@ -67,10 +74,21 @@ class Element(fiasco.IonCollection):
 
     def equilibrium_ionization(self, **kwargs):
         """
-        Calculate the ionization equilibrium for all ions of the element.
+        Calculate the ionization fraction, in equilibrium, for all ions of the element.
 
         Calculate the population fractions for every ion of this element as a function of
         temperature, assuming ionization equilibrium.
+
+        Parameters
+        ----------
+        rate_matrix : `~astropy.units.Quantity`, optional
+            :math:`Z+1` by :math:`Z+1` matrix of ionization and recombination rates. If not
+            given, this will be computed automatically.
+
+        See Also
+        --------
+        fiasco.Ion.ionization_rate
+        fiasco.Ion.recombination_rate
         """
         rate_matrix = kwargs.get('rate_matrix', None)
         if rate_matrix is None:
