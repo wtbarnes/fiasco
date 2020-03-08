@@ -4,7 +4,6 @@ Basic utilities
 import os
 import sys
 import configparser
-from distutils.util import strtobool
 from builtins import input
 
 FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
