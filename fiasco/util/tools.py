@@ -62,23 +62,91 @@ def _xnew(energy_ratio, c, scaling_type):
 
 def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     """
-    Convert scaled Burgess-Tully parameters to physical quantities. For more details see
-    [1]_.
+    Convert scaled Burgess-Tully [1]_ parameters to physical quantities.
 
+    For a scaled temperature, :math:`x` and scaled effective collision strength
+    :math:`y`, the effective collision strength can be calculated as a function
+    of the scaled energy :math:`U=k_BT_e/\Delta E_{ij}` the ratio between the thermal
+    energy and the energy of the transition :math:`ij`.
+
+    There are 6 different scaling types, depending on the type of transition. This scaling
+    is explained in detail in section 5 of [1]_. For types 1 and 4, the scaled temperatures
+    and collision strengths are related to :math:`U` and :math:`\\Upsilon` by,
+
+    * type 1
+      
+      .. math::
+
+            x = 1 - \\frac{\ln C}{\ln{(U + C)}},\quad
+            y = \\frac{\\Upsilon}{\log(U + e)}
+
+    * type 2
+
+      .. math::
+
+            x = \\frac{U}{U + C},\quad
+            y = \\Upsilon
+
+    * type 3
+
+      .. math::
+
+            x = \\frac{U}{U + C},\quad
+            y = (U + 1)\\Upsilon
+
+    * type 4
+
+      .. math::
+
+            x = 1 - \\frac{\ln C}{\ln{(U + C)}},\quad
+            y = \\frac{\\Upsilon}{\log(U + C)}
+
+    * type 5
+
+      .. math::
+
+            x = \\frac{U}{U + C},\quad
+            y = \\Upsilon U
+
+    * type 6
+
+      .. math::
+
+            x = \\frac{U}{U + C},\quad
+            y = \log_{10}\\Upsilon
+
+    where :math:`C` is a scaling constant that is different for each transition. Note that [1]_
+    only considered scaling types 1 through 4. Types 5 and 6 correspond to dielectron and proton
+    transitions, respectively.
+
+    To "descale" the scaled effective collision strengths that are stored in the database,
+    a spline fit is computed to the new :math:`x` as computed from :math:`U` and then
+    the relationship between :math:`\\Upsilon` and :math:`y` is inverted to get
+    :math:`\\Upsilon` as a function of :math:`U`.
+    
     Parameters
     ----------
-    x : `~astropy.units.Quantity`
-    y : `~astropy.units.Quantity`
-    energy_ratio : `~astropy.units.Quantity`
-        Ratio of temperature to photon energy
-    c : `~astropy.units.Quantity`
-        Scaling constant
-    scaling_type : `int`
+    x : `array-like`
+        Scaled temperature. First dimension should have shape :math:`N`, the number of
+        transitions. The second dimension will be the number of spline points, but may
+        be different for each row.
+    y : `array-like`
+        Scaled collision strength. First dimension should have shape :math:`N`, the number of
+        transitions. The second dimension will be the number of spline points, but may
+        be different for each row.
+    energy_ratio : `array-like`
+        Ratio between the thermal energy and that of each transition with shape :math:`(N,M)`,
+        where `M` is the dimension of the temperature array.
+    c : `array-like`
+        Scaling constant for each transiton with shape :math:`N`
+    scaling_type : `array-like`
+        The type of descaling to apply for each transition with shape :math:`N`. Must be between
+        1 and 6
 
     Returns
     -------
-    upsilon : `~numpy.NDArray`
-        Descaled collision strength or cross-section
+    upsilon : `array-like`
+        Descaled collision strength or cross-section with the same shape as `energy_ratio`.
 
     References
     ----------
