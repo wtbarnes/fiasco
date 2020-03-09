@@ -16,6 +16,7 @@ TEST_FILES = [
     'h_1.elvlc',
     'h_1.wgfa',
     'h_1.scups',
+    'h_1.diparams',
     'h_2.rrparams',
     'he_1.elvlc',
     'he_2.elvlc',

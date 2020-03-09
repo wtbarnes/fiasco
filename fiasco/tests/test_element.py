@@ -91,3 +91,8 @@ def test_create_element_without_units_raises_units_error(hdf5_dbase_root):
 def test_create_element_with_wrong_units_raises_unit_conversion_error(hdf5_dbase_root):
     with pytest.raises(u.UnitsError):
         fiasco.Element('H', temperature.value*u.s, hdf5_dbase_root=hdf5_dbase_root)
+
+
+def test_equilibrium_ionization(element):
+    ioneq = element.equilibrium_ionization()
+    assert ioneq.shape == element.temperature.shape + (element.atomic_number + 1,)

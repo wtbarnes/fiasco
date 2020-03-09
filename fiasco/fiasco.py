@@ -52,7 +52,10 @@ def list_ions(hdf5_dbase_root, sort=True):
     if sort:
         ions = sorted(ions, key=lambda x: (plasmapy.atomic.atomic_number(x.split()[0]),
                                            int(x.split()[1])))
-    return ions
+    # NOTE: when grabbing straight from the index and not sorting, the result will be
+    # a numpy array. Cast to a list to make sure the return type is consistent for
+    # all possible inputs
+    return ions.tolist() if type(ions) == np.ndarray else ions
 
 
 @u.quantity_input
