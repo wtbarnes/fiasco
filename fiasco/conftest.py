@@ -12,7 +12,7 @@ from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION, FIASCO_HOME
 TEST_FILES = {
     'sun_photospheric_1998_grevesse.abund': '9b175ee91f80fbe01967321a0fb051a8',
     'chianti.ip':                           'a5a5071535f14590210957f8783f2843',
-    'chianti.ioneq':                        '2719705ed36b4527f166a78ea25a9094',
+    'chianti.ioneq':                        '81d8d24bb09cb2da63befd30e6c8767c',
     'h_1.elvlc':                            'd31620aaf26a14486e635d14bcf7a6c1',
     'h_1.wgfa':                             'ed2a561ecdba5ee4b05ea56c297724ba',
     'h_1.scups':                            'de180c9e1b4f50a503efad8c83e714ab',
