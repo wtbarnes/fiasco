@@ -2,6 +2,7 @@
 Various functions for downloading and setting up the database
 """
 
+import hashlib
 import os
 import warnings
 import tarfile
@@ -80,6 +81,11 @@ def download_dbase(ascii_dbase_url, ascii_dbase_root):
             tar.extractall(path=ascii_dbase_root)
 
 
+def md5hash(path):
+    with open(path, 'rb') as f:
+        return hashlib.md5(f.read()).hexdigest()
+
+
 def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
     """
     Assemble HDF5 file from raw ASCII CHIANTI database.
@@ -90,9 +96,12 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
         Path to top of CHIANTI database tree
     hdf5_dbase_root : `str`
         Path to HDF5 file
-    files : `list`, optional
+    files : `list` or `dict`, optional
         A list of files to update in the HDF5 database. By default,
-        this is all of the files in `ascii_dbase_root`
+        this is all of the files in `ascii_dbase_root`. If a `dict`, the
+        dictionary keys must contain filenames and the items corresponding
+        expected md5 hash of the file. Builind the database will fail if any
+        of the md5 hashes is not as expected.
     """
     if files is None:
         files = []
@@ -103,6 +112,11 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
         with h5py.File(hdf5_dbase_root, 'a') as hf:
             for f in files:
                 parser = fiasco.io.Parser(f, ascii_dbase_root=ascii_dbase_root)
+                if isinstance(files, dict):
+                    expected = files[f]
+                    actual = md5hash(parser.full_path)
+                    if expected != actual:
+                        raise RuntimeError(f'Hash of {parser.full_path} ({actual}) did not match expected hash ({expected})')
                 try:
                     df = parser.parse()
                 except MissingASCIIFileError as e:
