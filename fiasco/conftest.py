@@ -5,6 +5,7 @@ import os
 import pytest
 from astropy.tests.plugins import *
 
+import fiasco
 from fiasco.util import build_hdf5_dbase, download_dbase
 from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION, FIASCO_HOME
 
@@ -38,9 +39,9 @@ TEST_FILES = {
 @pytest.fixture(scope='session')
 def ascii_dbase_root(tmpdir_factory):
     # If we already have a local copy, just return the path to that
-    local_dbase_path = os.path.join(FIASCO_HOME, 'chianti_dbase')
-    if os.path.exists(local_dbase_path):
-        return local_dbase_path
+    path = fiasco.defaults.get('test_ascii_dbase_root')
+    if path is not None and os.path.exists(path):
+        return path
 
     # Otherwise download the database
     path = tmpdir_factory.mktemp('chianti_dbase')
