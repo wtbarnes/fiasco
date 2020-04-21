@@ -26,6 +26,9 @@ def setup_paths():
         paths['ascii_dbase_root'] = os.path.join(FIASCO_HOME, 'chianti_dbase')
     if 'hdf5_dbase_root' not in paths:
         paths['hdf5_dbase_root'] = os.path.join(FIASCO_HOME, 'chianti_dbase.h5')
+    if 'test_ascii_dbase_root' not in paths:
+        # Use the usual chianti database by default
+        paths['test_ascii_dbase_root'] = os.path.join(FIASCO_HOME, 'chianti_dbase')
 
     return paths
 
