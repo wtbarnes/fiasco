@@ -47,12 +47,16 @@ def test_scalar_temperature(hdf5_dbase_root):
     ion = fiasco.Ion('H 1', 1 * u.MK, hdf5_dbase_root=hdf5_dbase_root)
     ioneq = ion.ioneq
     assert ioneq.shape == (1,)
+    assert np.isnan(ioneq)
 
 
 def test_scalar_density(hdf5_dbase_root):
     ion = fiasco.Ion('H 1', temperature, hdf5_dbase_root=hdf5_dbase_root)
     pop = ion.level_populations(1e8 * u.cm**-3)
     assert pop.shape == ion.temperature.shape + (1,) + ion._elvlc['level'].shape
+    # This value has not been checked for correctness
+    np.testing.assert_allclose(pop[0, 0, 0], 0.9965048292729177)
+
 
 
 def test_no_elvlc_raises_index_error(hdf5_dbase_root):
@@ -62,10 +66,14 @@ def test_no_elvlc_raises_index_error(hdf5_dbase_root):
 
 def test_ioneq(ion):
     assert ion.ioneq.shape == temperature.shape
+    # This value has not been tested for correctness
+    np.testing.assert_allclose(ion.ioneq[0], 7.06000000e-01)
 
 
 def test_abundance(ion):
     assert ion.abundance.dtype == np.dtype('float64')
+    # This value has not been tested for correctness
+    np.testing.assert_allclose(ion.abundance, 3.1622776601683795e-05)
 
 
 def test_missing_abundance(hdf5_dbase_root):
@@ -78,6 +86,8 @@ def test_missing_abundance(hdf5_dbase_root):
 
 def test_ip(ion):
     assert ion.ip.dtype == np.dtype('float64')
+    # This value has not been tested for correctness
+    assert u.allclose(ion.ip, 1.2017997435751017e-10 * u.erg)
 
 
 def test_missing_ip(hdf5_dbase_root):
