@@ -106,12 +106,12 @@ Using Datasets:
         --------
         fiasco.Element.equilibrium_ionization
         """
-        f = interp1d(self._ioneq[self._dset_names['ioneq_filename']]['temperature'],
+        f = interp1d(self._ioneq[self._dset_names['ioneq_filename']]['temperature'].to('MK').value,
                      self._ioneq[self._dset_names['ioneq_filename']]['ionization_fraction'],
                      kind='linear',
                      bounds_error=False,
                      fill_value=np.nan)
-        ioneq = f(self.temperature)
+        ioneq = f(self.temperature.to('MK').value)
         isfinite = np.isfinite(ioneq)
         ioneq[isfinite] = np.where(ioneq[isfinite] < 0., 0., ioneq[isfinite])
         return u.Quantity(ioneq)
