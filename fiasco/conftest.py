@@ -20,6 +20,7 @@ TEST_FILES = {
     'itoh.dat':                             'e40aacc9d06889f9c4ba63a92673a398',
     'hseq_2photon.dat':                     '48656984fbcbe38f883ff9a4460c790a',
     'heseq_2photon.dat':                    '9e42ac8c37d67ba3109aaa56aab9e736',
+    'verner_short.txt':                     'f05296ffc9c5306846ac9caf136fad26',
     'h_1.elvlc':                            'd31620aaf26a14486e635d14bcf7a6c1',
     'h_1.wgfa':                             'ed2a561ecdba5ee4b05ea56c297724ba',
     'h_1.scups':                            'de180c9e1b4f50a503efad8c83e714ab',
