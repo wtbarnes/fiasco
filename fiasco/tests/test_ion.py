@@ -19,6 +19,10 @@ def ion(hdf5_dbase_root):
 def another_ion(hdf5_dbase_root):
     return fiasco.Ion('Fe 6', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
+@pytest.fixture
+def fe10(hdf5_dbase_root):
+    return fiasco.Ion('Fe 10', temperature, hdf5_dbase_root=hdf5_dbase_root)
+
 
 def test_level_indexing(ion):
     assert isinstance(ion[0], fiasco.ion.Level)
@@ -66,6 +70,14 @@ def test_ioneq(ion):
 
 def test_abundance(ion):
     assert ion.abundance.dtype == np.dtype('float64')
+
+
+def test_proton_collision(fe10):
+    rate = fe10.proton_collision_excitation_rate()
+    assert u.allclose(rate[0, 0], 4.69587161e-13 * u.cm**3 / u.s)
+
+    rate = fe10.proton_collision_deexcitation_rate()
+    assert u.allclose(rate[0, 0], 1.17688025e-12 * u.cm**3 / u.s)
 
 
 def test_missing_abundance(hdf5_dbase_root):

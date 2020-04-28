@@ -81,7 +81,7 @@ def test_create_element_lowercase(element, hdf5_dbase_root):
 def test_getitem_ion_name(element):
     assert element['H 1'] == element[0]
     assert element['H 2'] == element[-1]
-    
+
 
 def test_create_element_without_units_raises_units_error(hdf5_dbase_root):
     with pytest.raises(TypeError):
