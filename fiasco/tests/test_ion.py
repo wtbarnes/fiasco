@@ -47,7 +47,10 @@ def test_scalar_temperature(hdf5_dbase_root):
     ion = fiasco.Ion('H 1', 1 * u.MK, hdf5_dbase_root=hdf5_dbase_root)
     ioneq = ion.ioneq
     assert ioneq.shape == (1,)
-    assert np.isnan(ioneq)
+    t_data = ion._ioneq[ion._dset_names['ioneq_filename']]['temperature']
+    ioneq_data = ion._ioneq[ion._dset_names['ioneq_filename']]['ionization_fraction']
+    i_t = np.where(t_data == ion.temperature)
+    np.testing.assert_allclose(ioneq, ioneq_data[i_t])
 
 
 def test_scalar_density(hdf5_dbase_root):
@@ -58,7 +61,6 @@ def test_scalar_density(hdf5_dbase_root):
     np.testing.assert_allclose(pop[0, 0, 0], 0.9965048292729177)
 
 
-
 def test_no_elvlc_raises_index_error(hdf5_dbase_root):
     with pytest.raises(IndexError):
         fiasco.Ion('H 2', temperature, hdf5_dbase_root=hdf5_dbase_root)[0]
@@ -66,8 +68,12 @@ def test_no_elvlc_raises_index_error(hdf5_dbase_root):
 
 def test_ioneq(ion):
     assert ion.ioneq.shape == temperature.shape
-    # This value has not been tested for correctness
-    np.testing.assert_allclose(ion.ioneq[0], 7.06000000e-01)
+    t_data = ion._ioneq[ion._dset_names['ioneq_filename']]['temperature']
+    ioneq_data = ion._ioneq[ion._dset_names['ioneq_filename']]['ionization_fraction']
+    i_t = np.where(t_data == ion.temperature[0])
+    # Essentially test that we've done the interpolation to the data correctly
+    # for a single value
+    np.testing.assert_allclose(ion.ioneq[0], ioneq_data[i_t])
 
 
 def test_abundance(ion):
