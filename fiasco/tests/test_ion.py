@@ -113,6 +113,34 @@ def test_missing_ip(hdf5_dbase_root):
     assert ion.ip is None
 
 
+def test_contribution_function(ion):
+    cont_func = ion.contribution_function(1e7 * u.cm**-3)
+    assert cont_func.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape
+    # This value has not been tested for correctness
+    assert u.allclose(cont_func[0, 0, 0], 5.24152109e-31 * u.cm**3 * u.erg / u.s)
+
+
+def test_excitation_autoionization_rate(ion):
+    rate = ion.excitation_autoionization_rate()
+    assert rate.shape == ion.temperature.shape
+    # This value has not been tested for correctness
+    assert u.allclose(rate[0], 1.14821255e-12 * u.cm**3 / u.s)
+
+
+def test_dielectronic_recombination_rate(ion):
+    rate = ion.dielectronic_recombination_rate()
+    assert rate.shape == ion.temperature.shape
+    # This value has not been tested for correctness
+    assert u.allclose(rate[0], 1.60593802e-11 * u.cm**3 / u.s)
+
+
+def test_free_free(ion):
+    emission = ion.free_free(200 * u.Angstrom)
+    assert emission.shape == ion.temperature.shape + (1, )
+    # This value has not been tested for correctness
+    assert u.allclose(emission[0], 6.81123745e-28 * u.cm**3 * u.erg / u.Angstrom / u.s)
+
+
 def test_add_ions(ion, another_ion):
     collection = ion + another_ion
     assert isinstance(collection, fiasco.IonCollection)
