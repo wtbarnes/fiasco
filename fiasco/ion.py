@@ -730,6 +730,7 @@ Using Datasets:
         --------
         _verner_cross_section
         """
+        wavelength = np.atleast_1d(wavelength)
         prefactor = (2/np.sqrt(2*np.pi)/(4*np.pi)/(
             const.h*(const.c**3) * (const.m_e * const.k_B)**(3/2)))
         recombining = Ion(f'{self.element_name} {self.ionization_stage + 1}', self.temperature,
@@ -741,7 +742,7 @@ Using Datasets:
         E_photon = const.h * const.c / wavelength
         energy_temperature_factor = np.outer(self.temperature**(-3/2), E_photon**5)
         # Sum over levels of recombined ion
-        sum_factor = u.Quantity(np.zeros(self.temperature.shape+wavelength.shape), 'cm^2')
+        sum_factor = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape), 'cm^2')
         for omega, E, n, L, level in zip(self._fblvl['multiplicity'],
                                          self._fblvl['E_obs']*const.h*const.c,
                                          self._fblvl['n'],
