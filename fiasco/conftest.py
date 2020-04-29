@@ -39,6 +39,8 @@ TEST_FILES = {
     'fe_18.rrparams':                       '6a36e5db1e377d0c30652960eb77b93d',
     'fe_18.drparams':                       '1e8b0194aeb099b2653508110e388200',
     'fe_27.rrparams':                       '75383b0f1b167f862cfd26bbadd2a029',
+    'fe_10.psplups':                        'dd34363f6daa81dbf106fbeb211b457d',
+    'fe_10.elvlc':                          'f221d4c7167336556d57378ac368afc1',
 }
 
 
