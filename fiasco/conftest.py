@@ -21,6 +21,7 @@ TEST_FILES = {
     'hseq_2photon.dat':                     '48656984fbcbe38f883ff9a4460c790a',
     'heseq_2photon.dat':                    '9e42ac8c37d67ba3109aaa56aab9e736',
     'verner_short.txt':                     'f05296ffc9c5306846ac9caf136fad26',
+
     'h_1.elvlc':                            'd31620aaf26a14486e635d14bcf7a6c1',
     'h_1.wgfa':                             'ed2a561ecdba5ee4b05ea56c297724ba',
     'h_1.scups':                            'de180c9e1b4f50a503efad8c83e714ab',
@@ -32,7 +33,14 @@ TEST_FILES = {
     'li_1.diparams':                        '2a4b60bc799a1ea3ee3e911b5968733e',
     'ca_2.elvlc':                           'c8a9dbdc622d0a15eea6cf0eb1631d3b',
     'fe_2.elvlc':                           '9306d594a66b4649363a778a650853f9',
+
     'fe_5.elvlc':                           'f7dd75c6bcea77584c5e00ddf2684d9c',
+    'fe_5.fblvl':                           'e13a9becff489ea044fbd3cb1e02af13',
+    'fe_5.drparams':                        '0f47e2fbf4be9eb5564a8adc19531999',
+    'fe_5.easplups':                        'ec5443d429722ccdd9903743ca4718ab',
+    'fe_5.scups':                           '0a863212d59c5eda5936e0664b513fb9',
+    'fe_5.wgfa':                            '6f8e4d41760d5a0540008e15aca1038c',
+
     'fe_6.elvlc':                           '081519f986b8a8ed99a34ecf813f1358',
     'fe_9.elvlc':                           'b7d04f65a87a8de1c2bfc77331e438f3',
     'fe_12.elvlc':                          'ee9beb8b2ff03ba8fc046bd722992b21',
