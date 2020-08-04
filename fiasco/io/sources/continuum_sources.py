@@ -190,7 +190,7 @@ From Verner, D. A . and Yakovlev, D. G., 1995, A&AS, 109, 125"""
     
     def to_hdf5(self, hf, df, **kwargs):
         for row in df:
-            el = plasmapy.atomic.atomic_symbol(int(row['Z'])).lower()
+            el = plasmapy.particles.atomic_symbol(int(row['Z'])).lower()
             stage = row['Z'] - row['n_electrons'] + 1
             grp_name = f'{el}/{el}_{stage}/continuum/{self.filetype}'
             if grp_name not in hf:
@@ -239,7 +239,7 @@ From Itoh, N., et al., ApJS, 2000, 128, 125"""
     
     def to_hdf5(self, hf, df, **kwargs):
         for row in df:
-            el = plasmapy.atomic.atomic_symbol(int(row['Z'])).lower()
+            el = plasmapy.particles.atomic_symbol(int(row['Z'])).lower()
             grp_name = f'{el}/continuum/{self.filetype}'
             if grp_name not in hf:
                 grp = hf.create_group(grp_name)
@@ -291,7 +291,7 @@ Spectral distribution function from Goldman, S.P. and Drake, G.W.F., 1981, Phys 
     
     def to_hdf5(self, hf, df, **kwargs):
         for row in df:
-            el = plasmapy.atomic.atomic_symbol(int(row['Z'])).lower()
+            el = plasmapy.particles.atomic_symbol(int(row['Z'])).lower()
             grp_name = f'{el}/continuum/{self.filetype}'
             if grp_name not in hf:
                 grp = hf.create_group(grp_name)
@@ -340,7 +340,7 @@ Spectral distribution function from Drake, G.W.F., Victor, G.A., Dalgarno, A., 1
     
     def to_hdf5(self, hf, df, **kwargs):
         for row in df:
-            el = plasmapy.atomic.atomic_symbol(int(row['Z'])).lower()
+            el = plasmapy.particles.atomic_symbol(int(row['Z'])).lower()
             grp_name = f'{el}/continuum/{self.filetype}'
             if grp_name not in hf:
                 grp = hf.create_group(grp_name)

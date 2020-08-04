@@ -33,7 +33,7 @@ class Element(fiasco.IonCollection):
     def __init__(self, element_name, temperature: u.K, **kwargs):
         if type(element_name) is str:
             element_name = element_name.capitalize()
-        Z = plasmapy.atomic.atomic_number(element_name)
+        Z = plasmapy.particles.atomic_number(element_name)
         ion_list = []
         for i in range(Z + 1):
             ion = fiasco.Ion(f'{Z} {i+1}', temperature, **kwargs)
