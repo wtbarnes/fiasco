@@ -33,7 +33,7 @@ class AbundParser(GenericParser):
         if df['element'][0] == '':
             col = []
             for atomic_number in df['Z']:
-                col.append(plasmapy.atomic.atomic_symbol(int(atomic_number)))
+                col.append(plasmapy.particles.atomic_symbol(int(atomic_number)))
             df['element'] = Column(col) 
         df = super().postprocessor(df)
         return df
@@ -85,7 +85,7 @@ class IoneqParser(GenericParser):
     def to_hdf5(self, hf, df):
         dataset_name = os.path.splitext(os.path.basename(self.filename))[0]
         for row in df:
-            el = plasmapy.atomic.atomic_symbol(int(row['Z'])).lower()
+            el = plasmapy.particles.atomic_symbol(int(row['Z'])).lower()
             ion = int(row['ion'])
             grp_name = '/'.join([el, f'{el}_{ion}', 'ioneq'])
             if grp_name not in hf:
@@ -122,7 +122,7 @@ class IpParser(GenericParser):
 ------------------
 {df.meta['footer']}"""
         for row in df:
-            el = plasmapy.atomic.atomic_symbol(int(row['Z'])).lower()
+            el = plasmapy.particles.atomic_symbol(int(row['Z'])).lower()
             ion = int(row['ion'])
             grp_name = '/'.join([el, '{}_{}'.format(el, ion), 'ip'])
             if grp_name not in hf:

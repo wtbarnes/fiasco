@@ -1,7 +1,7 @@
 """
 Base classes for access to CHIANTI ion data
 """
-import plasmapy.atomic
+import plasmapy.particles
 
 import fiasco
 from .io.factory import all_subclasses
@@ -34,15 +34,15 @@ class Base(object):
 
     @property
     def atomic_number(self):
-        return plasmapy.atomic.atomic_number(self._element.capitalize())
+        return plasmapy.particles.atomic_number(self._element.capitalize())
 
     @property
     def element_name(self):
-        return plasmapy.atomic.element_name(self._element.capitalize())
+        return plasmapy.particles.element_name(self._element.capitalize())
 
     @property
     def atomic_symbol(self):
-        return plasmapy.atomic.atomic_symbol(self._element.capitalize())
+        return plasmapy.particles.atomic_symbol(self._element.capitalize())
 
     @property
     def ion_name(self):

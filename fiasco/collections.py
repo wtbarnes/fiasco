@@ -45,7 +45,7 @@ class IonCollection(object):
             el, ion = value.split()
             if '+' in ion:
                 ion = int(ion.strip('+')) + 1
-            value = f'{plasmapy.atomic.atomic_symbol(el)} {ion}'
+            value = f'{plasmapy.particles.atomic_symbol(el)} {ion}'
         elif isinstance(value, fiasco.Ion):
             value = value.ion_name
         return value in [i.ion_name for i in self._ion_list]

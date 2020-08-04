@@ -6,8 +6,8 @@ import warnings
 import numpy as np
 from scipy.interpolate import interp1d
 import astropy.units as u
-import plasmapy.atomic
-from plasmapy.atomic.exceptions import InvalidParticleError
+import plasmapy.particles
+from plasmapy.particles.exceptions import InvalidParticleError
 
 import fiasco
 from fiasco.io import DataIndexer
@@ -23,11 +23,11 @@ def list_elements(hdf5_dbase_root, sort=True):
     root = DataIndexer.create_indexer(hdf5_dbase_root, '/')
     for f in root.fields:
         try:
-            elements.append(plasmapy.atomic.atomic_symbol(f.capitalize()))
+            elements.append(plasmapy.particles.atomic_symbol(f.capitalize()))
         except InvalidParticleError:
             continue
     if sort:
-        elements = sorted(elements, key=lambda x: plasmapy.atomic.atomic_number(x))
+        elements = sorted(elements, key=lambda x: plasmapy.particles.atomic_number(x))
     return elements
 
 
@@ -42,7 +42,7 @@ def list_ions(hdf5_dbase_root, sort=True):
         ions = []
         for f in root.fields:
             try:
-                el = plasmapy.atomic.atomic_symbol(f.capitalize())
+                el = plasmapy.particles.atomic_symbol(f.capitalize())
                 for i in root[f].fields:
                     if f == i.split('_')[0]:
                         ions.append(f"{el} {i.split('_')[1]}")
@@ -50,7 +50,7 @@ def list_ions(hdf5_dbase_root, sort=True):
                 continue
     # Optional because adds significant overhead
     if sort:
-        ions = sorted(ions, key=lambda x: (plasmapy.atomic.atomic_number(x.split()[0]),
+        ions = sorted(ions, key=lambda x: (plasmapy.particles.atomic_number(x.split()[0]),
                                            int(x.split()[1])))
     # NOTE: when grabbing straight from the index and not sorting, the result will be
     # a numpy array. Cast to a list to make sure the return type is consistent for
