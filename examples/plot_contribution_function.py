@@ -7,13 +7,14 @@ quantity_support()
 
 from fiasco import Ion, IonCollection
 
-ion_name = 'C 2+'
-wlen = 977.03 * u.Angstrom
+ion_name = 'O 5+'
+wlen = 1031.93 * u.Angstrom
 
 Te = np.logspace(4, 8, 51) * u.K
 ne = 1e8 * u.cm**-3
 
 ion = Ion(ion_name, Te)
+print(ion)
 
 def get_idx(ion, wlen):
     """
