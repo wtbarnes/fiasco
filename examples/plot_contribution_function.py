@@ -1,3 +1,7 @@
+"""
+Calculating a contribution function
+===================================
+"""
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
