@@ -134,7 +134,10 @@ if ON_RTD:
                'fe_5.elvlc',
                'fe_15.elvlc',
                'fe_18.rrparams',
-               'fe_18.drparams']
+               'fe_18.drparams',
+               'o_5.scups',
+               'o_5.elvlc',
+               'o_5.wgfa',]
     )
     with open(os.path.join(FIASCO_HOME, 'fiascorc'), 'w') as f:
         c = configparser.ConfigParser()
