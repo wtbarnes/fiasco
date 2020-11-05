@@ -131,6 +131,7 @@ if ON_RTD:
         hdf5_dbase_root,
         files=['chianti.ip',
                'chianti.ioneq',
+               'sun_photospheric_1998_grevesse.abund',
                'fe_5.elvlc',
                'fe_15.elvlc',
                'fe_18.rrparams',
