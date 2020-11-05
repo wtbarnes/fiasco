@@ -7,3 +7,4 @@ Code Reference
   fiasco
   io
   util
+  ../auto_examples/index

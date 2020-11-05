@@ -142,3 +142,10 @@ if ON_RTD:
         c.set('database', 'ascii_dbase_root', ascii_dbase_root)
         c.set('database', 'hdf5_dbase_root', hdf5_dbase_root)
         c.write(f)
+
+# -- Sphinx gallery -----------------------------------------------------------
+extensions += ['sphinx_gallery.gen_gallery']
+sphinx_gallery_conf = {
+     'examples_dirs': '../examples',   # path to your example scripts
+     'gallery_dirs': 'auto_examples',  # path to where to save gallery generated output
+}
