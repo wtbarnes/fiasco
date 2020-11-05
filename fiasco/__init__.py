@@ -1,18 +1,16 @@
 """
 A Python interface to the CHIANTI atomic database
 """
+from .util.util import setup_paths
+from .fiasco import *
+from .level import *
+from .ion import *
+from .collections import *
+from .element import *
 
-# Licensed under a 3-clause BSD style license - see LICENSE.rst
-# ----------------------------------------------------------------------------
-from ._sunpy_init import *
-# ----------------------------------------------------------------------------
+try:
+    from .version import __version__
+except ImportError:
+    __version__ = "unknown"
 
-if not _ASTROPY_SETUP_:
-    from .util.util import setup_paths
-    defaults = setup_paths()
-
-    from .fiasco import *
-    from .level import *
-    from .ion import *
-    from .collections import *
-    from .element import *
+defaults = setup_paths()
