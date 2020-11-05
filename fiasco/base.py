@@ -2,6 +2,7 @@
 Base classes for access to CHIANTI ion data
 """
 import plasmapy.particles
+from plasmapy.utils import roman
 
 import fiasco
 from .io.factory import all_subclasses
@@ -22,8 +23,11 @@ class Base(object):
         self._element, ion = ion_name.split()
         if '+' in ion:
             ion = f"{int(ion.strip('+')) + 1}"
+        if roman.is_roman_numeral(ion):
+            ion = roman.from_roman(ion)
         self.ionization_stage = int(ion)
         self.charge_state = self.ionization_stage - 1
+        self.roman_symbol = roman.to_roman(int(ion))
         if hdf5_dbase_root is None:
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
