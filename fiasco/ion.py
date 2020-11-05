@@ -209,7 +209,7 @@ Using Datasets:
 
             C^e_{ij} = \\frac{\omega_j}{\omega_i}C^d_{ji}e^{-k_BT_e/\Delta E_{ij}}
 
-        where :math:`j,i` are the upper and lower level indices, respectively, :math:`\omega_j,\omega_i` 
+        where :math:`j,i` are the upper and lower level indices, respectively, :math:`\omega_j,\omega_i`
         are the statistical weights of the upper and lower levels, respectively, and :math:`\Delta E_{ij}`
         is the energy of the transition.
 
@@ -479,8 +479,6 @@ Using Datasets:
         kBT = const.k_B*self.temperature
         energy = np.outer(xgl, kBT) + self.ip
         cross_section = self.direct_ionization_cross_section(energy)
-        if cross_section is None:
-            return None
         term1 = np.sqrt(8./np.pi/const.m_e)*np.sqrt(kBT)*np.exp(-self.ip/kBT)
         term2 = ((wgl*xgl)[:, np.newaxis]*cross_section).sum(axis=0)
         term3 = (wgl[:, np.newaxis]*cross_section).sum(axis=0)*self.ip/kBT
@@ -599,9 +597,7 @@ Using Datasets:
         excitation_autoionization_rate
         """
         di_rate = self.direct_ionization_rate()
-        di_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if di_rate is None else di_rate
         ea_rate = self.excitation_autoionization_rate()
-        ea_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if ea_rate is None else ea_rate
         return di_rate + ea_rate
 
     @needs_dataset('rrparams')
@@ -678,9 +674,7 @@ Using Datasets:
         dielectronic_recombination_rate
         """
         rr_rate = self.radiative_recombination_rate()
-        rr_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if rr_rate is None else rr_rate
         dr_rate = self.dielectronic_recombination_rate()
-        dr_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if dr_rate is None else dr_rate
         return rr_rate + dr_rate
 
     @u.quantity_input

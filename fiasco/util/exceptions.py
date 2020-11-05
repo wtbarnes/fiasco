@@ -21,3 +21,8 @@ class MissingASCIIFileError(Exception):
     An error to raise when one of the CHIANTI ASCII files cannot
     be found.
     """
+
+class MissingDatasetException(Exception):
+    """
+    An error to raise when a dataset file is missing.
+    """
