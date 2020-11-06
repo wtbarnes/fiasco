@@ -6,6 +6,7 @@ import astropy.units as u
 import pytest
 
 import fiasco
+from fiasco.util.exceptions import MissingDatasetException
 
 temperature = np.logspace(5, 8, 100)*u.K
 
@@ -18,6 +19,7 @@ def ion(hdf5_dbase_root):
 @pytest.fixture
 def another_ion(hdf5_dbase_root):
     return fiasco.Ion('Fe 6', temperature, hdf5_dbase_root=hdf5_dbase_root)
+
 
 @pytest.fixture
 def fe10(hdf5_dbase_root):
@@ -35,11 +37,13 @@ def test_repr(ion):
 def test_repr_scalar_temp(ion, hdf5_dbase_root):
     assert 'Fe 5' in fiasco.Ion('Fe 5', 1e6 * u.K, hdf5_dbase_root=hdf5_dbase_root).__repr__()
 
+
 def test_ion_properties(ion):
     assert ion.atomic_number == 26
     assert ion.element_name == 'iron'
     assert ion.atomic_symbol == 'Fe'
     assert ion.ion_name == 'Fe 5'
+
 
 def test_level_properties(ion):
     assert hasattr(ion[0], 'level')
@@ -99,7 +103,8 @@ def test_missing_abundance(hdf5_dbase_root):
                      temperature,
                      abundance_filename='sun_coronal_1992_feldman',
                      hdf5_dbase_root=hdf5_dbase_root)
-    assert ion.abundance is None
+    with pytest.raises(KeyError):
+        _ = ion.abundance
 
 
 def test_ip(ion):
@@ -110,7 +115,8 @@ def test_ip(ion):
 
 def test_missing_ip(hdf5_dbase_root):
     ion = fiasco.Ion('Fe 27', temperature, hdf5_dbase_root=hdf5_dbase_root)
-    assert ion.ip is None
+    with pytest.raises(MissingDatasetException):
+        _ = ion.ip
 
 
 def test_contribution_function(ion):

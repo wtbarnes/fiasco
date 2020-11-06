@@ -37,8 +37,9 @@ def list_ions(hdf5_dbase_root, sort=True):
     """
     root = DataIndexer(hdf5_dbase_root, '/')
     # NOTE: get the list from the index if possible. This is ~30x faster
-    ions = root['ion_index']
-    if ions is None:
+    try:
+        ions = root['ion_index']
+    except KeyError:
         ions = []
         for f in root.fields:
             try:

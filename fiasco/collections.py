@@ -10,6 +10,7 @@ from astropy.modeling.models import Gaussian1D
 import plasmapy
 
 import fiasco
+from fiasco.util.exceptions import MissingDatasetException
 
 __all__ = ['IonCollection']
 
@@ -92,9 +93,12 @@ class IonCollection(object):
         free_bound = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape),
                                 'erg cm^3 s^-1 Angstrom^-1')
         for ion in self:
-            fb = ion.free_bound(wavelength, **kwargs)
-            # Not valid for all ions
-            if fb is not None:
+            try:
+                fb = ion.free_bound(wavelength, **kwargs)
+            except MissingDatasetException:
+                # TODO: log the skipped ion
+                continue
+            else:
                 free_bound += fb * ion.abundance * ion.ioneq[:, np.newaxis]
         return free_bound
 
@@ -184,8 +188,10 @@ class IonCollection(object):
         """
         rad_loss = u.Quantity(np.zeros(self.temperature.shape + density.shape), 'erg cm^3 s^-1')
         for ion in self:
-            g = ion.contribution_function(density, **kwargs)
-            if g is None:
+            try:
+                g = ion.contribution_function(density, **kwargs)
+            except MissingDatasetException:
+                # TODO: log the mission ion
                 continue
             rad_loss += g.sum(axis=2)
 
