@@ -45,7 +45,8 @@ class GenericParser(object):
             lines = f.readlines()
         table = []
         for i, line in enumerate(lines):
-            if line.strip() == '-1':
+            # Footer denotes end of file and is fenced by -1's
+            if line.strip() == '-1' or r'%file' in line:  # sometimes the first -1 is missing
                 break
             else:
                 self.preprocessor(table, line, i)
@@ -67,8 +68,9 @@ class GenericParser(object):
         Extract metadata from raw text and format appropriately.
         """
         for i, line in enumerate(lines):
-            if line.strip() == '-1':
-                comment = lines[i+1:len(lines)]
+            if line.strip() == '-1' or r'%file' in line:  # sometimes the first -1 is missing
+                i_start = i if r'%file' in line else i+1
+                comment = lines[i_start:len(lines)]
                 break
 
         footer = '\n'.join([l.strip('%').strip() for l in comment if l.strip('%').strip().strip('-1')])
