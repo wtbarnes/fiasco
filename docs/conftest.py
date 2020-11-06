@@ -8,6 +8,16 @@ import fiasco
 from fiasco.util import build_hdf5_dbase, download_dbase
 from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
 
+
+# Force MPL to use non-gui backends for testing.
+try:
+    import matplotlib
+except ImportError:
+    pass
+else:
+    matplotlib.use('Agg')
+
+
 # Minimal set of CHIANTI files needed to run the doctests
 TEST_FILES = {
     'sun_photospheric_1998_grevesse.abund': '9b175ee91f80fbe01967321a0fb051a8',
