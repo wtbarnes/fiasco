@@ -3,7 +3,7 @@ Useful function/method decorators
 """
 from functools import wraps
 
-from fiasco.util import MissingDatasetException
+from fiasco.util.exceptions import MissingDatasetException
 
 __all__ = ['needs_dataset']
 
@@ -22,9 +22,11 @@ def needs_dataset(*names):
         @wraps(func)
         def func_wrapper(*args, **kwargs):
             ion = args[0]
-            missing = [n for n in names if ion.__getattribute__(n) is None]
-            if len(missing):
-                raise MissingDatasetException(f'Missing {missing} files for {ion.ion_name}.')
+            for n in names:
+                try:
+                    _ = ion.__getattribute__(n)
+                except KeyError:
+                    raise MissingDatasetException(f'{n} dataset missing for {ion.ion_name}.')
 
             return func(*args, **kwargs)
         return func_wrapper

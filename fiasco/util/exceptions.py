@@ -22,6 +22,7 @@ class MissingASCIIFileError(Exception):
     be found.
     """
 
+
 class MissingDatasetException(Exception):
     """
     An error to raise when a dataset file is missing.
