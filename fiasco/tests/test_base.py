@@ -76,6 +76,18 @@ def test_create_ion_element_name(hdf5_dbase_root):
     assert ion.charge_state == 0
     assert ion._ion_name == 'h_1'
 
+def test_create_ion_input_formats(hdf5_dbase_root):
+    ion_names = ["Iron 21", "iron XXI", "Fe xxi", "Fe 20+"]
+    for input_name in ion_names:
+        ion = fiasco.base.IonBase(input_name, hdf5_dbase_root=hdf5_dbase_root)
+        assert ion.element_name == 'iron'
+        assert ion.atomic_symbol == 'Fe'
+        assert ion.atomic_number == 26
+        assert ion.ionization_stage == 21
+        assert ion.charge_state == 20
+        assert ion._ion_name == 'fe_21'
+        assert ion._name == 'Fe XXI'
+        assert ion.roman_numeral == 'XXI'
 
 def test_create_invalid_ion_raises_missing_ion_error(hdf5_dbase_root):
     with pytest.raises(MissingIonError):

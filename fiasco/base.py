@@ -23,11 +23,10 @@ class Base(object):
         self._element, ion = ion_name.split()
         if '+' in ion:
             ion = f"{int(ion.strip('+')) + 1}"
-        if roman.is_roman_numeral(ion):
-            ion = roman.from_roman(ion)
+        if roman.is_roman_numeral(ion.upper()):
+            ion = roman.from_roman(ion.upper())
         self.ionization_stage = int(ion)
         self.charge_state = self.ionization_stage - 1
-        self.roman_symbol = roman.to_roman(int(ion))
         if hdf5_dbase_root is None:
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
@@ -57,6 +56,13 @@ class Base(object):
         # Old CHIANTI format, only preserved for internal data access
         return f'{self.atomic_symbol.lower()}_{self.ionization_stage}'
 
+    @property
+    def roman_numeral(self):
+        return roman.to_roman(int(self.ionization_stage))
+
+    @property
+    def roman_name(self):
+        return f'{self.atomic_symbol} {self.roman_numeral}'
 
 class ContinuumBase(Base):
     """
