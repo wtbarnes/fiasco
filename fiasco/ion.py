@@ -13,6 +13,7 @@ from .level import Level, Transitions
 from fiasco import proton_electron_ratio
 from fiasco.util import (needs_dataset, vectorize_where, vectorize_where_sum,
                          burgess_tully_descale)
+from fiasco.util.exceptions import MissingDatasetException
 
 __all__ = ['Ion']
 
@@ -75,11 +76,14 @@ Using Datasets:
   ip: {self._dset_names['ip_filename']}"""
 
     def __getitem__(self, key):
-        if self._elvlc is None:
+        try:
+            _ = self._elvlc
+        except KeyError:
             raise IndexError(f'No energy levels available for {self.ion_name}')
-        # Throw an index error to stop iteration
-        _ = self._elvlc['level'][key]
-        return Level(key, self._elvlc)
+        else:
+            # Throw an index error to stop iteration
+            _ = self._elvlc['level'][key]
+            return Level(key, self._elvlc)
 
     def __add__(self, value):
         return IonCollection(self, value)
@@ -209,7 +213,7 @@ Using Datasets:
 
             C^e_{ij} = \\frac{\omega_j}{\omega_i}C^d_{ji}e^{-k_BT_e/\Delta E_{ij}}
 
-        where :math:`j,i` are the upper and lower level indices, respectively, :math:`\omega_j,\omega_i` 
+        where :math:`j,i` are the upper and lower level indices, respectively, :math:`\omega_j,\omega_i`
         are the statistical weights of the upper and lower levels, respectively, and :math:`\Delta E_{ij}`
         is the energy of the transition.
 
@@ -282,6 +286,13 @@ Using Datasets:
             temperatures, ``m`` is the number of densities, and ``n``
             is the number of energy levels.
         """
+        # NOTE: Cannot include protons if psplups data not available
+        try:
+            _ = self._psplups
+        except KeyError:
+            # TODO: log this
+            include_protons = False
+
         level = self._elvlc['level']
         lower_level = self._scups['lower_level']
         upper_level = self._scups['upper_level']
@@ -302,7 +313,7 @@ Using Datasets:
         dex_diagonal_e = vectorize_where_sum(
             upper_level, level, dex_rate_e.value.T, 0).T * dex_rate_e.unit
         # Collisional--protons
-        if include_protons and self._psplups is not None:
+        if include_protons:
             lower_level_p = self._psplups['lower_level']
             upper_level_p = self._psplups['upper_level']
             pe_ratio = proton_electron_ratio(self.temperature,
@@ -349,7 +360,7 @@ Using Datasets:
 
         return u.Quantity(populations)
 
-    @needs_dataset('scups', 'elvlc', 'wgfa')
+    @needs_dataset('abundance', 'elvlc')
     @u.quantity_input
     def contribution_function(self, density: u.cm**(-3), **kwargs) -> u.cm**3 * u.erg / u.s:
         """
@@ -391,7 +402,6 @@ Using Datasets:
         g = term[:, :, np.newaxis] * populations[:, :, i_upper] * (A * energy)
         return g
 
-    @needs_dataset('scups', 'elvlc', 'wgfa')
     @u.quantity_input
     def emissivity(self, density: u.cm**(-3), **kwargs) -> u.erg * u.cm**(-3) / u.s:
         """
@@ -418,7 +428,6 @@ Using Datasets:
         g = self.contribution_function(density, **kwargs)
         return g * (density**2)[np.newaxis, :, np.newaxis]
 
-    @needs_dataset('scups', 'elvlc', 'wgfa')
     @u.quantity_input
     def intensity(self,
                   density: u.cm**(-3),
@@ -479,8 +488,6 @@ Using Datasets:
         kBT = const.k_B*self.temperature
         energy = np.outer(xgl, kBT) + self.ip
         cross_section = self.direct_ionization_cross_section(energy)
-        if cross_section is None:
-            return None
         term1 = np.sqrt(8./np.pi/const.m_e)*np.sqrt(kBT)*np.exp(-self.ip/kBT)
         term2 = ((wgl*xgl)[:, np.newaxis]*cross_section).sum(axis=0)
         term3 = (wgl[:, np.newaxis]*cross_section).sum(axis=0)*self.ip/kBT
@@ -598,10 +605,14 @@ Using Datasets:
         direct_ionization_rate
         excitation_autoionization_rate
         """
-        di_rate = self.direct_ionization_rate()
-        di_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if di_rate is None else di_rate
-        ea_rate = self.excitation_autoionization_rate()
-        ea_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if ea_rate is None else ea_rate
+        try:
+            di_rate = self.direct_ionization_rate()
+        except MissingDatasetException:
+            di_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
+        try:
+            ea_rate = self.excitation_autoionization_rate()
+        except MissingDatasetException:
+            ea_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         return di_rate + ea_rate
 
     @needs_dataset('rrparams')
@@ -677,10 +688,14 @@ Using Datasets:
         radiative_recombination_rate
         dielectronic_recombination_rate
         """
-        rr_rate = self.radiative_recombination_rate()
-        rr_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if rr_rate is None else rr_rate
-        dr_rate = self.dielectronic_recombination_rate()
-        dr_rate = np.zeros(self.temperature.shape)*u.cm**3/u.s if dr_rate is None else dr_rate
+        try:
+            rr_rate = self.radiative_recombination_rate()
+        except MissingDatasetException:
+            rr_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
+        try:
+            dr_rate = self.dielectronic_recombination_rate()
+        except MissingDatasetException:
+            dr_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         return rr_rate + dr_rate
 
     @u.quantity_input
@@ -728,7 +743,10 @@ Using Datasets:
             const.h*(const.c**3) * (const.m_e * const.k_B)**(3/2)))
         recombining = Ion(f'{self.element_name} {self.ionization_stage + 1}', self.temperature,
                           **self._dset_names)
-        omega_0 = 1. if recombining._fblvl is None else recombining._fblvl['multiplicity'][0]
+        try:
+            omega_0 = recombining._fblvl['multiplicity'][0]
+        except MissingDatasetException:
+            omega_0 = 1.0
         E_photon = const.h * const.c / wavelength
         energy_temperature_factor = np.outer(self.temperature**(-3/2), E_photon**5)
         # Sum over levels of recombined ion
@@ -786,6 +804,7 @@ Using Datasets:
 
         return gf
 
+    @needs_dataset('itoh')
     @u.quantity_input
     def _gaunt_factor_free_free_itoh(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
         """
@@ -822,6 +841,7 @@ Using Datasets:
 
         return gf
 
+    @needs_dataset('gffgu')
     @u.quantity_input
     def _gaunt_factor_free_free_sutherland(self,
                                            wavelength: u.angstrom) -> u.dimensionless_unscaled:
@@ -878,6 +898,7 @@ Using Datasets:
         return np.where(energy < self._verner['E_thresh'], 0.,
                         F.decompose().value) * self._verner['sigma_0']
 
+    @needs_dataset('klgfb')
     @u.quantity_input
     def _karzas_cross_section(self,
                               photon_energy: u.erg,

@@ -56,8 +56,11 @@ class DataIndexerHDF5(object):
         if not os.path.isfile(hdf5_path):
             raise MissingDatabaseError(f'No HDF5 database found at {hdf5_path}')
         with h5py.File(hdf5_path, 'r') as hf:
-            path_is_valid = True if top_level_path in hf else False
-        return cls(hdf5_path, top_level_path) if path_is_valid else None
+            path_is_valid = top_level_path in hf
+        if path_is_valid:
+            return cls(hdf5_path, top_level_path)
+        else:
+            raise KeyError(f'{top_level_path} not found in {hdf5_path}')
 
     @property
     def version(self):
@@ -98,7 +101,7 @@ class DataIndexerHDF5(object):
         if type(key) is int:
             raise NotImplementedError('Iteration not supported.')
         if key not in self:
-            return None
+            raise KeyError(f'{key} not found in {self.top_level_path}')
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
             ds = hf[self.top_level_path][key]
             if isinstance(ds, h5py.Group):
