@@ -127,7 +127,7 @@ class ScupsParser(GenericIonParser):
 class PsplupsParser(ScupsParser):
     """
     Spline fits to scaled collision rates for protons. These files are discussed in
-    section 2.2 of[1]_ and the details of how these quantities are scaled are given in [2]_.
+    section 2.2 of [1]_ and the details of how these quantities are scaled are given in [2]_.
 
     Notes
     -----

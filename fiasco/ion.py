@@ -175,7 +175,7 @@ Using Datasets:
         """
         Collisional de-excitation rate coefficient for electrons.
 
-        According to Eq. (4.12) of [1]_, the rate coefficient for collisional de-excitation
+        According to Eq. (4.12) of [phillips]_, the rate coefficient for collisional de-excitation
         is given by,
 
         .. math::
@@ -189,7 +189,7 @@ Using Datasets:
 
         References
         ----------
-        .. [1] Phillips, K., et al., 2008, `Ultraviolet and X-ray Spectroscopy of the Solar Atmosphere <http://adsabs.harvard.edu/abs/2008uxss.book.....P>`_
+        .. [phillips] Phillips, K., et al., 2008, `Ultraviolet and X-ray Spectroscopy of the Solar Atmosphere <http://adsabs.harvard.edu/abs/2008uxss.book.....P>`_
 
         See Also
         --------
@@ -500,12 +500,12 @@ Using Datasets:
 
         The cross-sections are calculated one of two ways:
 
-        - Using the method of [1]_ for hydrogenic and He-like ions
+        - Using the method of [fontes]_ for hydrogenic and He-like ions
         - Using the scaled cross-sections of [2]_ for all other ions
 
         References
         ----------
-        .. [1] Fontes, C. J., et al., 1999, Phys. Rev. A., `59 1329 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.59.1329>`_
+        .. [fontes] Fontes, C. J., et al., 1999, Phys. Rev. A., `59 1329 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.59.1329>`_
         .. [2] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
         """
         if self.hydrogenic or self.helium_like:
@@ -546,11 +546,7 @@ Using Datasets:
     @u.quantity_input
     def _fontes_cross_section(self, energy: u.erg) -> u.cm**2:
         """
-        Calculate direct ionization cross-section according to [1]_.
-
-        References
-        ----------
-        .. [1] Fontes, C. J., et al., 1999, Phys. Rev. A., `59 1329 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.59.1329>`_
+        Calculate direct ionization cross-section according to [fontes]_.
         """
         U = energy/self.ip
         A = 1.13
@@ -624,13 +620,13 @@ Using Datasets:
         The recombination rate due to interaction with the ambient radiation field
         is calculated using a set of fit parameters using one of two methods:
 
-        - Method of [1]_, (show expression)
-        - Method of [2]_, (show expression)
+        - Method of [badnell]_, (show expression)
+        - Method of [shull]_, (show expression)
 
         References
         ----------
-        .. [1] Badnell, N. R., 2006, APJS, `167 334 <http://adsabs.harvard.edu/abs/2006ApJS..167..334B>`_
-        .. [2] Shull, J. M., Van Steenberg, M., 1982, `48 95 <http://adsabs.harvard.edu/abs/1982ApJS...48...95S>`_
+        .. [badnell] Badnell, N. R., 2006, APJS, `167 334 <http://adsabs.harvard.edu/abs/2006ApJS..167..334B>`_
+        .. [shull] Shull, J. M., Van Steenberg, M., 1982, `48 95 <http://adsabs.harvard.edu/abs/1982ApJS...48...95S>`_
         """
         if self._rrparams['fit_type'][0] == 1 or self._rrparams['fit_type'][0] == 2:
             A = self._rrparams['A_fit']
