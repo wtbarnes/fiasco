@@ -81,7 +81,7 @@ branch for the specific feature that you would like to work on:
 
 ```ShellSession
 git branch *your-new-feature*
-``` 
+```
 
 It is generally a good practice to choose a descriptive branch name.
 Switch to your new branch by running:
@@ -95,7 +95,7 @@ by running:
 
 ```ShellSession
 git push --set-upstream origin *your-new-feature*
-``` 
+```
 
 It is also useful to configure git so that only the branch you are
 working on gets pushed to GitHub:
@@ -105,7 +105,7 @@ git config --global push.default simple
 ```
 
 Once you have set up your fork and created a branch, you are ready to
-make edits to fiasco.  
+make edits to fiasco.
 
 Go ahead and modify files with your favorite text editor.  Be sure to
 include tests and documentation with any new functionality.  We also
@@ -128,10 +128,10 @@ git commit -m "*brief description of changes*"
 ```
 
 Committed changes may be pushed to the corresponding branch on your
-GitHub fork of fiasco using 
+GitHub fork of fiasco using
 
 ```ShellSession
-git push origin *your-new-feature* 
+git push origin *your-new-feature*
 ```
 
 or, more simply,

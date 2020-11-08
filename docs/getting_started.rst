@@ -44,19 +44,19 @@ or from source using `setup.py`,
    $ cd fiasco
    $ python setup.py install
 
-.. note:: Currently, fiasco is only available via GitHub. We plan to make it available as a package 
+.. note:: Currently, fiasco is only available via GitHub. We plan to make it available as a package
           on both `conda forge`_ and pip in the near future.
 
 Acquiring the Atomic Data
 -------------------------
-The CHIANTI data is distributed by the CHIANTI team as a collection of ASCII text files in a series of subdirectories. Rather than interact with these raw text files directly, fiasco first builds the entire CHIANTI database into a single `HDF5`_ file to allow for easier and faster access to the data. 
+The CHIANTI data is distributed by the CHIANTI team as a collection of ASCII text files in a series of subdirectories. Rather than interact with these raw text files directly, fiasco first builds the entire CHIANTI database into a single `HDF5`_ file to allow for easier and faster access to the data.
 
 There are two ways of downloading and setting up the database to be used by fiasco,
 
 1. Allow fiasco to download the latest release of the database for you **(recommended)**
 2. Use an existing install of the CHIANTI database. This may be the best option for users who have already installed the CHIANTI package from `SSW`_.
 
-**If you choose option 1, no action is required. This is the recommended option, particularly for users new to CHIANTI.** The first time that you instantiate a subclass of `~fiasco.IonBase`, you will be prompted to download the raw CHIANTI data and then build the HDF5 database from it. Both the raw data and the HDF5 data will be placed in `$HOME/.fiasco/`. 
+**If you choose option 1, no action is required. This is the recommended option, particularly for users new to CHIANTI.** The first time that you instantiate a subclass of `~fiasco.IonBase`, you will be prompted to download the raw CHIANTI data and then build the HDF5 database from it. Both the raw data and the HDF5 data will be placed in `$HOME/.fiasco/`.
 
 Option 2 requires you to tell fiasco where to find an existing version of the CHIANTI atomic data. You can do this by setting the path to the CHIANTI data in `$HOME/.fiasco/fiascorc`. For users who have installed the CHIANTI package with SSW, this file might look like,
 

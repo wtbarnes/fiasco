@@ -74,7 +74,7 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     and collision strengths are related to :math:`U` and :math:`\\Upsilon` by,
 
     * type 1
-      
+
       .. math::
 
             x = 1 - \\frac{\ln C}{\ln{(U + C)}},\quad
@@ -123,13 +123,13 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     a spline fit is computed to the new :math:`x` as computed from :math:`U` and then
     the relationship between :math:`\\Upsilon` and :math:`y` is inverted to get
     :math:`\\Upsilon` as a function of :math:`U`.
-    
+
     Parameters
     ----------
     x : `array-like`
         Scaled temperature. First dimension should have length ``n``, the number of
         transitions. The second dimension will be the number of spline points, but may
-        be different for each row. If each row has ``l`` spline points, `x` should 
+        be different for each row. If each row has ``l`` spline points, `x` should
         have shape ``(n,l)``. If they are not all equal, `x` will have shape ``(n,)``.
     y : `array-like`
         Scaled collision strength. Must have the same dimensions as `x`.

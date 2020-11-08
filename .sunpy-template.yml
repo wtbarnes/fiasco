@@ -1,7 +1,7 @@
 default_context:
   package_name: fiasco
   module_name: fiasco
-  short_description: 
+  short_description:
   author_name: Will Barnes
   author_email: will.t.barnes@gmail.com
   license: BSD 3-Clause

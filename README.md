@@ -4,9 +4,9 @@
 [![Documentation Status](https://readthedocs.org/projects/fiasco/badge/?version=latest)](http://fiasco.readthedocs.io/en/latest/?badge=latest)
 [![Coverage Status](https://coveralls.io/repos/github/wtbarnes/fiasco/badge.svg?branch=master&service=github)](https://coveralls.io/github/wtbarnes/fiasco?branch=master&service=github)
 
-A Python interface to the [CHIANTI atomic database](http://www.chiantidatabase.org/). For a high level 
-overview of the package, have a look at my talk ([slides](https://zenodo.org/record/1249002), [video](https://youtu.be/7_Nr700kBME)) from 
-the [2018 Python in Astronomy](http://openastronomy.org/pyastro/2018/) conference. 
+A Python interface to the [CHIANTI atomic database](http://www.chiantidatabase.org/). For a high level
+overview of the package, have a look at my talk ([slides](https://zenodo.org/record/1249002), [video](https://youtu.be/7_Nr700kBME)) from
+the [2018 Python in Astronomy](http://openastronomy.org/pyastro/2018/) conference.
 
 **DISCLAIMER: fiasco is still in the very early stages of development. As such, the API is changing very frequently and drastically.**
 

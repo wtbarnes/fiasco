@@ -65,7 +65,7 @@ class ScupsParser(GenericIonParser):
 
     References
     ----------
-    .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_ 
+    .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_
     """
     filetype = 'scups'
     dtypes = [int, int, float, float, float, int, int, float, 'object', 'object']
@@ -139,7 +139,7 @@ class PsplupsParser(ScupsParser):
     References
     ----------
     .. [1] Young, P. et al., 2003, A&AS, `135, 339 <http://adsabs.harvard.edu/abs/2003ApJS..144..135Y>`_
-    .. [2] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_ 
+    .. [2] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_
     """
     filetype = 'psplups'
     dtypes = [int, int, int, float, float, float, 'object']
@@ -166,7 +166,7 @@ class PsplupsParser(ScupsParser):
     def preprocessor(self, table, line, index):
         tmp = line.strip().split()
         # 5-point fit for type 6, 9-point fit for type 2
-        n_spline = 5 if int(tmp[2]) == 6 else 9 
+        n_spline = 5 if int(tmp[2]) == 6 else 9
         fformat = fortranformat.FortranRecordReader('(3I3,{}E10.3)'.format(3+n_spline))
         line = fformat.read(line)
         row = line[:6] + [np.array(line[6:])]
@@ -180,7 +180,7 @@ class EasplomParser(GenericIonParser):
 
     References
     ----------
-    .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_ 
+    .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_
     .. [2] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
     """
     filetype = 'easplom'
@@ -196,14 +196,14 @@ class EasplomParser(GenericIonParser):
         'Burgess-Tully scaling parameter',
         'Burgess-Tully scaled cross-section'
     ]
-    
+
     def preprocessor(self, table, line, index):
         line = line.strip().split()
         scaled_cs = np.array(line[8:], dtype=float)
         row = line[2:8] + [scaled_cs]
         table.append(row)
-        
-        
+
+
 class EasplupsParser(EasplomParser):
     """
     Scaled collision strengths for calculating ionization rates due to excitation autoionization.
@@ -225,7 +225,7 @@ class EasplupsParser(EasplomParser):
 
 class WgfaParser(GenericIonParser):
     """
-    Information about each possible transition in an ion, including level indices, wavelengths, 
+    Information about each possible transition in an ion, including level indices, wavelengths,
     and decay rates.
     """
     filetype = 'wgfa'
@@ -281,11 +281,11 @@ class RrparamsParser(GenericIonParser):
 
     References
     ----------
-    .. [1] Badnell, N. R., 2006, ApJS, `167 334 <https://ui.adsabs.harvard.edu/#abs/2006ApJS..167..334B/abstract>`_ 
+    .. [1] Badnell, N. R., 2006, ApJS, `167 334 <https://ui.adsabs.harvard.edu/#abs/2006ApJS..167..334B/abstract>`_
     .. [2] Shull, J. M. and M. van Steenberg, 1982, ApJS, `48 95 <http://adsabs.harvard.edu/abs/1982ApJS...48...95S>`_
     """
     filetype = 'rrparams'
-    
+
     def preprocessor(self, table, line, index):
         line = line.strip().split()
         if index == 0:
@@ -343,7 +343,7 @@ class TrparamsParser(GenericIonParser):
 
 class DrparamsParser(GenericIonParser):
     """
-    Fit parameters for calculating dielectronic recombination. The first fit type is given by Eq. 3 
+    Fit parameters for calculating dielectronic recombination. The first fit type is given by Eq. 3
     of [1]_ and the second fit type is given by Eq. 5 of [2]_.
 
     References
@@ -393,7 +393,7 @@ class DrparamsParser(GenericIonParser):
 
 class DiparamsParser(GenericIonParser):
     """
-    Scaled cross-sections for calculating the ionization rate due to direct ionization. See [1]_ 
+    Scaled cross-sections for calculating the ionization rate due to direct ionization. See [1]_
     and [2]_ for more details.
 
     Notes
@@ -402,7 +402,7 @@ class DiparamsParser(GenericIonParser):
 
     References
     ----------
-    .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_ 
+    .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_
     .. [2] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
     """
     filetype = 'diparams'

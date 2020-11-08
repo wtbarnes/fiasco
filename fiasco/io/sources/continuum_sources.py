@@ -29,7 +29,7 @@ class GffguParser(GenericParser):
         self.full_path = kwargs.get('full_path',
                                     os.path.join(self.ascii_dbase_root, 'continuum', filename))
         self.body_index = 5
-    
+
     def preprocessor(self, table, line, index):
         if index >= self.body_index and '--' not in line:
             super().preprocessor(table, line, index)
@@ -41,10 +41,10 @@ class GffguParser(GenericParser):
                 comment.append(l)
             else:
                 break
-        
+
         footer = '\n'.join([l.strip() for l in comment])
         return footer
-    
+
     def to_hdf5(self, hf, df, **kwargs):
         grp_name = '/'.join(['continuum', self.filetype])
         if grp_name not in hf:
@@ -53,7 +53,7 @@ class GffguParser(GenericParser):
             grp.attrs['footer'] = df.meta['footer']
         else:
             grp = hf[grp_name]
-            
+
         for name in df.colnames:
             col = df[name]
             if type(col) == u.Quantity:
@@ -89,7 +89,7 @@ class GffintParser(GffguParser):
     headings = ['log_gamma_squared', 'gaunt_factor', 's1', 's2', 's3']
     descriptions = ['log scaled temperature', 'total free-free Gaunt factor', 'spline coefficient',
                     'spline coefficient', 'spline coefficient']
-    
+
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
         self.body_index = 4
@@ -106,12 +106,12 @@ class KlgfbParser(GenericParser):
     descriptions = ['principal quantum number', 'orbital angular momentum number',
                     'log photon energy divided by ionization potential',
                     'log free-bound Gaunt factor']
-    
+
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
         self.full_path = kwargs.get('full_path',
                                     os.path.join(self.ascii_dbase_root, 'continuum', filename))
-        
+
     def preprocessor(self, table, line, index):
         if index == 0:
             pass
@@ -121,11 +121,11 @@ class KlgfbParser(GenericParser):
             line = line.strip().split()
             gf = np.array(line[2:], dtype=float)
             table.append(line[:2] + [self._photon_energy, gf])
-            
+
     def extract_footer(self, *args):
         return """Log of free-bound Gaunt factors as a function of log of photon energy divided by ionization potential
 From Karzas, W. J. and Latter, R., 1961, ApJS, 6, 167"""
-    
+
     def to_hdf5(self, hf, df, **kwargs):
         grp_name = '/'.join(['continuum', self.filetype])
         if grp_name not in hf:
@@ -134,7 +134,7 @@ From Karzas, W. J. and Latter, R., 1961, ApJS, 6, 167"""
             grp.attrs['footer'] = df.meta['footer']
         else:
             grp = hf[grp_name]
-            
+
         for name in df.colnames:
             col = df[name]
             if type(col) == u.Quantity:
@@ -178,16 +178,16 @@ class VernerParser(GenericParser):
                     'threshold energy below which cross-section is 0',
                     'E_0 fit parameter', 'nominal value of cross-section', 'y_a fit parameter',
                     'P fit parameter', 'y_w fit parameter']
-    
+
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
         self.full_path = kwargs.get('full_path',
                                     os.path.join(self.ascii_dbase_root, 'continuum', filename))
-        
+
     def extract_footer(self, *args):
         return """Fit parameters for calculating partial photoionization cross-sections for individual ions
 From Verner, D. A . and Yakovlev, D. G., 1995, A&AS, 109, 125"""
-    
+
     def to_hdf5(self, hf, df, **kwargs):
         for row in df:
             el = plasmapy.particles.atomic_symbol(int(row['Z'])).lower()
@@ -223,20 +223,20 @@ class ItohParser(GenericParser):
     units = [None, u.dimensionless_unscaled]
     headings = ['Z', 'a']
     descriptions = ['atomic number', 'fit coefficient']
-    
+
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
         self.full_path = kwargs.get('full_path',
                                     os.path.join(self.ascii_dbase_root, 'continuum', filename))
-        
+
     def preprocessor(self, table, line, index):
         a_matrix = np.array(line.strip().split()).reshape((11, 11))
         table.append([index+1] + [a_matrix])
-    
+
     def extract_footer(self, *args):
         return """Analytic fit coefficients as a function of scaled temperature and energy for calculating the relativistic free-free Gaunt factor
 From Itoh, N., et al., ApJS, 2000, 128, 125"""
-    
+
     def to_hdf5(self, hf, df, **kwargs):
         for row in df:
             el = plasmapy.particles.atomic_symbol(int(row['Z'])).lower()
@@ -269,12 +269,12 @@ class HSeqParser(GenericParser):
     descriptions = ['atomic number', 'fraction of energy carried by one of the two photons',
                     'nominal atomic number', 'radiative decay rate', 'summed radiative decay rate',
                     'spectral distribution function']
-    
+
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
         self.full_path = kwargs.get('full_path',
                                     os.path.join(self.ascii_dbase_root, 'continuum', filename))
-        
+
     def preprocessor(self, table, line, index):
         if index == 0:
             self._y0 = np.array(line.strip().split(), dtype=float)
@@ -283,12 +283,12 @@ class HSeqParser(GenericParser):
         else:
             line = line.strip().split()
             table.append([line[0]] + [self._y0] + [self._z0] + line[1:3] + [np.array(line[3:])])
-    
+
     def extract_footer(self, *args):
         return """Information needed for calculating two-photon continuum emission for hydrogen isoelectronic sequence
 Radiative decay rates from Parpia, F. A., and Johnson, W. R., 1982, Phys. Rev. A, 26, 1142
 Spectral distribution function from Goldman, S.P. and Drake, G.W.F., 1981, Phys Rev A, 24, 183"""
-    
+
     def to_hdf5(self, hf, df, **kwargs):
         for row in df:
             el = plasmapy.particles.atomic_symbol(int(row['Z'])).lower()
@@ -320,24 +320,24 @@ class HeSeqParser(GenericParser):
     headings = ['Z', 'y', 'A', 'psi']
     descriptions = ['atomic number', 'fraction of energy carried by one of the two photons',
                     'radiative decay rate', 'spectral distribution function']
-    
+
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
         self.full_path = kwargs.get('full_path',
                                     os.path.join(self.ascii_dbase_root, 'continuum', filename))
-        
+
     def preprocessor(self, table, line, index):
         if index == 0:
             self._y0 = np.array(line.strip().split(), dtype=float)
         else:
             line = line.strip().split()
             table.append([line[0]] + [self._y0] + line[1:2] + [np.array(line[2:])])
-    
+
     def extract_footer(self, *args):
         return """Information needed for calculating two-photon continuum emission for helium isoelectronic sequence
 Radiative decay rates from Drake, G.W.F., 1986, Phys. Rev. A, 34, 2871
 Spectral distribution function from Drake, G.W.F., Victor, G.A., Dalgarno, A., 1969, Phys. Rev. A, 180, 25."""
-    
+
     def to_hdf5(self, hf, df, **kwargs):
         for row in df:
             el = plasmapy.particles.atomic_symbol(int(row['Z'])).lower()

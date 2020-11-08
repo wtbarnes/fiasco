@@ -24,7 +24,7 @@ class AbundParser(GenericParser):
 
     def __init__(self, abundance_filename, **kwargs):
         super().__init__(abundance_filename, **kwargs)
-        self.full_path = kwargs.get('full_path', 
+        self.full_path = kwargs.get('full_path',
                                     os.path.join(self.ascii_dbase_root, 'abundance', self.filename))
 
     def postprocessor(self, df):
@@ -34,7 +34,7 @@ class AbundParser(GenericParser):
             col = []
             for atomic_number in df['Z']:
                 col.append(plasmapy.particles.atomic_symbol(int(atomic_number)))
-            df['element'] = Column(col) 
+            df['element'] = Column(col)
         df = super().postprocessor(df)
         return df
 
@@ -67,9 +67,9 @@ class IoneqParser(GenericParser):
 
     def __init__(self, ioneq_filename, **kwargs):
         super().__init__(ioneq_filename, **kwargs)
-        self.full_path = kwargs.get('full_path', 
+        self.full_path = kwargs.get('full_path',
                                     os.path.join(self.ascii_dbase_root, 'ioneq', self.filename))
-        
+
     def preprocessor(self, table, line, index):
         if index == 0:
             num_entries = int(line.strip().split()[0])
@@ -79,7 +79,7 @@ class IoneqParser(GenericParser):
             self.temperature = 10.**np.array(self.fformat_temperature.read(line), dtype=float)
         else:
             line = self.fformat_ioneq.read(line)
-            line = line[:2] + [self.temperature, np.array(line[2:], dtype=float)] 
+            line = line[:2] + [self.temperature, np.array(line[2:], dtype=float)]
             table.append(line)
 
     def to_hdf5(self, hf, df):
@@ -136,4 +136,3 @@ class IpParser(GenericParser):
                 ds = grp.create_dataset(dataset_name, data=row['ip'])
                 ds.attrs['unit'] = df['ip'].unit.to_string()
                 ds.attrs['description'] = df.meta['descriptions']['ip']
-
