@@ -1,8 +1,8 @@
 # fiasco
 [![Powered by SunPy Badge]( http://img.shields.io/badge/powered%20by-SunPy-orange.svg?style=flat)](http://www.sunpy.org)
-[![Build Status](https://travis-ci.org/wtbarnes/fiasco.svg?branch=master)](https://travis-ci.org/wtbarnes/fiasco)
+![fiasco CI status](https://github.com/wtbarnes/fiasco/workflows/.github/workflows/run-tests.yml/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/fiasco/badge/?version=latest)](http://fiasco.readthedocs.io/en/latest/?badge=latest)
-[![Coverage Status](https://coveralls.io/repos/github/wtbarnes/fiasco/badge.svg?branch=master&service=github)](https://coveralls.io/github/wtbarnes/fiasco?branch=master&service=github)
+[![codecov](https://codecov.io/gh/wtbarnes/fiasco/branch/master/graph/badge.svg?token=damCmTyRUN)](https://codecov.io/gh/wtbarnes/fiasco)
 
 A Python interface to the [CHIANTI atomic database](http://www.chiantidatabase.org/). For a high level
 overview of the package, have a look at my talk ([slides](https://zenodo.org/record/1249002), [video](https://youtu.be/7_Nr700kBME)) from
@@ -10,33 +10,14 @@ the [2018 Python in Astronomy](http://openastronomy.org/pyastro/2018/) conferenc
 
 **DISCLAIMER: fiasco is still in the very early stages of development. As such, the API is changing very frequently and drastically.**
 
-## Dependencies
-All packages can be installed with conda (recommended)
-
-```shell
-$ conda install {package_name}
-```
-
-or pip
-
-```
-$ pip install {package name}
-```
-
-* NumPy
-* scipy
-* Astropy
-* h5py
-* PlasmaPy (pip only, conda soon)
-* fortranformat (pip only)
-
-The [CHIANTI atomic database](http://www.chiantidatabase.org/chianti_download.html) is also required.
-
 ## Install
 ```shell
 $ git clone https://github.com/wtbarnes/fiasco.git
-$ cd fiasco && python setup.py install
+$ cd fiasco
+$ pip install -e .
 ```
+
+The [CHIANTI atomic database](http://www.chiantidatabase.org/chianti_download.html) is also required.
 
 ## Example
 ```python

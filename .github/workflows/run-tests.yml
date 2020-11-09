@@ -52,5 +52,5 @@ jobs:
     - name: Run tox
       run: python -m tox -e  ${{ matrix.toxenv }}
     - name: Report coverage
-      if: ${{ success() }} && ${{ env.codecov }} == 'true'
+      if: ${{ success() }} && ${{ env.codecov }} == ${{ true }}
       run: codecov
