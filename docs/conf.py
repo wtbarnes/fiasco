@@ -113,13 +113,15 @@ graphviz_dot_args = [
 ]
 
 
-ON_RTD = os.environ.get('READTHEDOCS') == 'True'
+ON_RTD = os.environ.get('READTHEDOCS').lower() == 'true'
+ON_GHA = os.environ.get('CI').lower() == 'true'
 
-# On Read the Docs, download the database and build a minimal HDF5 version
-if ON_RTD:
+# On Read the Docs and CI, download the database and build a minimal HDF5 version
+if ON_RTD or ON_GHA:
     from fiasco.util import download_dbase, build_hdf5_dbase
     from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
-    os.environ['HOME'] = '/home/docs'  # RTD does not set HOME?
+    if ON_RTD:
+        os.environ['HOME'] = '/home/docs'  # RTD does not set HOME?
     FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
     if not os.path.exists(FIASCO_HOME):
         os.makedirs(FIASCO_HOME)
