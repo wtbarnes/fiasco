@@ -51,5 +51,4 @@ jobs:
     - name: Run tox
       run: python -m tox -e  ${{ matrix.toxenv }}
     - name: Report coverage
-      if: (${{ matrix.toxenv }} == 'py38')
       run: codecov
