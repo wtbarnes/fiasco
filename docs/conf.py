@@ -113,8 +113,8 @@ graphviz_dot_args = [
 ]
 
 
-ON_RTD = os.environ.get('READTHEDOCS').lower() == 'true'
-ON_GHA = os.environ.get('CI').lower() == 'true'
+ON_RTD = os.environ.get('READTHEDOCS') == 'True'
+ON_GHA = os.environ.get('CI') == 'true'
 
 # On Read the Docs and CI, download the database and build a minimal HDF5 version
 if ON_RTD or ON_GHA:
