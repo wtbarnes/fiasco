@@ -154,6 +154,13 @@ def test_free_free(ion):
     assert u.allclose(emission[0], 6.81123745e-28 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
 
+def test_free_bound(ion):
+    emission = ion.free_bound(200 * u.Angstrom)
+    assert emission.shape == ion.temperature.shape + (1, )
+    # This value has not been tested for correctness
+    assert u.allclose(emission[0, 0], 7.20537148e-27 * u.cm**3 * u.erg / u.Angstrom / u.s)
+
+
 def test_add_ions(ion, another_ion):
     collection = ion + another_ion
     assert isinstance(collection, fiasco.IonCollection)
