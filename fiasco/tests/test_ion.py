@@ -160,10 +160,19 @@ def test_radd_ions(ion, another_ion):
     assert collection[1] == ion
     assert collection[0] == another_ion
 
+
 def test_transitions(ion):
     trans = ion.transitions
     assert isinstance(trans, fiasco.Transitions)
-    assert len(trans) == 1
+    assert len(trans) == 361
+    # These values have not been tested for correctness
+    assert not trans.is_twophoton[0]
+    assert trans.is_observed[0]
+    assert u.allclose(trans.A[0], 0.000155 / u.s)
+    assert u.allclose(trans.wavelength[0], 703729.75 * u.Angstrom)
+    assert u.allclose(trans.upper_level[0], 2)
+    assert u.allclose(trans.lower_level[0], 1)
+    assert u.allclose(trans.delta_energy[0], 2.82273956e-14 * u.erg)
 
 
 def test_create_ion_without_units_raises_units_error(hdf5_dbase_root):
