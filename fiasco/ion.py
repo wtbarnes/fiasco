@@ -425,6 +425,7 @@ Using Datasets:
         --------
         contribution_function : Calculate contribution function, :math:`G(n,T)`
         """
+        density = np.atleast_1d(density)
         g = self.contribution_function(density, **kwargs)
         return g * (density**2)[np.newaxis, :, np.newaxis]
 

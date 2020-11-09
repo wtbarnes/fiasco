@@ -126,6 +126,13 @@ def test_contribution_function(ion):
     assert u.allclose(cont_func[0, 0, 0], 5.24152109e-31 * u.cm**3 * u.erg / u.s)
 
 
+def test_emissivity(ion):
+    emm = ion.emissivity(1e7 * u.cm**-3)
+    assert emm.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape
+    # This value has not been tested for correctness
+    assert u.allclose(emm[0, 0, 0], 5.24152109e-17 * u.erg / u.cm**3 / u.s)
+
+
 def test_excitation_autoionization_rate(ion):
     rate = ion.excitation_autoionization_rate()
     assert rate.shape == ion.temperature.shape
