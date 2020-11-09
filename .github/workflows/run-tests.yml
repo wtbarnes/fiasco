@@ -31,7 +31,6 @@ jobs:
         - os: ubuntu-latest
           python-version: 3.8
           toxenv: py38
-          codecov: ${{ true }}
         # Docs
         - os: ubuntu-latest
           python-version: 3.8
@@ -52,5 +51,5 @@ jobs:
     - name: Run tox
       run: python -m tox -e  ${{ matrix.toxenv }}
     - name: Report coverage
-      if: (${{ success() }} && ${{ matrix.toxenv }} == 'py38')
+      if: (${{ matrix.toxenv }} == 'py38')
       run: codecov

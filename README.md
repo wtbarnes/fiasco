@@ -1,6 +1,6 @@
 # fiasco
 [![Powered by SunPy Badge]( http://img.shields.io/badge/powered%20by-SunPy-orange.svg?style=flat)](http://www.sunpy.org)
-![fiasco CI status](https://github.com/wtbarnes/fiasco/workflows/.github/workflows/run-tests.yml/badge.svg)
+![fiasco CI status](https://github.com/wtbarnes/fiasco/workflows/Run%20tests/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/fiasco/badge/?version=latest)](http://fiasco.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/wtbarnes/fiasco/branch/master/graph/badge.svg?token=damCmTyRUN)](https://codecov.io/gh/wtbarnes/fiasco)
 
