@@ -20,6 +20,7 @@ Welcome to the documentation for fiasco. fiasco provides a Python interface to t
 
   getting_started
   tutorial
+  auto_examples/index
   code_ref/index
   dev_guide
   resources

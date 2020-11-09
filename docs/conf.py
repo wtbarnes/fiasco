@@ -114,12 +114,14 @@ graphviz_dot_args = [
 
 
 ON_RTD = os.environ.get('READTHEDOCS') == 'True'
+ON_GHA = os.environ.get('CI') == 'true'
 
-# On Read the Docs, download the database and build a minimal HDF5 version
-if ON_RTD:
+# On Read the Docs and CI, download the database and build a minimal HDF5 version
+if ON_RTD or ON_GHA:
     from fiasco.util import download_dbase, build_hdf5_dbase
     from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
-    os.environ['HOME'] = '/home/docs'  # RTD does not set HOME?
+    if ON_RTD:
+        os.environ['HOME'] = '/home/docs'  # RTD does not set HOME?
     FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
     if not os.path.exists(FIASCO_HOME):
         os.makedirs(FIASCO_HOME)
@@ -131,10 +133,14 @@ if ON_RTD:
         hdf5_dbase_root,
         files=['chianti.ip',
                'chianti.ioneq',
+               'sun_photospheric_1998_grevesse.abund',
                'fe_5.elvlc',
                'fe_15.elvlc',
                'fe_18.rrparams',
-               'fe_18.drparams']
+               'fe_18.drparams',
+               'o_6.scups',
+               'o_6.elvlc',
+               'o_6.wgfa',]
     )
     with open(os.path.join(FIASCO_HOME, 'fiascorc'), 'w') as f:
         c = configparser.ConfigParser()
@@ -142,3 +148,10 @@ if ON_RTD:
         c.set('database', 'ascii_dbase_root', ascii_dbase_root)
         c.set('database', 'hdf5_dbase_root', hdf5_dbase_root)
         c.write(f)
+
+# -- Sphinx gallery -----------------------------------------------------------
+extensions += ['sphinx_gallery.gen_gallery']
+sphinx_gallery_conf = {
+     'examples_dirs': '../examples',   # path to your example scripts
+     'gallery_dirs': 'auto_examples',  # path to where to save gallery generated output
+}
