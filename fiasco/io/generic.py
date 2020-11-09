@@ -24,7 +24,7 @@ class GenericParser(object):
     def __init__(self, filename, **kwargs):
         self.filename = filename
         self.ascii_dbase_root = kwargs.get('ascii_dbase_root', fiasco.defaults['ascii_dbase_root'])
-        standalone = kwargs.get('standalone', False)  
+        standalone = kwargs.get('standalone', False)
         # Cannot supply a version number if this is a standalone file
         if standalone:
             self.chianti_version = ''

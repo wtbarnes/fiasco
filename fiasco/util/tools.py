@@ -62,7 +62,7 @@ def _xnew(energy_ratio, c, scaling_type):
 
 def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     """
-    Convert scaled Burgess-Tully [1]_ parameters to physical quantities.
+    Convert scaled Burgess-Tully [burgess]_ parameters to physical quantities.
 
     For a scaled temperature, :math:`x` and scaled effective collision strength
     :math:`y`, the effective collision strength can be calculated as a function
@@ -70,11 +70,11 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     energy and the energy of the transition :math:`ij`.
 
     There are 6 different scaling types, depending on the type of transition. This scaling
-    is explained in detail in section 5 of [1]_. For types 1 and 4, the scaled temperatures
+    is explained in detail in section 5 of [burgess]_. For types 1 and 4, the scaled temperatures
     and collision strengths are related to :math:`U` and :math:`\\Upsilon` by,
 
     * type 1
-      
+
       .. math::
 
             x = 1 - \\frac{\ln C}{\ln{(U + C)}},\quad
@@ -115,7 +115,7 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
             x = \\frac{U}{U + C},\quad
             y = \log_{10}\\Upsilon
 
-    where :math:`C` is a scaling constant that is different for each transition. Note that [1]_
+    where :math:`C` is a scaling constant that is different for each transition. Note that [burgess]_
     only considered scaling types 1 through 4. Types 5 and 6 correspond to dielectron and proton
     transitions, respectively.
 
@@ -123,13 +123,13 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     a spline fit is computed to the new :math:`x` as computed from :math:`U` and then
     the relationship between :math:`\\Upsilon` and :math:`y` is inverted to get
     :math:`\\Upsilon` as a function of :math:`U`.
-    
+
     Parameters
     ----------
     x : `array-like`
         Scaled temperature. First dimension should have length ``n``, the number of
         transitions. The second dimension will be the number of spline points, but may
-        be different for each row. If each row has ``l`` spline points, `x` should 
+        be different for each row. If each row has ``l`` spline points, `x` should
         have shape ``(n,l)``. If they are not all equal, `x` will have shape ``(n,)``.
     y : `array-like`
         Scaled collision strength. Must have the same dimensions as `x`.
@@ -146,10 +146,6 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     -------
     upsilon : `array-like`
         Descaled collision strength or cross-section with the same shape as `energy_ratio`.
-
-    References
-    ----------
-    .. [1] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_
     """
     # NOTE: Arrays with staggered number of columns, which have an 'object'
     # dtype (denoted by 'O') appear to be 1D, but should not be cast to 2D

@@ -1,0 +1,12 @@
+default_context:
+  package_name: fiasco
+  module_name: fiasco
+  short_description:
+  author_name: Will Barnes
+  author_email: will.t.barnes@gmail.com
+  license: BSD 3-Clause
+  project_url: https://github.com/wtbarnes/fiasco
+  github_repo: wtbarnes/fiasco
+  minimum_python_version: 3.6
+  use_compiled_extensions: n
+  include_example_code: n

@@ -127,7 +127,7 @@ Note that these population fractions returned by `Ion.ioneq` are stored in the C
 
 Derived Quantities
 ******************
-In addition to providing an API to the CHIANTI data, `Ion` also provides several methods for computing derived quantities from the data. These include the ionization and recombination rates. 
+In addition to providing an API to the CHIANTI data, `Ion` also provides several methods for computing derived quantities from the data. These include the ionization and recombination rates.
 
 .. plot::
     :include-source:

@@ -50,10 +50,10 @@ class IonCollection(object):
         elif isinstance(value, fiasco.Ion):
             value = value.ion_name
         return value in [i.ion_name for i in self._ion_list]
-    
+
     def __add__(self, value):
         return IonCollection(self, value)
-    
+
     def __radd__(self, value):
         return IonCollection(value, self)
 
