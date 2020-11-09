@@ -44,7 +44,14 @@ class DataIndexerHDF5(object):
 
     def __init__(self, hdf5_path, top_level_path):
         self.top_level_path = top_level_path
-        self.hdf5_dbase_root = hdf5_path
+        self._hdf5_dbase_root = hdf5_path
+
+    @property
+    def hdf5_dbase_root(self):
+        dbase_root = self._hdf5_dbase_root
+        if not os.path.isfile(dbase_root):
+            raise MissingDatabaseError(f'No HDF5 database found at {dbase_root}')
+        return dbase_root
 
     @classmethod
     def create_indexer(cls, hdf5_path, top_level_path):
