@@ -733,7 +733,9 @@ Using Datasets:
         wavelength = np.atleast_1d(wavelength)
         prefactor = (2/np.sqrt(2*np.pi)/(4*np.pi)/(
             const.h*(const.c**3) * (const.m_e * const.k_B)**(3/2)))
-        recombining = Ion(f'{self.element_name} {self.ionization_stage + 1}', self.temperature,
+        recombining = Ion(f'{self.element_name} {self.ionization_stage + 1}',
+                          self.temperature,
+                          hdf5_dbase_root=self.hdf5_dbase_root,
                           **self._dset_names)
         try:
             omega_0 = recombining._fblvl['multiplicity'][0]

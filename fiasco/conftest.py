@@ -42,6 +42,7 @@ TEST_FILES = {
     'fe_5.wgfa':                            '6f8e4d41760d5a0540008e15aca1038c',
 
     'fe_6.elvlc':                           '081519f986b8a8ed99a34ecf813f1358',
+    'fe_6.fblvl':                           '9478aeab2479e9eefebfd1e552e27ddf',
     'fe_9.elvlc':                           'b7d04f65a87a8de1c2bfc77331e438f3',
     'fe_12.elvlc':                          'ee9beb8b2ff03ba8fc046bd722992b21',
     'fe_15.elvlc':                          'cb8e6291bac17325130ea8564e118d48',
