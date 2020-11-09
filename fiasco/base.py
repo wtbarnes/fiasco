@@ -17,6 +17,13 @@ __all__ = ['IonBase', 'ContinuumBase']
 class Base(object):
     """
     Base class for setting up ion metadata and building database if necessary.
+
+    Parameters
+    ----------
+    ion_name : str
+    hdf5_dbase_root : str, optional
+    kwargs :
+        kwargs are passed to `check_database`.
     """
 
     def __init__(self, ion_name, hdf5_dbase_root=None, **kwargs):

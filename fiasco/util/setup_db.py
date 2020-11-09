@@ -35,13 +35,17 @@ def check_database(hdf5_dbase_root, **kwargs):
     Parameters
     ----------
     hdf5_dbase_root : `str`
+    ascii_dbase_root : str, optional
+    ask_befre : bool, optional
+    ascii_dbase_url : str, optional
 
     See Also
     --------
     download_dbase
     build_hdf5_dbase
     """
-    ascii_dbase_root = kwargs.get('ascii_dbase_root', fiasco.defaults['ascii_dbase_root'])
+    ascii_dbase_root = kwargs.get('ascii_dbase_root',
+                                  fiasco.defaults['ascii_dbase_root'])
     # Useful for building, downloading non-interactively
     ask_before = kwargs.get('ask_before', True)
     if os.path.isfile(hdf5_dbase_root):
