@@ -622,11 +622,6 @@ Using Datasets:
 
         - Method of [badnell]_, (show expression)
         - Method of [shull]_, (show expression)
-
-        References
-        ----------
-        .. [badnell] Badnell, N. R., 2006, APJS, `167 334 <http://adsabs.harvard.edu/abs/2006ApJS..167..334B>`_
-        .. [shull] Shull, J. M., Van Steenberg, M., 1982, `48 95 <http://adsabs.harvard.edu/abs/1982ApJS...48...95S>`_
         """
         if self._rrparams['fit_type'][0] == 1 or self._rrparams['fit_type'][0] == 2:
             A = self._rrparams['A_fit']

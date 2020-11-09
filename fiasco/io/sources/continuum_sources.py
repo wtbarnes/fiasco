@@ -161,11 +161,12 @@ From Karzas, W. J. and Latter, R., 1961, ApJS, 6, 167"""
 
 class VernerParser(GenericParser):
     """
-    Fit parameters for calculating partial photoionization cross-sections using the method of [1]_
+    Fit parameters for calculating partial photoionization cross-sections using
+    the method of [verner]_.
 
     References
     ----------
-    .. [1] Verner, D. A . and Yakovlev, D. G., 1995, A&AS, `109, 125 <http://adsabs.harvard.edu/abs/1995A%26AS..109..125V>`_
+    .. [verner] Verner, D. A . and Yakovlev, D. G., 1995, A&AS, `109, 125 <http://adsabs.harvard.edu/abs/1995A%26AS..109..125V>`_
     """
     filetype = 'verner_short'
     dtypes = [int, int, int, int, float, float, float, float, float, float]
@@ -212,11 +213,11 @@ From Verner, D. A . and Yakovlev, D. G., 1995, A&AS, 109, 125"""
 
 class ItohParser(GenericParser):
     """
-    Fit parameters for calculating relativistic free-free Gaunt factor using the method of [1]_.
+    Fit parameters for calculating relativistic free-free Gaunt factor using the method of [itoh]_.
 
     References
     ----------
-    .. [1] Itoh, N., et al., ApJS, 2000, `128, 125 <http://adsabs.harvard.edu/abs/2000ApJS..128..125I>`_
+    .. [itoh] Itoh, N., et al., ApJS, 2000, `128, 125 <http://adsabs.harvard.edu/abs/2000ApJS..128..125I>`_
     """
     filetype = 'itoh'
     dtypes = [int, float]
