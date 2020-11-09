@@ -55,6 +55,9 @@ class Transitions(object):
         self._elvlc = elvlc
         self._wgfa = wgfa
 
+    def __len__(self):
+        return len(self._wgfa['wavelength'])
+
     @property
     def is_twophoton(self):
         """
