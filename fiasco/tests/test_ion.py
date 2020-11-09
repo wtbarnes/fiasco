@@ -160,6 +160,11 @@ def test_radd_ions(ion, another_ion):
     assert collection[1] == ion
     assert collection[0] == another_ion
 
+def test_transitions(ion):
+    trans = ion.transitions
+    assert isinstance(trans, fiasco.Transitions)
+    assert len(trans) == 1
+
 
 def test_create_ion_without_units_raises_units_error(hdf5_dbase_root):
     with pytest.raises(TypeError):
