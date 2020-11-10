@@ -22,8 +22,8 @@ def another_ion(hdf5_dbase_root):
 
 
 @pytest.fixture
-def fe10(hdf5_dbase_root):
-    return fiasco.Ion('Fe 10', temperature, hdf5_dbase_root=hdf5_dbase_root)
+def mg5(hdf5_dbase_root):
+    return fiasco.Ion('Mg 5', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
 
 def test_level_indexing(ion):
@@ -61,12 +61,14 @@ def test_scalar_temperature(hdf5_dbase_root):
     np.testing.assert_allclose(ioneq, ioneq_data[i_t])
 
 
-def test_scalar_density(hdf5_dbase_root):
-    ion = fiasco.Ion('H 1', temperature, hdf5_dbase_root=hdf5_dbase_root)
-    pop = ion.level_populations(1e8 * u.cm**-3)
+@pytest.mark.parametrize('include_protons, val', [[True, 0.5562662264406345],
+                                                  [False, 0.5564759123266327]])
+def test_level_populations(hdf5_dbase_root, include_protons, val):
+    ion = fiasco.Ion('Mg 5', temperature, hdf5_dbase_root=hdf5_dbase_root)
+    pop = ion.level_populations(1e8 * u.cm**-3, include_protons=include_protons)
     assert pop.shape == ion.temperature.shape + (1,) + ion._elvlc['level'].shape
     # This value has not been checked for correctness
-    np.testing.assert_allclose(pop[0, 0, 0], 0.9965048292729177)
+    np.testing.assert_allclose(pop[0, 0, 0], val)
 
 
 def test_no_elvlc_raises_index_error(hdf5_dbase_root):
@@ -94,12 +96,12 @@ def test_abundance(ion):
     np.testing.assert_allclose(ion.abundance, 3.1622776601683795e-05)
 
 
-def test_proton_collision(fe10):
-    rate = fe10.proton_collision_excitation_rate()
-    assert u.allclose(rate[0, 0], 4.69587161e-13 * u.cm**3 / u.s)
+def test_proton_collision(mg5):
+    rate = mg5.proton_collision_excitation_rate()
+    assert u.allclose(rate[0, 0], 5.21207938e-11 * u.cm**3 / u.s)
 
-    rate = fe10.proton_collision_deexcitation_rate()
-    assert u.allclose(rate[0, 0], 1.17688025e-12 * u.cm**3 / u.s)
+    rate = mg5.proton_collision_deexcitation_rate()
+    assert u.allclose(rate[0, 0], 8.91255746e-11 * u.cm**3 / u.s)
 
 
 def test_missing_abundance(hdf5_dbase_root):
