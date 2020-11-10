@@ -2,14 +2,15 @@
 # by importing them here in conftest.py they are discoverable by py.test
 # no matter how it is invoked within the source tree.
 import os
-import pytest
-from astropy.tests.plugins import *
+from urllib.request import urlopen
 
-import fiasco
+import pytest
+
 from fiasco.util import build_hdf5_dbase, download_dbase
-from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION, FIASCO_HOME
+from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
 
 # Minimal set of CHIANTI files needed to run the tests
+# NOTE: need some way for this to be flexible depending on the supplied database version
 TEST_FILES = {
     'sun_photospheric_1998_grevesse.abund': '9b175ee91f80fbe01967321a0fb051a8',
     'chianti.ip':                           'a5a5071535f14590210957f8783f2843',
@@ -54,21 +55,30 @@ TEST_FILES = {
 }
 
 
-@pytest.fixture(scope='session')
-def ascii_dbase_root(tmpdir_factory):
-    # If we already have a local copy, just return the path to that
-    path = fiasco.defaults.get('test_ascii_dbase_root')
-    if path is not None and os.path.exists(path):
-        return path
+def pytest_addoption(parser):
+    parser.addoption('--ascii-dbase-root', action='store', default=None)
 
-    # Otherwise download the database
-    path = tmpdir_factory.mktemp('chianti_dbase')
-    download_dbase(CHIANTI_URL.format(version=LATEST_VERSION), path)
+
+@pytest.fixture(scope='session')
+def ascii_dbase_root(tmpdir_factory, request):
+    path = request.config.getoption('--ascii-dbase-root')
+    if path is None:
+        path = CHIANTI_URL.format(version=LATEST_VERSION)
+    try:
+        _ = urlopen(path)
+    except ValueError:
+        if not os.path.exists(path):
+            raise ValueError(f'{path} is not a valid URL or file path')
+    else:
+        _path = tmpdir_factory.mktemp('chianti_dbase')
+        download_dbase(path, _path)
+        path = _path
     return path
 
 
 @pytest.fixture(scope='session')
 def hdf5_dbase_root(ascii_dbase_root, tmpdir_factory):
     path = tmpdir_factory.mktemp('fiasco').join('chianti_dbase.h5')
-    build_hdf5_dbase(ascii_dbase_root, path, files=TEST_FILES)
+    # FIXME: Disable hash checking for now
+    build_hdf5_dbase(ascii_dbase_root, path, files=[k for k in TEST_FILES])
     return path
