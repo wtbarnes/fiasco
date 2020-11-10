@@ -31,6 +31,16 @@ jobs:
         - os: ubuntu-latest
           python-version: 3.8
           toxenv: py38
+        # Test multiple versions of the database
+        - os: ubuntu-latest
+          python-version: 3.8
+          toxenv: py38 -- --ascii-dbase-root=https://www.chiantidatabase.org/download/CHIANTI_7.1.4_data.tar.gz
+        - os: ubuntu-latest
+          python-version: 3.8
+          toxenv: py38 -- --ascii-dbase-root=https://www.chiantidatabase.org/download/CHIANTI_8.0.7_data.tar.gz
+        - os: ubuntu-latest
+          python-version: 3.8
+          toxenv: py38 -- --ascii-dbase-root=https://www.chiantidatabase.org/download/CHIANTI_9.0.1_data.tar.gz
         # Docs
         - os: ubuntu-latest
           python-version: 3.8
