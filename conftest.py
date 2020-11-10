@@ -57,6 +57,8 @@ TEST_FILES = {
 
 def pytest_addoption(parser):
     parser.addoption('--ascii-dbase-root', action='store', default=None)
+    parser.addoption('--disable-file-hash', action='store_true', default=False,
+                     help='Enable MD5 hash checks on test files')
 
 
 @pytest.fixture(scope='session')
@@ -77,8 +79,11 @@ def ascii_dbase_root(tmpdir_factory, request):
 
 
 @pytest.fixture(scope='session')
-def hdf5_dbase_root(ascii_dbase_root, tmpdir_factory):
+def hdf5_dbase_root(ascii_dbase_root, tmpdir_factory, request):
     path = tmpdir_factory.mktemp('fiasco').join('chianti_dbase.h5')
-    # FIXME: Disable hash checking for now
-    build_hdf5_dbase(ascii_dbase_root, path, files=[k for k in TEST_FILES])
+    if request.config.getoption('--disable-file-hash'):
+        test_files = [k for k in TEST_FILES]
+    else:
+        test_files = TEST_FILES
+    build_hdf5_dbase(ascii_dbase_root, path, files=test_files)
     return path
