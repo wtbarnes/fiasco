@@ -7,11 +7,9 @@ fiasco Documentation
 .. warning:: fiasco currently only supports the most recent version (v8) of the CHIANTI database. In
              the future, older versions of the database will be supported.
 
-.. figure:: _static/chianti_bottle.jpg
+.. figure:: _static/fiasco-logo.png
    :figwidth: 50 %
    :align: center
-
-   A *fiasco*, or flask, is the typical style of bottle used to serve the Chianti Classico wine. In the same way, the fiasco package serves up the CHIANTI atomic database. Image credit: `Wikipedia`_
 
 Welcome to the documentation for fiasco. fiasco provides a Python interface to the `CHIANTI atomic database`_. In addition to several high-level abstractions of the atomic data, fiasco also provides many common atomic physics calculations.
 
@@ -20,7 +18,7 @@ Welcome to the documentation for fiasco. fiasco provides a Python interface to t
 
   getting_started
   tutorial
-  auto_examples/index
+  generated/gallery/index
   code_ref/index
   dev_guide
   resources
