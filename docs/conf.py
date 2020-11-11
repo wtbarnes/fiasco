@@ -80,7 +80,9 @@ intersphinx_mapping = {
     'matplotlib': ('https://matplotlib.org/',
                    (None, 'http://data.astropy.org/intersphinx/matplotlib.inv')),
     'astropy': ('http://docs.astropy.org/en/stable/', None),
-    'sunpy': ('https://docs.sunpy.org/en/stable/', None)}
+    'sunpy': ('https://docs.sunpy.org/en/stable/', None),
+    'aiapy': ('https://aiapy.readthedocs.io/en/stable/', None),
+}
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -125,7 +127,7 @@ if ON_RTD or ON_GHA:
     FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
     if not os.path.exists(FIASCO_HOME):
         os.makedirs(FIASCO_HOME)
-    ascii_dbase_root = os.path.join(FIASCO_HOME, 'ascii_dbase')
+    ascii_dbase_root = os.path.join(FIASCO_HOME, 'chianti_dbase')
     hdf5_dbase_root = os.path.join(FIASCO_HOME, 'chianti_dbase.h5')
     download_dbase(CHIANTI_URL.format(version=LATEST_VERSION), ascii_dbase_root)
     build_hdf5_dbase(
