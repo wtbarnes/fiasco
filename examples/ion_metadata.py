@@ -42,6 +42,9 @@ print(ion.abundance)
 # The `~fiasco.Ion` object can also be indexed like an array in
 # order to get information about the energy levels.
 print(ion[0])
-print(ion[0].energy)
-print(ion[0].level)
-print(ion[0].configuration)
+
+#######################################################
+# Each level also holds various bits of metadata
+for i in range(5):
+    lev = ion[i]
+    print(f'Level {lev.level} {lev.configuration}, {lev.energy}')
