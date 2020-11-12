@@ -39,7 +39,11 @@ class IonCollection(object):
             'Temperatures for all ions in collection must be the same.')
 
     def __getitem__(self, value):
-        return self._ion_list[value]
+        ions = self._ion_list[value]
+        if isinstance(ions, list):
+            return IonCollection(*ions)
+        else:
+            return ions
 
     def __contains__(self, value):
         if type(value) is str:

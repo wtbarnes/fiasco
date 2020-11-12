@@ -45,37 +45,12 @@ def test_radd_elements(element, another_element):
     assert collection[0].ion_name == another_element[0].ion_name
 
 
-def test_create_element_number(element, hdf5_dbase_root):
-    other_element = fiasco.Element(element.atomic_number,
-                                   temperature,
-                                   hdf5_dbase_root=hdf5_dbase_root)
-    for ion in other_element:
-        assert ion in element
-    assert other_element.atomic_symbol == element.atomic_symbol
-    assert other_element.atomic_number == element.atomic_number
-    assert other_element.element_name == element.element_name
-
-
-def test_create_element_name(element, hdf5_dbase_root):
-    other_element = fiasco.Element(element.element_name,
-                                   temperature,
-                                   hdf5_dbase_root=hdf5_dbase_root)
-    for ion in other_element:
-        assert ion in element
-    assert other_element.atomic_symbol == element.atomic_symbol
-    assert other_element.atomic_number == element.atomic_number
-    assert other_element.element_name == element.element_name
-
-
-def test_create_element_lowercase(element, hdf5_dbase_root):
-    other_element = fiasco.Element(element.atomic_symbol.lower(),
-                                   temperature,
-                                   hdf5_dbase_root=hdf5_dbase_root)
-    for ion in other_element:
-        assert ion in element
-    assert other_element.atomic_symbol == element.atomic_symbol
-    assert other_element.atomic_number == element.atomic_number
-    assert other_element.element_name == element.element_name
+@pytest.mark.parametrize('symbol', [1, 'hydrogen', 'Hydrogen', 'H'])
+def test_create_element_number(symbol, hdf5_dbase_root):
+    other_element = fiasco.Element(symbol, temperature, hdf5_dbase_root=hdf5_dbase_root)
+    assert other_element.atomic_symbol == 'H'
+    assert other_element.atomic_number == 1
+    assert other_element.element_name == 'hydrogen'
 
 
 def test_getitem_ion_name(element):
