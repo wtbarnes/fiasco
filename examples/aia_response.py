@@ -30,6 +30,8 @@ response = ch.wavelength_response() * ch.plate_scale
 plt.plot(ch.wavelength, response)
 plt.xlim(ch.channel + [-4, 4]*u.angstrom)
 plt.axvline(x=ch.channel, ls='--', color='k')
+plt.title(f'{ch.channel.to_string(format="latex")} Wavelength Response')
+plt.show()
 
 ############################################################
 # Next, we construct for the `~fiasco.Ion` object for Fe 18. Note
@@ -42,7 +44,7 @@ fe18 = fiasco.Ion('Fe 18', temperature,
 ############################################################
 # Compute contribution function,
 #
-# .. math:: G(n,T,\lambda) = 0.83\mathrm{Ab}\frac{hc}{\lambda}N_{\lambda}A_{\lambda}f\frac{1}{n}\quad \mathrm{[erg~cm^3~s^{-1}]}
+# .. math:: G(n,T,\lambda) = 0.83\mathrm{Ab}\frac{hc}{\lambda}N_{\lambda}A_{\lambda}f\frac{1}{n}
 #
 # for each transition of Fe 18 at a single density.
 # `~fiasco.Ion.contribution_function` also accepts an array of
@@ -60,13 +62,18 @@ f = interp1d(ch.wavelength, response, fill_value='extrapolate')
 response_transitions = f(transitions) * response.unit
 
 ############################################################
-# In order to compute the temperature response function, we integrate the
-# wavelength response function, weighted by the contribution function, over
-# the given wavelength range. We divide by :math:`hc/\\lambda` in order to
+# In order to compute the temperature response function :math:`K_c`, we
+# integrate the wavelength response function :math:`R_c`, weighted by the
+# contribution function :math:`G(\lambda,T)`, over wavelength,
+#
+# .. math:: K_c(T) = \int_0^{\infty}\mathrm{d}\lambda\,G(\lambda,T)R_c(\lambda)
+#
+# We divide by :math:`hc/\lambda` in order to
 # convert from units of energy to photons. The factor of :math:`0.83` is a
 # relative scaling factor for the abundance of H and is not included in the
-# temperature responses computed by `aia_get_response.pro`. For more
-# more information on the AIA wavelength response calculation,
+# temperature responses computed by
+# aia_get_response.pro` <https://hesperia.gsfc.nasa.gov/ssw/sdo/aia/idl/response/aia_get_response.pro>`_.
+# For more more information on the AIA wavelength response calculation,
 # see `Boerner et al. (2012) <https://ui.adsabs.harvard.edu/abs/2012SoPh..275...41B/>`_.
 K = (g / energy * response_transitions).sum(axis=2) / (4*np.pi*u.steradian) / 0.83
 K = K.squeeze().to('cm5 ct pix-1 s-1')
@@ -79,6 +86,7 @@ plt.xscale('log')
 plt.yscale('log')
 plt.ylim(1e-29, 1e-26)
 plt.xlim(1e5, 3e7)
+plt.title(f'{ch.channel.to_string(format="latex")} Response for {fe18.roman_name}')
 plt.show()
 
 ############################################################
