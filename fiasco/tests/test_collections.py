@@ -56,10 +56,15 @@ def test_create_collection_from_collection(collection):
     assert isinstance(fiasco.IonCollection(collection), fiasco.IonCollection)
 
 
-def test_getitem(ion, another_ion):
-    collection = fiasco.IonCollection(ion, another_ion)
+def test_getitem(ion, another_ion, element, another_element):
+    collection = fiasco.IonCollection(ion, another_ion, element, another_element)
     assert collection[0] == ion
     assert collection[1] == another_ion
+    assert isinstance(collection[1:2], fiasco.IonCollection)
+    assert collection[1:2][0] == another_ion
+    assert isinstance(collection[:2], fiasco.IonCollection)
+    for i in collection:
+        assert isinstance(i, fiasco.Ion)
 
 
 def test_contains(collection, hdf5_dbase_root):
