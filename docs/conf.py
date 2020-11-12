@@ -137,6 +137,7 @@ if ON_RTD or ON_GHA:
             'chianti.ip',
             'chianti.ioneq',
             'sun_photospheric_1998_grevesse.abund',
+            'sun_coronal_1992_feldman.abund',
             'c_1.diparams',
             'c_2.diparams',
             'c_2.drparams',
