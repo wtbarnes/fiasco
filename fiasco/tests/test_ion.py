@@ -197,3 +197,21 @@ def test_create_ion_without_units_raises_units_error(hdf5_dbase_root):
 def test_create_ion_with_wrong_units_raises_unit_conversion_error(hdf5_dbase_root):
     with pytest.raises(u.UnitsError):
         fiasco.Ion('Fe 5', temperature.value*u.s, hdf5_dbase_root=hdf5_dbase_root)
+
+
+def test_indexing_no_levels(hdf5_dbase_root):
+    ion = fiasco.Ion('Fe 1', temperature, hdf5_dbase_root=hdf5_dbase_root)
+    print(ion)
+    assert [l for l in ion] == []
+    with pytest.raises(IndexError,
+                       match='No energy levels available for Fe 1'):
+        ion[0]
+
+
+def test_repr_no_levels(hdf5_dbase_root):
+    """
+    Ensures the repr can be printed without errors even when
+    no energy level or transition information is available.
+    """
+    assert fiasco.Ion('Fe 1', temperature,
+                      hdf5_dbase_root=hdf5_dbase_root).__repr__

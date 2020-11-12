@@ -80,7 +80,9 @@ intersphinx_mapping = {
     'matplotlib': ('https://matplotlib.org/',
                    (None, 'http://data.astropy.org/intersphinx/matplotlib.inv')),
     'astropy': ('http://docs.astropy.org/en/stable/', None),
-    'sunpy': ('https://docs.sunpy.org/en/stable/', None)}
+    'sunpy': ('https://docs.sunpy.org/en/stable/', None),
+    'aiapy': ('https://aiapy.readthedocs.io/en/stable/', None),
+}
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -125,22 +127,49 @@ if ON_RTD or ON_GHA:
     FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
     if not os.path.exists(FIASCO_HOME):
         os.makedirs(FIASCO_HOME)
-    ascii_dbase_root = os.path.join(FIASCO_HOME, 'ascii_dbase')
+    ascii_dbase_root = os.path.join(FIASCO_HOME, 'chianti_dbase')
     hdf5_dbase_root = os.path.join(FIASCO_HOME, 'chianti_dbase.h5')
     download_dbase(CHIANTI_URL.format(version=LATEST_VERSION), ascii_dbase_root)
     build_hdf5_dbase(
         ascii_dbase_root,
         hdf5_dbase_root,
-        files=['chianti.ip',
-               'chianti.ioneq',
-               'sun_photospheric_1998_grevesse.abund',
-               'fe_5.elvlc',
-               'fe_15.elvlc',
-               'fe_18.rrparams',
-               'fe_18.drparams',
-               'o_6.scups',
-               'o_6.elvlc',
-               'o_6.wgfa',]
+        files=[
+            'chianti.ip',
+            'chianti.ioneq',
+            'sun_photospheric_1998_grevesse.abund',
+            'sun_coronal_1992_feldman.abund',
+            'c_1.diparams',
+            'c_2.diparams',
+            'c_2.drparams',
+            'c_2.rrparams',
+            'c_3.diparams',
+            'c_3.drparams',
+            'c_3.easplups',
+            'c_3.rrparams',
+            'c_4.diparams',
+            'c_4.drparams',
+            'c_4.easplups',
+            'c_4.rrparams',
+            'c_5.diparams',
+            'c_5.drparams',
+            'c_5.rrparams',
+            'c_6.diparams',
+            'c_6.drparams',
+            'c_6.rrparams',
+            'c_7.rrparams',
+            'fe_5.elvlc',
+            'fe_15.elvlc',
+            'fe_16.diparams',
+            'fe_16.drparams',
+            'fe_16.easplups',
+            'fe_16.rrparams',
+            'fe_18.elvlc',
+            'fe_18.wgfa',
+            'fe_18.scups',
+            'o_6.scups',
+            'o_6.elvlc',
+            'o_6.wgfa',
+        ]
     )
     with open(os.path.join(FIASCO_HOME, 'fiascorc'), 'w') as f:
         c = configparser.ConfigParser()
@@ -153,5 +182,7 @@ if ON_RTD or ON_GHA:
 extensions += ['sphinx_gallery.gen_gallery']
 sphinx_gallery_conf = {
      'examples_dirs': '../examples',   # path to your example scripts
-     'gallery_dirs': 'auto_examples',  # path to where to save gallery generated output
+     'gallery_dirs': 'generated/gallery',  # path to where to save gallery generated output
+     'filename_pattern': '^((?!skip_).)*$',
+     'default_thumb_file': '_static/fiasco-logo.png'
 }

@@ -57,8 +57,14 @@ class Ion(IonBase, ContinuumBase):
         self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
 
     def __repr__(self):
-        n_levels = self._elvlc['level'].shape[0] if self._elvlc else 0
-        n_transitions = self._wgfa['lower_level'].shape[0] if self._wgfa else 0
+        try:
+            n_levels = self._elvlc['level'].shape[0]
+        except KeyError:
+            n_levels = 0
+        try:
+            n_transitions = self._wgfa['lower_level'].shape[0]
+        except KeyError:
+            n_transitions = 0
         return f"""CHIANTI Database Ion
 ---------------------
 Name: {self.ion_name}
