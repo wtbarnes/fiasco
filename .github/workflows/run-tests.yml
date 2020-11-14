@@ -41,7 +41,10 @@ jobs:
         - os: ubuntu-latest
           python-version: 3.8
           toxenv: py38 -- --ascii-dbase-root=https://www.chiantidatabase.org/download/CHIANTI_9.0.1_data.tar.gz --disable-file-hash
-        # Docs
+        - os: ubuntu-latest
+          python-version: 3.8
+          toxenv: py38 -- --ascii-dbase-root=https://www.chiantidatabase.org/download/CHIANTI_10.0.0_data.tar.gz --disable-file-hash
+         # Docs
         - os: ubuntu-latest
           python-version: 3.8
           toxenv: build_docs
