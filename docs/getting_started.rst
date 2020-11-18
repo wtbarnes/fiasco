@@ -1,51 +1,18 @@
 Getting Started
 ================
 
-Dependencies
-------------
-Before installing fiasco, you'll need to install Python and several other packages. The recommended Python distribution is the `Anaconda distribution`_. fiasco requires Python 3.6+. For additional instructions on installing scientific Python, see `this page`_.
-
-Next, install the following packages,
-
-- numpy
-- scipy
-- astropy
-- h5py
-- plasmapy (pip only)
-- fortranformat (pip only)
-
-These packages can be installed either using conda (recommended),
-
-.. code-block:: shell
-
-   $ conda install {package-name}
-
-or pip,
-
-.. code-block:: shell
-
-   $ pip install {package-name}
-
-
 Installation
 ------------
-
-Finally, install fiasco from GitHub, either via pip
-
-.. code-block:: shell
-
-   $ pip install git+git://github.com/wtbarnes/fiasco.git
-
-or from source using `setup.py`,
+Currently, fiasco is only available via GitHub. We plan to make it available as a package
+on both `conda forge`_ and pip in the near future. To install the package,
 
 .. code-block:: shell
 
    $ git clone https://github.com/wtbarnes/fiasco.git
    $ cd fiasco
-   $ python setup.py install
+   $ pip install -e .
 
-.. note:: Currently, fiasco is only available via GitHub. We plan to make it available as a package
-          on both `conda forge`_ and pip in the near future.
+This will install the package and all needed dependencies.
 
 Acquiring the Atomic Data
 -------------------------
@@ -84,8 +51,6 @@ To double check that these presets have been set correctly,
 
 should show the paths set in the configuration file.
 
-.. _Anaconda distribution: https://docs.anaconda.com/anaconda/install/
-.. _this page: http://docs.sunpy.org/en/stable/guide/installation/index.html#installing-scientific-python-and-sunpy
 .. _conda forge: https://conda-forge.org/
 .. _SSW: http://www.lmsal.com/solarsoft/
 .. _HDF5: https://en.wikipedia.org/wiki/Hierarchical_Data_Format
