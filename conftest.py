@@ -1,6 +1,3 @@
-# this contains imports plugins that configure py.test for astropy tests.
-# by importing them here in conftest.py they are discoverable by py.test
-# no matter how it is invoked within the source tree.
 import os
 from urllib.request import urlopen
 
@@ -8,6 +5,15 @@ import pytest
 
 from fiasco.util import build_hdf5_dbase, download_dbase
 from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
+
+# Force MPL to use non-gui backends for testing.
+try:
+    import matplotlib
+except ImportError:
+    pass
+else:
+    matplotlib.use('Agg')
+
 
 # Minimal set of CHIANTI files needed to run the tests
 # NOTE: need some way for this to be flexible depending on the supplied database version
@@ -80,7 +86,7 @@ TEST_FILES = {
 def pytest_addoption(parser):
     parser.addoption('--ascii-dbase-root', action='store', default=None)
     parser.addoption('--disable-file-hash', action='store_true', default=False,
-                     help='Enable MD5 hash checks on test files')
+                     help='Disable MD5 hash checks on test files')
 
 
 @pytest.fixture(scope='session')
