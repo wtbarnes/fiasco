@@ -34,7 +34,7 @@ def test_repr(ion):
     assert 'Fe 5' in ion.__repr__()
 
 
-def test_repr_scalar_temp(ion, hdf5_dbase_root):
+def test_repr_scalar_temp(hdf5_dbase_root):
     assert 'Fe 5' in fiasco.Ion('Fe 5', 1e6 * u.K, hdf5_dbase_root=hdf5_dbase_root).__repr__()
 
 
@@ -82,6 +82,10 @@ def test_ioneq(ion):
     # Essentially test that we've done the interpolation to the data correctly
     # for a single value
     np.testing.assert_allclose(ion.ioneq[0], ioneq_data[i_t])
+
+
+def test_formation_temeprature(ion):
+    assert ion.formation_temperature == ion.temperature[np.argmax(ion.ioneq)]
 
 
 def test_abundance(ion):

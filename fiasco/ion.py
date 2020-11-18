@@ -156,6 +156,13 @@ Using Datasets:
         """
         return (self.atomic_number - self.charge_state == 2) and (self.atomic_number >= 10)
 
+    @property
+    def formation_temperature(self) -> u.K:
+        """
+        Temperature at which `~fiasco.Ion.ioneq` is maximum
+        """
+        return self.temperature[np.argmax(self.ioneq)]
+
     @needs_dataset('scups')
     @u.quantity_input
     def effective_collision_strength(self) -> u.dimensionless_unscaled:

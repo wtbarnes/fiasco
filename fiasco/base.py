@@ -71,6 +71,7 @@ class Base(object):
     def roman_name(self):
         return f'{self.atomic_symbol} {self.roman_numeral}'
 
+
 class ContinuumBase(Base):
     """
     Base class for retrieving continuum datasets.
