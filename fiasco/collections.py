@@ -142,19 +142,33 @@ class IonCollection(object):
         # Compute all intensities
         intensity, wavelength = None, None
         for ion in self:
-            wave = ion.transitions.wavelength[~ion.transitions.is_twophoton]
-            i_wavelength, = np.where(np.logical_and(wave >= wavelength_range[0],
-                                                    wave <= wavelength_range[1]))
+            # If no elvlc and wgfa data, cannot calculate spectra
+            try:
+                wave = ion.transitions.wavelength[~ion.transitions.is_twophoton]
+            except MissingDatasetException:
+                warnings.warn(f'No transition data available for {ion.ion_name}')
+                continue
+            else:
+                i_wavelength, = np.where(np.logical_and(wave >= wavelength_range[0],
+                                                        wave <= wavelength_range[1]))
             # Skip if no transitions in this range
             if i_wavelength.shape[0] == 0:
                 continue
-            intens = ion.intensity(density, emission_measure, **kwargs)
+            # If no scups data, cannot calculate spectra
+            try:
+                intens = ion.intensity(density, emission_measure, **kwargs)
+            except MissingDatasetException:
+                warnings.warn(f'No collision data available for {ion.ion_name}')
+                continue
             if wavelength is None:
                 wavelength = wave[i_wavelength].value
                 intensity = intens[:, :, i_wavelength].value
             else:
                 wavelength = np.concatenate((wavelength, wave[i_wavelength].value))
                 intensity = np.concatenate((intensity, intens[:, :, i_wavelength].value), axis=2)
+
+        if wavelength is None:
+            raise ValueError('No collision or transition data available for any ion in collection.')
 
         if np.any(np.isinf(wavelength_range)):
             wavelength_range = u.Quantity([wavelength.min(), wavelength.max()], wave.unit)

@@ -137,6 +137,16 @@ def test_emissivity(ion):
     assert u.allclose(emm[0, 0, 0], 5.24152109e-17 * u.erg / u.cm**3 / u.s)
 
 
+@pytest.mark.parametrize('em', [
+    1e29 * u.cm**-5,
+    [1e29] * u.cm**-5,
+    1e29 * np.ones(temperature.shape) * u.cm**-5,
+])
+def test_intensity(ion, em):
+    intens = ion.intensity(1e7 * u.cm**-3, em)
+    assert intens.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape
+
+
 def test_excitation_autoionization_rate(ion):
     rate = ion.excitation_autoionization_rate()
     assert rate.shape == ion.temperature.shape
