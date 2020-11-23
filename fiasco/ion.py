@@ -476,6 +476,7 @@ Using Datasets:
         emission_measure : `~astropy.units.Quantity`
             Column emission measure
         """
+        emission_measure = np.atleast_1d(emission_measure)
         g = self.contribution_function(density, **kwargs)
         return 1/(4.*np.pi*u.steradian) * g * emission_measure[:, np.newaxis, np.newaxis]
 

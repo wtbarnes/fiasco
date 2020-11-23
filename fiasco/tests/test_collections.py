@@ -1,6 +1,8 @@
 """
 Test collection functionality
 """
+import warnings
+
 import numpy as np
 import astropy.units as u
 import pytest
@@ -73,6 +75,30 @@ def test_contains(collection, hdf5_dbase_root):
     assert 'hydrogen +0' in collection
     ion = fiasco.Ion('H 1', temperature, hdf5_dbase_root=hdf5_dbase_root)
     assert ion in collection
+
+
+def test_spectrum(hdf5_dbase_root):
+    i1 = fiasco.Ion('H 1', 1 * u.MK, hdf5_dbase_root=hdf5_dbase_root)
+    i2 = fiasco.Ion('Fe 5', 1 * u.MK, hdf5_dbase_root=hdf5_dbase_root)
+    c = i1 + i2
+    density = 1e9 * u.cm**-3
+    em = 1e29 * u.cm**-5
+    w, spec = c.spectrum(density, em)
+    assert spec.shape == (1, 1, ) + w.shape
+    # Add an ion with no spectral information
+    i3 = fiasco.Ion('H 2', 1 * u.MK, hdf5_dbase_root=hdf5_dbase_root)
+    c += i3
+    with pytest.warns(UserWarning, match=f'No transition data available for {i3.ion_name}'):
+        w2, spec2 = c.spectrum(density, em)
+    assert spec2.shape == (1, 1, ) + w2.shape
+    assert np.all(spec == spec2)
+
+
+def test_spectrum_no_valid_ions(hdf5_dbase_root):
+    # Consider the case of an collection with ions with no spectral information
+    c2 = fiasco.IonCollection(fiasco.Ion('H 2', 1 * u.MK, hdf5_dbase_root=hdf5_dbase_root))
+    with pytest.raises(ValueError, match='No collision or transition data available for any ion in collection.'):
+        _ = c2.spectrum(1e9 * u.cm**-3, 1e29 * u.cm**-5)
 
 
 def test_unequal_temperatures_raise_assertion_error(hdf5_dbase_root):
