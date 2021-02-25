@@ -18,7 +18,7 @@ from .util import get_masterlist, query_yes_no
 from .exceptions import MissingASCIIFileError
 
 FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
-CHIANTI_URL = 'http://www.chiantidatabase.org/download/CHIANTI_{version}_data.tar.gz'
+CHIANTI_URL = 'http://download.chiantidatabase.org/CHIANTI_v{version}_database.tar.gz'
 LATEST_VERSION = '8.0.7'
 
 __all__ = ['check_database', 'download_dbase', 'build_hdf5_dbase']
