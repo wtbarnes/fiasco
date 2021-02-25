@@ -26,8 +26,12 @@ def fe10(hdf5_dbase_root):
     return fiasco.Ion('Fe 10', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
 
-def test_level_indexing(ion):
-    assert isinstance(ion[0], fiasco.ion.Level)
+def test_level(ion):
+    level = ion[0]
+    assert isinstance(level, fiasco.ion.Level)
+    assert level.multiplicity == 5
+    assert level.total_angular_momentum == 0
+    assert level.orbital_angular_momentum_label == 'D'
 
 
 def test_repr(ion):
