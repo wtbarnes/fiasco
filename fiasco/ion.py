@@ -185,7 +185,7 @@ Using Datasets:
     @needs_dataset('elvlc', 'scups')
     @u.quantity_input
     def electron_collision_deexcitation_rate(self) -> u.cm**3 / u.s:
-        """
+        r"""
         Collisional de-excitation rate coefficient for electrons.
 
         According to Eq. (4.12) of [phillips]_, the rate coefficient for collisional de-excitation
@@ -193,10 +193,10 @@ Using Datasets:
 
         .. math::
 
-           C^d_{ji} = I_Ha_0^2\sqrt{\\frac{8\pi}{mk_B}}\\frac{\\Upsilon}{\omega_jT^{1/2}},
+           C^d_{ji} = I_Ha_0^2\sqrt{\frac{8\pi}{mk_B}}\frac{\Upsilon}{\omega_jT^{1/2}},
 
         where :math:`j,i` are the upper and lower level indices, respectively, :math:`I_H` is the
-        ionization potential for H, :math:`a_0` is the Bohr radius, :math:`\\Upsilon` is the
+        ionization potential for H, :math:`a_0` is the Bohr radius, :math:`\Upsilon` is the
         effective collision strength, and :math:`\omega_j` is the statistical weight of the
         level :math:`j`.
 
@@ -217,14 +217,14 @@ Using Datasets:
     @needs_dataset('elvlc', 'scups')
     @u.quantity_input
     def electron_collision_excitation_rate(self, deexcitation_rate=None) -> u.cm**3 / u.s:
-        """
+        r"""
         Collisional excitation rate coefficient for electrons.
 
         The rate coefficient for collisional excitation is given by,
 
         .. math::
 
-            C^e_{ij} = \\frac{\omega_j}{\omega_i}C^d_{ji}e^{-k_BT_e/\Delta E_{ij}}
+            C^e_{ij} = \frac{\omega_j}{\omega_i}C^d_{ji}e^{-k_BT_e/\Delta E_{ij}}
 
         where :math:`j,i` are the upper and lower level indices, respectively, :math:`\omega_j,\omega_i`
         are the statistical weights of the upper and lower levels, respectively, and :math:`\Delta E_{ij}`
@@ -376,7 +376,7 @@ Using Datasets:
     @needs_dataset('abundance', 'elvlc')
     @u.quantity_input
     def contribution_function(self, density: u.cm**(-3), **kwargs) -> u.cm**3 * u.erg / u.s:
-        """
+        r"""
         Contribution function :math:`G(n,T)` for all transitions
 
         The contribution function for ion :math:`k` of element :math:`X` for a
@@ -384,7 +384,7 @@ Using Datasets:
 
         .. math::
 
-           G_{ij} = \\frac{n_H}{n_e}\mathrm{Ab}(X)f_{X,k}N_jA_{ij}\Delta E_{ij}\\frac{1}{n_e},
+           G_{ij} = \frac{n_H}{n_e}\mathrm{Ab}(X)f_{X,k}N_jA_{ij}\Delta E_{ij}\frac{1}{n_e},
 
         Note that the contribution function is often defined in differing ways by different authors.
         The contribution function is defined as above in [1]_.
@@ -417,7 +417,7 @@ Using Datasets:
 
     @u.quantity_input
     def emissivity(self, density: u.cm**(-3), **kwargs) -> u.erg * u.cm**(-3) / u.s:
-        """
+        r"""
         Emissivity as a function of temperature and density for all transitions
 
         The emissivity is given by the expression,
@@ -446,20 +446,20 @@ Using Datasets:
     def intensity(self,
                   density: u.cm**(-3),
                   emission_measure: u.cm**(-5), **kwargs) -> u.erg / u.cm**2 / u.s / u.steradian:
-        """
+        r"""
         Line-of-sight intensity computed assuming a particular column emission measure
 
         The intensity along the line-of-sight can be written as,
 
         .. math::
 
-           I = \\frac{1}{4\pi}\int\mathrm{d}T,G(n,T)n^2\\frac{dh}{dT}
+           I = \frac{1}{4\pi}\int\mathrm{d}T,G(n,T)n^2\frac{dh}{dT}
 
         which, in the isothermal approximation, can be simplified to,
 
         .. math::
 
-           I(T_0) \\approx \\frac{1}{4\pi}G(n,T_0)\mathrm{EM}(T_0)
+           I(T_0) \approx \frac{1}{4\pi}G(n,T_0)\mathrm{EM}(T_0)
 
         where,
 
@@ -816,7 +816,7 @@ Using Datasets:
     @needs_dataset('itoh')
     @u.quantity_input
     def _gaunt_factor_free_free_itoh(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
-        """
+        r"""
         Calculates the free-free gaunt factor of [1]_.
 
         Need some equations here...

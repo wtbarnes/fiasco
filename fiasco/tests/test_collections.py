@@ -83,7 +83,8 @@ def test_spectrum(hdf5_dbase_root):
     c = i1 + i2
     density = 1e9 * u.cm**-3
     em = 1e29 * u.cm**-5
-    w, spec = c.spectrum(density, em)
+    with pytest.warns(UserWarning, match='Using 0.1 Angstroms'):
+        w, spec = c.spectrum(density, em)
     assert spec.shape == (1, 1, ) + w.shape
     # Add an ion with no spectral information
     i3 = fiasco.Ion('H 2', 1 * u.MK, hdf5_dbase_root=hdf5_dbase_root)
@@ -97,8 +98,9 @@ def test_spectrum(hdf5_dbase_root):
 def test_spectrum_no_valid_ions(hdf5_dbase_root):
     # Consider the case of an collection with ions with no spectral information
     c2 = fiasco.IonCollection(fiasco.Ion('H 2', 1 * u.MK, hdf5_dbase_root=hdf5_dbase_root))
-    with pytest.raises(ValueError, match='No collision or transition data available for any ion in collection.'):
-        _ = c2.spectrum(1e9 * u.cm**-3, 1e29 * u.cm**-5)
+    with pytest.warns(UserWarning, match='No transition data available for H 2'):
+        with pytest.raises(ValueError, match='No collision or transition data available for any ion in collection.'):
+            c2.spectrum(1e9 * u.cm**-3, 1e29 * u.cm**-5)
 
 
 def test_unequal_temperatures_raise_assertion_error(hdf5_dbase_root):
