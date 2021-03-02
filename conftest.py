@@ -56,6 +56,8 @@ TEST_FILES = {
     'c_6.drparams':                         '56503cbd1ed960101eefeaff77b41392',
     'c_6.rrparams':                         '811014c5b1ee782e12bab6ea53f52f04',
     'c_7.rrparams':                         '686156392d4cfabb3f0ff0280970f562',
+    'ca_4.rrparams':                        '35f3713b90e6be7de6ca36c558546578',
+    'ca_4.drparams':                        '7cbb34c0041aba833c389256863b66cc',
     'li_1.diparams':                        '2a4b60bc799a1ea3ee3e911b5968733e',
     'ca_2.elvlc':                           'c8a9dbdc622d0a15eea6cf0eb1631d3b',
     'fe_2.elvlc':                           '9306d594a66b4649363a778a650853f9',
