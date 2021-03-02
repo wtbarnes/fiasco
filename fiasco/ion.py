@@ -129,7 +129,7 @@ Using Datasets:
     @property
     def abundance(self):
         """
-        Elemental abundance relative to H
+        Elemental abundance relative to H.
         """
         return self._abundance[self._dset_names['abundance_filename']]
 
@@ -138,42 +138,52 @@ Using Datasets:
     @u.quantity_input
     def ip(self) -> u.erg:
         """
-        Ionization potential with reasonable units
+        Ionization potential.
         """
         return self._ip[self._dset_names['ip_filename']] * const.h * const.c
 
     @property
     def hydrogenic(self):
         """
-        Is the ion hydrogen-like or not
+        Is the ion hydrogen-like or not.
+
+        Notes
+        -----
+        This is `True` if (atomic number - charge state) == 1 and atomic number is
+        >= 6.
         """
         return (self.atomic_number - self.charge_state == 1) and (self.atomic_number >= 6)
 
     @property
     def helium_like(self):
         """
-        Is the ion helium like or not
+        Is the ion helium like or not.
+
+        Notes
+        -----
+        This is `True` if (atomic number - charge state) == 2 and atomic number is
+        >= 10.
         """
         return (self.atomic_number - self.charge_state == 2) and (self.atomic_number >= 10)
 
     @property
     def formation_temperature(self) -> u.K:
         """
-        Temperature at which `~fiasco.Ion.ioneq` is maximum
+        Temperature at which `~fiasco.Ion.ioneq` is maximum.
         """
         return self.temperature[np.argmax(self.ioneq)]
 
     @needs_dataset('scups')
     @u.quantity_input
     def effective_collision_strength(self) -> u.dimensionless_unscaled:
-        """
-        Maxwellian-averaged collision strength, typically denoted by :math:`\\Upsilon`
+        r"""
+        Maxwellian-averaged collision strength, typically denoted by :math:`\Upsilon`.
 
         See Also
         --------
-        fiasco.util.burgess_tully_descale : Descale and interpolate :math:`\\Upsilon`
+        fiasco.util.burgess_tully_descale : Descale and interpolate :math:`\Upsilon`.
         """
-        kBTE = np.outer(const.k_B*self.temperature, 1.0/self._scups['delta_energy'])
+        kBTE = np.outer(const.k_B * self.temperature, 1.0 / self._scups['delta_energy'])
         upsilon = burgess_tully_descale(self._scups['bt_t'],
                                         self._scups['bt_upsilon'],
                                         kBTE.T,
@@ -185,7 +195,7 @@ Using Datasets:
     @needs_dataset('elvlc', 'scups')
     @u.quantity_input
     def electron_collision_deexcitation_rate(self) -> u.cm**3 / u.s:
-        """
+        r"""
         Collisional de-excitation rate coefficient for electrons.
 
         According to Eq. (4.12) of [phillips]_, the rate coefficient for collisional de-excitation
@@ -193,10 +203,10 @@ Using Datasets:
 
         .. math::
 
-           C^d_{ji} = I_Ha_0^2\sqrt{\\frac{8\pi}{mk_B}}\\frac{\\Upsilon}{\omega_jT^{1/2}},
+           C^d_{ji} = I_Ha_0^2\sqrt{\frac{8\pi}{mk_B}}\\frac{\Upsilon}{\omega_jT^{1/2}},
 
         where :math:`j,i` are the upper and lower level indices, respectively, :math:`I_H` is the
-        ionization potential for H, :math:`a_0` is the Bohr radius, :math:`\\Upsilon` is the
+        ionization potential for H, :math:`a_0` is the Bohr radius, :math:`\Upsilon` is the
         effective collision strength, and :math:`\omega_j` is the statistical weight of the
         level :math:`j`.
 
@@ -207,9 +217,9 @@ Using Datasets:
         See Also
         --------
         electron_collision_excitation_rate : Excitation rate due to collisions
-        effective_collision_strength : Maxwellian-averaged collision strength, :math:`\\Upsilon`
+        effective_collision_strength : Maxwellian-averaged collision strength, :math:`\Upsilon`
         """
-        c = (const.h**2)/((2. * np.pi * const.m_e)**(1.5) * np.sqrt(const.k_B))
+        c = (const.h**2) / ((2. * np.pi * const.m_e)**(1.5) * np.sqrt(const.k_B))
         upsilon = self.effective_collision_strength()
         omega_upper = 2. * self._elvlc['J'][self._scups['upper_level'] - 1] + 1.
         return c * upsilon / np.sqrt(self.temperature[:, np.newaxis]) / omega_upper
@@ -217,14 +227,14 @@ Using Datasets:
     @needs_dataset('elvlc', 'scups')
     @u.quantity_input
     def electron_collision_excitation_rate(self, deexcitation_rate=None) -> u.cm**3 / u.s:
-        """
+        r"""
         Collisional excitation rate coefficient for electrons.
 
         The rate coefficient for collisional excitation is given by,
 
         .. math::
 
-            C^e_{ij} = \\frac{\omega_j}{\omega_i}C^d_{ji}e^{-k_BT_e/\Delta E_{ij}}
+            C^e_{ij} = \frac{\omega_j}{\omega_i}C^d_{ji}e^{-k_BT_e/\Delta E_{ij}}
 
         where :math:`j,i` are the upper and lower level indices, respectively, :math:`\omega_j,\omega_i`
         are the statistical weights of the upper and lower levels, respectively, and :math:`\Delta E_{ij}`
@@ -250,12 +260,12 @@ Using Datasets:
     @u.quantity_input
     def proton_collision_excitation_rate(self) -> u.cm**3 / u.s:
         """
-        Collisional excitation rate coefficient for protons
+        Collisional excitation rate coefficient for protons.
         """
         # Create scaled temperature--these are not stored in the file
         bt_t = [np.linspace(0, 1, ups.shape[0]) for ups in self._psplups['bt_rate']]
         # Get excitation rates directly from scaled data
-        kBTE = np.outer(const.k_B*self.temperature, 1.0/self._psplups['delta_energy'])
+        kBTE = np.outer(const.k_B * self.temperature, 1.0 / self._psplups['delta_energy'])
         ex_rate = burgess_tully_descale(bt_t,
                                         self._psplups['bt_rate'],
                                         kBTE.T,
@@ -267,13 +277,13 @@ Using Datasets:
     @u.quantity_input
     def proton_collision_deexcitation_rate(self, excitation_rate=None) -> u.cm**3 / u.s:
         """
-        Collisional de-excitation rate coefficient for protons
+        Collisional de-excitation rate coefficient for protons.
         """
-        kBTE = np.outer(const.k_B*self.temperature, 1.0/self._psplups['delta_energy'])
+        kBTE = np.outer(const.k_B * self.temperature, 1.0 / self._psplups['delta_energy'])
         if excitation_rate is None:
             excitation_rate = self.proton_collision_excitation_rate()
-        omega_upper = 2.*self._elvlc['J'][self._psplups['upper_level'] - 1] + 1.
-        omega_lower = 2.*self._elvlc['J'][self._psplups['lower_level'] - 1] + 1.
+        omega_upper = 2. * self._elvlc['J'][self._psplups['upper_level'] - 1] + 1.
+        omega_lower = 2. * self._elvlc['J'][self._psplups['lower_level'] - 1] + 1.
         dex_rate = (omega_lower / omega_upper) * excitation_rate * np.exp(1. / kBTE)
 
         return dex_rate
@@ -284,13 +294,13 @@ Using Datasets:
                           density: u.cm**(-3),
                           include_protons=True) -> u.dimensionless_unscaled:
         """
-        Compute energy level populations as a function of temperature and density
+        Energy level populations as a function of temperature and density.
 
         Parameters
         ----------
         density : `~astropy.units.Quantity`
         include_protons : `bool`, optional
-            If True (default), include proton excitation and de-excitation rates
+            If True (default), include proton excitation and de-excitation rates.
 
         Returns
         -------
@@ -376,18 +386,18 @@ Using Datasets:
     @needs_dataset('abundance', 'elvlc')
     @u.quantity_input
     def contribution_function(self, density: u.cm**(-3), **kwargs) -> u.cm**3 * u.erg / u.s:
-        """
-        Contribution function :math:`G(n,T)` for all transitions
+        r"""
+        Contribution function :math:`G(n,T)` for all transitions.
 
         The contribution function for ion :math:`k` of element :math:`X` for a
         particular transition :math:`ij` is given by,
 
         .. math::
 
-           G_{ij} = \\frac{n_H}{n_e}\mathrm{Ab}(X)f_{X,k}N_jA_{ij}\Delta E_{ij}\\frac{1}{n_e},
+           G_{ij} = \frac{n_H}{n_e}\mathrm{Ab}(X)f_{X,k}N_jA_{ij}\Delta E_{ij}\frac{1}{n_e},
 
         Note that the contribution function is often defined in differing ways by different authors.
-        The contribution function is defined as above in [1]_.
+        The contribution function is defined as above in [young]_.
 
         The corresponding wavelengths can be retrieved with,
 
@@ -402,7 +412,7 @@ Using Datasets:
 
         References
         ----------
-        .. [1] Young, P. et al., 2016, J. Phys. B: At. Mol. Opt. Phys., `49, 7 <http://iopscience.iop.org/article/10.1088/0953-4075/49/7/074009/meta>`_
+        .. [young] Young, P. et al., 2016, J. Phys. B: At. Mol. Opt. Phys., `49, 7 <http://iopscience.iop.org/article/10.1088/0953-4075/49/7/074009/meta>`_
         """
         populations = self.level_populations(density, **kwargs)
         term = np.outer(self.ioneq, 1./density) * self.abundance * 0.83
@@ -417,8 +427,8 @@ Using Datasets:
 
     @u.quantity_input
     def emissivity(self, density: u.cm**(-3), **kwargs) -> u.erg * u.cm**(-3) / u.s:
-        """
-        Emissivity as a function of temperature and density for all transitions
+        r"""
+        Emissivity as a function of temperature and density for all transitions.
 
         The emissivity is given by the expression,
 
@@ -446,20 +456,20 @@ Using Datasets:
     def intensity(self,
                   density: u.cm**(-3),
                   emission_measure: u.cm**(-5), **kwargs) -> u.erg / u.cm**2 / u.s / u.steradian:
-        """
-        Line-of-sight intensity computed assuming a particular column emission measure
+        r"""
+        Line-of-sight intensity computed assuming a particular column emission measure.
 
         The intensity along the line-of-sight can be written as,
 
         .. math::
 
-           I = \\frac{1}{4\pi}\int\mathrm{d}T,G(n,T)n^2\\frac{dh}{dT}
+           I = \frac{1}{4\pi}\int\mathrm{d}T,G(n,T)n^2\frac{dh}{dT}
 
         which, in the isothermal approximation, can be simplified to,
 
         .. math::
 
-           I(T_0) \\approx \\frac{1}{4\pi}G(n,T_0)\mathrm{EM}(T_0)
+           I(T_0) \approx \frac{1}{4\pi}G(n,T_0)\mathrm{EM}(T_0)
 
         where,
 
@@ -484,6 +494,8 @@ Using Datasets:
         """
         Construct the spectrum using a given filter over a specified wavelength range.
 
+        All arguments are passed direclty to `fiasco.IonCollection.spectrum`.
+
         See Also
         --------
         fiasco.IonCollection.spectrum : Compute spectrum for multiple ions
@@ -495,12 +507,12 @@ Using Datasets:
     @u.quantity_input
     def direct_ionization_rate(self) -> u.cm**3 / u.s:
         """
-        Calculate direct ionization rate
+        Calculate direct ionization rate.
 
-        Needs an equation reference or explanation
+        Needs an equation reference or explanation.
         """
         xgl, wgl = np.polynomial.laguerre.laggauss(12)
-        kBT = const.k_B*self.temperature
+        kBT = const.k_B * self.temperature
         energy = np.outer(xgl, kBT) + self.ip
         cross_section = self.direct_ionization_cross_section(energy)
         term1 = np.sqrt(8./np.pi/const.m_e)*np.sqrt(kBT)*np.exp(-self.ip/kBT)
@@ -515,13 +527,13 @@ Using Datasets:
 
         The cross-sections are calculated one of two ways:
 
-        - Using the method of [fontes]_ for hydrogenic and He-like ions
-        - Using the scaled cross-sections of [2]_ for all other ions
+        - Using the method of [fontes]_ for H and He like ions.
+        - Using the scaled cross-sections of [dere]_ for all other ions.
 
         References
         ----------
         .. [fontes] Fontes, C. J., et al., 1999, Phys. Rev. A., `59 1329 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.59.1329>`_
-        .. [2] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
+        .. [dere] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
         """
         if self.hydrogenic or self.helium_like:
             return self._fontes_cross_section(energy)
@@ -562,6 +574,10 @@ Using Datasets:
     def _fontes_cross_section(self, energy: u.erg) -> u.cm**2:
         """
         Calculate direct ionization cross-section according to [fontes]_.
+
+        References
+        ----------
+        .. [fontes] Fontes, C. J., et al., 1999, Phys. Rev. A., `59 1329 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.59.1329>`_
         """
         U = energy/self.ip
         A = 1.13
@@ -585,7 +601,7 @@ Using Datasets:
     @u.quantity_input
     def excitation_autoionization_rate(self) -> u.cm**3 / u.s:
         """
-        Calculate ionization rate due to excitation autoionization
+        Calculate ionization rate due to excitation autoionization.
         """
         c = (const.h**2)/((2. * np.pi * const.m_e)**(1.5) * np.sqrt(const.k_B))
         kBTE = np.outer(const.k_B*self.temperature, 1.0/self._easplups['delta_energy'])
@@ -609,7 +625,7 @@ Using Datasets:
         """
         Total ionization rate.
 
-        Includes contributions from both direct ionization and excitation-autoionization
+        Includes contributions from both direct ionization and excitation-autoionization.
 
         See Also
         --------
@@ -630,7 +646,7 @@ Using Datasets:
     @u.quantity_input
     def radiative_recombination_rate(self) -> u.cm**3 / u.s:
         """
-        Radiative recombination rate
+        Radiative recombination rate.
 
         The recombination rate due to interaction with the ambient radiation field
         is calculated using a set of fit parameters using one of two methods:
@@ -658,7 +674,7 @@ Using Datasets:
     @u.quantity_input
     def dielectronic_recombination_rate(self) -> u.cm**3 / u.s:
         """
-        Dielectronic recombination rate
+        Dielectronic recombination rate.
 
         Calculated according to one of two methods,
 
@@ -707,13 +723,15 @@ Using Datasets:
     @u.quantity_input
     def free_free(self, wavelength: u.angstrom) -> u.erg * u.cm**3 / u.s / u.angstrom:
         """
-        Free-free continuum emission or bremsstrahlung
-
-        .. note:: Does not include ionization equilibrium or abundance
+        Free-free continuum emission or bremsstrahlung.
 
         Parameters
         ----------
         wavelength : `~astropy.units.Quantity`
+
+        Notes
+        -----
+        Does not include ionization equilibrium or abundance.
         """
         prefactor = (const.c / 3. / const.m_e
                      * (const.alpha * const.h / np.pi)**3
@@ -733,18 +751,17 @@ Using Datasets:
         """
         Free-bound continuum emission of the recombined ion.
 
-        .. note:: Does not include ionization equilibrium or abundance
-
         Parameters
         ----------
         wavelength : `~astropy.units.Quantity`
         use_verner : `bool`, optional
-            If True, evaluate ground-state cross-sections using method of Verner and Yakovlev
+            If True, evaluate ground-state cross-sections using method of Verner and Yakovlev.
 
-        See Also
-        --------
-        _verner_cross_section
+        Notes
+        -----
+        Does not include ionization equilibrium or abundance.
         """
+        # See also: _verner_cross_section
         wavelength = np.atleast_1d(wavelength)
         prefactor = (2/np.sqrt(2*np.pi)/(4*np.pi)/(
             const.h*(const.c**3) * (const.m_e * const.k_B)**(3/2)))
@@ -784,13 +801,21 @@ Using Datasets:
 
     def free_free_loss(self):
         """
-        Wavelength-integrated radiative losses due to free-free emission
+        Wavelength-integrated radiative losses due to free-free emission.
+
+        Raises
+        ------
+        NotImplementedError
         """
         raise NotImplementedError
 
     def free_bound_loss(self):
         """
-        Wavelength-integrated radiative losses due to free-bound emission
+        Wavelength-integrated radiative losses due to free-bound emission.
+
+        Raises
+        ------
+        NotImplementedError
         """
         raise NotImplementedError
 
