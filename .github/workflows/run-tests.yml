@@ -18,18 +18,23 @@ jobs:
         - os: macos-latest
           python-version: 3.6
           toxenv: py36
+          cache_cmd: -- --dbase-download-dir ~/.chianti
         - os: macos-latest
           python-version: 3.8
           toxenv: py38
+          cache_cmd: -- --dbase-download-dir ~/.chianti
         # Test all configurations on Linux
         - os: ubuntu-latest
           python-version: 3.6
           toxenv: py36
+          cache_cmd: -- --dbase-download-dir ~/.chianti
         - os: ubuntu-latest
           python-version: 3.7
           toxenv: py37
+          cache_cmd: -- --dbase-download-dir ~/.chianti
         - os: ubuntu-latest
           python-version: 3.8
+          cache_cmd: -- --dbase-download-dir ~/.chianti
           toxenv: py38
         # Docs
         - os: ubuntu-latest
@@ -42,6 +47,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Cache chianti database
+      uses: actions/cache@v2
+      if: matrix.toxenv != 'build_docs' && matrix.toxenv != 'codestyle'
+      env:
+        # Bump the version number when changing the chianti version to test with
+        cache-name: cache-chianti-dbase-807
+      with:
+        path: ~/.chianti
+        key: ${{ env.cache-name }}-${{ matrix.toxenv }}
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
@@ -49,6 +63,6 @@ jobs:
     - name: Install dependencies
       run: python -m pip install --upgrade tox codecov
     - name: Run tox
-      run: python -m tox -e  ${{ matrix.toxenv }}
+      run: python -m tox -e  ${{ matrix.toxenv }} ${{ matrix.cache_cmd }}
     - name: Report coverage
       run: codecov

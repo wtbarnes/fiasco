@@ -89,6 +89,8 @@ def pytest_addoption(parser):
     parser.addoption('--ascii-dbase-root', action='store', default=None)
     parser.addoption('--disable-file-hash', action='store_true', default=False,
                      help='Disable MD5 hash checks on test files')
+    parser.addoption('--dbase-download-dir', action='store', default=None,
+                     help='Directory to download chianti database to')
 
 
 @pytest.fixture(scope='session')
@@ -102,7 +104,9 @@ def ascii_dbase_root(tmpdir_factory, request):
         if not os.path.exists(path):
             raise ValueError(f'{path} is not a valid URL or file path')
     else:
-        _path = tmpdir_factory.mktemp('chianti_dbase')
+        _path = request.config.getoption('--dbase-download-dir')
+        if not _path:
+            _path = tmpdir_factory.mktemp('chianti_dbase')
         download_dbase(path, _path)
         path = _path
     return path
