@@ -4,7 +4,7 @@ fiasco Documentation
 .. warning:: fiasco is still in the early stages of development and as such frequent changes will be
              made to the API. Use at your own risk.
 
-.. warning:: fiasco currently only supports the most recent version (v8) of the CHIANTI database. In
+.. warning:: fiasco currently only supports v8 of the CHIANTI database. In
              the future, older versions of the database will be supported.
 
 .. figure:: _static/fiasco-logo.png
