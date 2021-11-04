@@ -203,7 +203,7 @@ Using Datasets:
 
         .. math::
 
-           C^d_{ji} = I_Ha_0^2\sqrt{\frac{8\pi}{mk_B}}\\frac{\Upsilon}{\omega_jT^{1/2}},
+           C^d_{ji} = I_Ha_0^2\sqrt{\frac{8\pi}{mk_B}}\frac{\Upsilon}{\omega_jT^{1/2}},
 
         where :math:`j,i` are the upper and lower level indices, respectively, :math:`I_H` is the
         ionization potential for H, :math:`a_0` is the Bohr radius, :math:`\Upsilon` is the
@@ -271,7 +271,8 @@ Using Datasets:
                                         kBTE.T,
                                         self._psplups['bt_c'],
                                         self._psplups['bt_type'])
-        return u.Quantity(np.where(ex_rate > 0., ex_rate, 0.), u.cm**3/u.s).T
+        with np.errstate(invalid='ignore'):
+            return u.Quantity(np.where(ex_rate > 0., ex_rate, 0.), u.cm**3/u.s).T
 
     @needs_dataset('elvlc', 'psplups')
     @u.quantity_input
@@ -841,7 +842,7 @@ Using Datasets:
     @needs_dataset('itoh')
     @u.quantity_input
     def _gaunt_factor_free_free_itoh(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
-        """
+        r"""
         Calculates the free-free gaunt factor of [1]_.
 
         Need some equations here...

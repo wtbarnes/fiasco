@@ -35,7 +35,7 @@ def test_burgess_tully_different_scaling_types():
 
 
 def test_burgess_tully_staggered_array():
-    x = np.array([np.linspace(0, 1, 5), np.linspace(0, 1, 9)])
+    x = np.array([np.linspace(0, 1, 5), np.linspace(0, 1, 9)], dtype=object)
     y = x**1.6 + 10
     energy_ratio = np.ones(x.shape[:1] + (10,))
     c = 1*np.ones(x.shape)
