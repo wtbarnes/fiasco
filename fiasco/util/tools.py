@@ -61,7 +61,7 @@ def _xnew(energy_ratio, c, scaling_type):
 
 
 def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
-    """
+    r"""
     Convert scaled Burgess-Tully [burgess]_ parameters to physical quantities.
 
     For a scaled temperature, :math:`x` and scaled effective collision strength
@@ -168,9 +168,9 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
 
     # Use list(map()) here to allow varying shaped inputs for x, y
     splrep_szero = partial(splrep, s=0)
-    nots = np.array(list(map(splrep_szero, x, y)))
+    nots = np.array(list(map(splrep_szero, x, y)), dtype=object)
     splev_derzero = partial(splev, der=0)
-    out = np.array(list(map(splev_derzero, xnew, nots)))
+    out = np.array(list(map(splev_derzero, xnew, nots)), dtype=object)
 
     for type in np.unique(scaling_type):
         idxs = scaling_type == type
