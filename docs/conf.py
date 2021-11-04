@@ -39,7 +39,6 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx_automodapi.automodapi',
     'sphinx_automodapi.smart_resolver',
-    'sunpy.util.sphinx.changelog',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -73,13 +72,13 @@ napoleon_google_docstring = False
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/',
                (None, 'http://data.astropy.org/intersphinx/python3.inv')),
-    'numpy': ('https://docs.scipy.org/doc/numpy/',
+    'numpy': ('https://numpy.org/doc/stable/',
               (None, 'http://data.astropy.org/intersphinx/numpy.inv')),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/',
               (None, 'http://data.astropy.org/intersphinx/scipy.inv')),
     'matplotlib': ('https://matplotlib.org/',
                    (None, 'http://data.astropy.org/intersphinx/matplotlib.inv')),
-    'astropy': ('http://docs.astropy.org/en/stable/', None),
+    'astropy': ('https://docs.astropy.org/en/stable', None),
     'sunpy': ('https://docs.sunpy.org/en/stable/', None),
     'aiapy': ('https://aiapy.readthedocs.io/en/stable/', None),
 }
