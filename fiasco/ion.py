@@ -56,6 +56,18 @@ class Ion(IonBase, ContinuumBase):
                                                             'sun_photospheric_1998_grevesse')
         self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
 
+    def _new_instance(self, temperature=None, **kwargs):
+        """
+        Convenience method for creating an ion of the same type with
+        possibly different arguments. If different arguments are not
+        specified, this will just create a copy of itself.
+        """
+        if temperature is None:
+            temperature = self.temperature.copy()
+        new_kwargs = self._instance_kwargs
+        new_kwargs.update(kwargs)
+        return type(self)(self.ion_name, temperature, **new_kwargs)
+
     def __repr__(self):
         try:
             n_levels = self._elvlc['level'].shape[0]
@@ -96,6 +108,17 @@ Using Datasets:
 
     def __radd__(self, value):
         return IonCollection(value, self)
+
+    @property
+    def _instance_kwargs(self):
+        # Keyword arguments used to istantiate this Ion. These are useful when
+        # constructing a new Ion instance that pulls from exactly the same
+        # data sources.
+        kwargs = {
+            'hdf5_dbase_root': self.hdf5_dbase_root,
+            **self._dset_names,
+        }
+        return kwargs
 
     @property
     @needs_dataset('elvlc', 'wgfa')
@@ -167,6 +190,7 @@ Using Datasets:
         return (self.atomic_number - self.charge_state == 2) and (self.atomic_number >= 10)
 
     @property
+    @u.quantity_input
     def formation_temperature(self) -> u.K:
         """
         Temperature at which `~fiasco.Ion.ioneq` is maximum.
