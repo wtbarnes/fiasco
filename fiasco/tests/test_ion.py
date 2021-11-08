@@ -26,6 +26,19 @@ def fe10(hdf5_dbase_root):
     return fiasco.Ion('Fe 10', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
 
+def test_new_instance(ion):
+    abundance_filename = ion._instance_kwargs['abundance_filename']
+    new_ion = ion._new_instance()
+    for k in new_ion._instance_kwargs:
+        assert new_ion._instance_kwargs[k] == ion._instance_kwargs[k]
+    assert u.allclose(new_ion.temperature, ion.temperature, rtol=0)
+    new_ion = ion._new_instance(temperature=ion.temperature[:1])
+    assert u.allclose(new_ion.temperature, ion.temperature[:1])
+    new_ion = ion._new_instance(abundance_filename='sun_coronal_1992_feldman')
+    assert new_ion._instance_kwargs['abundance_filename'] == 'sun_coronal_1992_feldman'
+    assert ion._instance_kwargs['abundance_filename'] == abundance_filename
+
+
 def test_level(ion):
     level = ion[0]
     assert isinstance(level, fiasco.ion.Level)
@@ -221,8 +234,7 @@ def test_indexing_no_levels(hdf5_dbase_root):
     ion = fiasco.Ion('Fe 1', temperature, hdf5_dbase_root=hdf5_dbase_root)
     print(ion)
     assert [l for l in ion] == []
-    with pytest.raises(IndexError,
-                       match='No energy levels available for Fe 1'):
+    with pytest.raises(IndexError, match='No energy levels available for Fe 1'):
         ion[0]
 
 
@@ -231,5 +243,4 @@ def test_repr_no_levels(hdf5_dbase_root):
     Ensures the repr can be printed without errors even when
     no energy level or transition information is available.
     """
-    assert fiasco.Ion('Fe 1', temperature,
-                      hdf5_dbase_root=hdf5_dbase_root).__repr__
+    assert fiasco.Ion('Fe 1', temperature, hdf5_dbase_root=hdf5_dbase_root).__repr__
