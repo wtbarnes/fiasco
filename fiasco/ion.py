@@ -112,7 +112,7 @@ Using Datasets:
     @property
     def _instance_kwargs(self):
         # Keyword arguments used to istantiate this Ion. These are useful when
-        # constructing a new Ion instance that pulls from exactly the same 
+        # constructing a new Ion instance that pulls from exactly the same
         # data sources.
         kwargs = {
             'hdf5_dbase_root': self.hdf5_dbase_root,
@@ -196,7 +196,6 @@ Using Datasets:
         Temperature at which `~fiasco.Ion.ioneq` is maximum.
         """
         return self.temperature[np.argmax(self.ioneq)]
-
 
     @needs_dataset('scups')
     @u.quantity_input

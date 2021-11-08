@@ -91,7 +91,7 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
             continue
         for ion in el:
             ioneq_file = ion._instance_kwargs['ioneq_filename']
-            # NOTE: We use ._ioneq here rather than .ioneq to avoid doing an interpolation to the 
+            # NOTE: We use ._ioneq here rather than .ioneq to avoid doing an interpolation to the
             # temperature array every single time and instead only interpolate once at the end.
             # It is assumed that the ioneq temperature array for each ion is the same.
             try:
