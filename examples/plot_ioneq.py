@@ -23,17 +23,15 @@ el = Element('C', temperature)
 # The ionization fractions in equilibrium can be determined by calculating the
 # ionization and recombination rates as a function of temperature for every
 # ion of the element and then solving the associated system of equations.
-# This can be done by creating a `~fiasco.Element` object and then calling
-# the `~fiasco.Element.equilibrium_ionization` method.
-ioneq = el.equilibrium_ionization()
-
-################################################
-# Plot the population fraction of each ion as a function of temperature.
+# This can be done by creating a `~fiasco.Element` object and then accessing
+# the `~fiasco.Element.equilibrium_ionization` property.
+# We can use this to plot the population fraction of each ion as a
+# function of temperature.
 for ion in el:
-    _ioneq = ioneq[:, ion.charge_state]
-    imax = np.argmax(_ioneq)
-    plt.plot(el.temperature, _ioneq)
-    plt.text(el.temperature[imax], _ioneq[imax], ion.roman_numeral,
+    ioneq = el.equilibrium_ionization[:, ion.charge_state]
+    imax = np.argmax(ioneq)
+    plt.plot(el.temperature, ioneq)
+    plt.text(el.temperature[imax], ioneq[imax], ion.roman_numeral,
              horizontalalignment='center')
 plt.xscale('log')
 plt.title(f'{el.atomic_symbol} Equilibrium Ionization')
@@ -57,7 +55,7 @@ plt.show()
 # Note that the two may not be equal due to differences in the rates when
 # the tabulated results were calculated or due to artifacts from the
 # interpolation.
-plt.plot(el.temperature, ioneq[:, el[3].charge_state], label='calculated')
+plt.plot(el.temperature, el.equilibrium_ionization[:, el[3].charge_state], label='calculated')
 plt.plot(el.temperature, el[3].ioneq, label='interpolated')
 plt.xlim(4e4, 3e5)
 plt.xscale('log')
