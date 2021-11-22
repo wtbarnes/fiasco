@@ -1,6 +1,7 @@
 """
 Classes and functions for element-level operations
 """
+from functools import cached_property
 import numpy as np
 import astropy.units as u
 import plasmapy
@@ -57,6 +58,7 @@ class Element(fiasco.IonCollection):
     def abundance(self):
         return self[0].abundance
 
+    @cached_property
     def _rate_matrix(self):
         rate_matrix = np.zeros(self.temperature.shape+(self.atomic_number+1, self.atomic_number+1))
         rate_unit = self[0].ionization_rate().unit
@@ -72,7 +74,8 @@ class Element(fiasco.IonCollection):
 
         return rate_matrix
 
-    def equilibrium_ionization(self, **kwargs):
+    @cached_property
+    def equilibrium_ionization(self):
         """
         Calculate the ionization fraction, in equilibrium, for all ions of the element.
 
@@ -90,11 +93,8 @@ class Element(fiasco.IonCollection):
         fiasco.Ion.ionization_rate
         fiasco.Ion.recombination_rate
         """
-        rate_matrix = kwargs.get('rate_matrix', None)
-        if rate_matrix is None:
-            rate_matrix = self._rate_matrix()
         # Solve system of equations using singular value decomposition
-        _, _, V = np.linalg.svd(rate_matrix.value)
+        _, _, V = np.linalg.svd(self._rate_matrix.value)
         # Select columns of V with smallest eigenvalues (returned in descending order)
         # NOTE: must take the absolute value as the SVD solution is only accurate up
         # to the sign. We require that the solutions must be positive.
