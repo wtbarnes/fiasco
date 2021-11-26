@@ -1,6 +1,8 @@
 """
 Ion object. Holds all methods and properties of a CHIANTI ion.
 """
+from functools import cached_property
+
 import numpy as np
 from scipy.interpolate import splrep, splev, interp1d
 from scipy.ndimage import map_coordinates
@@ -125,7 +127,7 @@ Using Datasets:
     def transitions(self):
         return Transitions(self._elvlc, self._wgfa)
 
-    @property
+    @cached_property
     def ioneq(self):
         """
         Ionization equilibrium data interpolated to the given temperature
@@ -197,6 +199,7 @@ Using Datasets:
         """
         return self.temperature[np.argmax(self.ioneq)]
 
+    @cached_property
     @needs_dataset('scups')
     @u.quantity_input
     def effective_collision_strength(self) -> u.dimensionless_unscaled:
@@ -216,6 +219,7 @@ Using Datasets:
         upsilon = u.Quantity(np.where(upsilon > 0., upsilon, 0.))
         return upsilon.T
 
+    @cached_property
     @needs_dataset('elvlc', 'scups')
     @u.quantity_input
     def electron_collision_deexcitation_rate(self) -> u.cm**3 / u.s:
@@ -244,13 +248,14 @@ Using Datasets:
         effective_collision_strength : Maxwellian-averaged collision strength, :math:`\Upsilon`
         """
         c = (const.h**2) / ((2. * np.pi * const.m_e)**(1.5) * np.sqrt(const.k_B))
-        upsilon = self.effective_collision_strength()
+        upsilon = self.effective_collision_strength
         omega_upper = 2. * self._elvlc['J'][self._scups['upper_level'] - 1] + 1.
         return c * upsilon / np.sqrt(self.temperature[:, np.newaxis]) / omega_upper
 
+    @cached_property
     @needs_dataset('elvlc', 'scups')
     @u.quantity_input
-    def electron_collision_excitation_rate(self, deexcitation_rate=None) -> u.cm**3 / u.s:
+    def electron_collision_excitation_rate(self) -> u.cm**3 / u.s:
         r"""
         Collisional excitation rate coefficient for electrons.
 
@@ -273,13 +278,12 @@ Using Datasets:
         --------
         electron_collision_deexcitation_rate : De-excitation rate due to collisions
         """
-        if deexcitation_rate is None:
-            deexcitation_rate = self.electron_collision_deexcitation_rate()
         omega_upper = 2. * self._elvlc['J'][self._scups['upper_level'] - 1] + 1.
         omega_lower = 2. * self._elvlc['J'][self._scups['lower_level'] - 1] + 1.
         kBTE = np.outer(1./const.k_B/self.temperature, self._scups['delta_energy'])
-        return omega_upper / omega_lower * deexcitation_rate * np.exp(-kBTE)
+        return omega_upper / omega_lower * self.electron_collision_deexcitation_rate * np.exp(-kBTE)
 
+    @cached_property
     @needs_dataset('psplups')
     @u.quantity_input
     def proton_collision_excitation_rate(self) -> u.cm**3 / u.s:
@@ -298,18 +302,17 @@ Using Datasets:
         with np.errstate(invalid='ignore'):
             return u.Quantity(np.where(ex_rate > 0., ex_rate, 0.), u.cm**3/u.s).T
 
+    @cached_property
     @needs_dataset('elvlc', 'psplups')
     @u.quantity_input
-    def proton_collision_deexcitation_rate(self, excitation_rate=None) -> u.cm**3 / u.s:
+    def proton_collision_deexcitation_rate(self) -> u.cm**3 / u.s:
         """
         Collisional de-excitation rate coefficient for protons.
         """
         kBTE = np.outer(const.k_B * self.temperature, 1.0 / self._psplups['delta_energy'])
-        if excitation_rate is None:
-            excitation_rate = self.proton_collision_excitation_rate()
         omega_upper = 2. * self._elvlc['J'][self._psplups['upper_level'] - 1] + 1.
         omega_lower = 2. * self._elvlc['J'][self._psplups['lower_level'] - 1] + 1.
-        dex_rate = (omega_lower / omega_upper) * excitation_rate * np.exp(1. / kBTE)
+        dex_rate = (omega_lower / omega_upper) * self.proton_collision_excitation_rate * np.exp(1. / kBTE)
 
         return dex_rate
 
@@ -354,8 +357,8 @@ Using Datasets:
             self.transitions.A)
 
         # Collisional--electrons
-        dex_rate_e = self.electron_collision_deexcitation_rate()
-        ex_rate_e = self.electron_collision_excitation_rate(deexcitation_rate=dex_rate_e)
+        dex_rate_e = self.electron_collision_deexcitation_rate
+        ex_rate_e = self.electron_collision_excitation_rate
         ex_diagonal_e = vectorize_where_sum(
             lower_level, level, ex_rate_e.value.T, 0).T * ex_rate_e.unit
         dex_diagonal_e = vectorize_where_sum(
@@ -368,8 +371,8 @@ Using Datasets:
                                              **self._dset_names,
                                              hdf5_dbase_root=self.hdf5_dbase_root)
             proton_density = np.outer(pe_ratio, density)[:, :, np.newaxis]
-            ex_rate_p = self.proton_collision_excitation_rate()
-            dex_rate_p = self.proton_collision_deexcitation_rate(excitation_rate=ex_rate_p)
+            ex_rate_p = self.proton_collision_excitation_rate
+            dex_rate_p = self.proton_collision_deexcitation_rate
             ex_diagonal_p = vectorize_where_sum(
                 lower_level_p, level, ex_rate_p.value.T, 0).T * ex_rate_p.unit
             dex_diagonal_p = vectorize_where_sum(
@@ -528,6 +531,7 @@ Using Datasets:
         """
         return IonCollection(self).spectrum(*args, **kwargs)
 
+    @cached_property
     @needs_dataset('ip')
     @u.quantity_input
     def direct_ionization_rate(self) -> u.cm**3 / u.s:
@@ -622,6 +626,7 @@ Using Datasets:
         # of hydrogen such that it is effectively unitless
         return B * (np.pi * const.a0**2) * F * Qrp / (self.ip.to(u.Ry).value**2)
 
+    @cached_property
     @needs_dataset('easplups')
     @u.quantity_input
     def excitation_autoionization_rate(self) -> u.cm**3 / u.s:
@@ -645,6 +650,7 @@ Using Datasets:
 
         return rate.sum(axis=0)
 
+    @cached_property
     @u.quantity_input
     def ionization_rate(self) -> u.cm**3 / u.s:
         """
@@ -658,15 +664,16 @@ Using Datasets:
         excitation_autoionization_rate
         """
         try:
-            di_rate = self.direct_ionization_rate()
+            di_rate = self.direct_ionization_rate
         except MissingDatasetException:
             di_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         try:
-            ea_rate = self.excitation_autoionization_rate()
+            ea_rate = self.excitation_autoionization_rate
         except MissingDatasetException:
             ea_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         return di_rate + ea_rate
 
+    @cached_property
     @needs_dataset('rrparams')
     @u.quantity_input
     def radiative_recombination_rate(self) -> u.cm**3 / u.s:
@@ -695,6 +702,7 @@ Using Datasets:
         else:
             raise ValueError(f"Unrecognized fit type {self._rrparams['fit_type']}")
 
+    @cached_property
     @needs_dataset('drparams')
     @u.quantity_input
     def dielectronic_recombination_rate(self) -> u.cm**3 / u.s:
@@ -723,6 +731,7 @@ Using Datasets:
         else:
             raise ValueError(f"Unrecognized fit type {self._drparams['fit_type']}")
 
+    @cached_property
     @u.quantity_input
     def recombination_rate(self) -> u.cm**3 / u.s:
         """
@@ -736,11 +745,11 @@ Using Datasets:
         dielectronic_recombination_rate
         """
         try:
-            rr_rate = self.radiative_recombination_rate()
+            rr_rate = self.radiative_recombination_rate
         except MissingDatasetException:
             rr_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         try:
-            dr_rate = self.dielectronic_recombination_rate()
+            dr_rate = self.dielectronic_recombination_rate
         except MissingDatasetException:
             dr_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         return rr_rate + dr_rate
@@ -959,11 +968,7 @@ Using Datasets:
 
     @needs_dataset('klgfb')
     @u.quantity_input
-    def _karzas_cross_section(self,
-                              photon_energy: u.erg,
-                              ionization_energy: u.erg,
-                              n,
-                              l) -> u.cm**2:
+    def _karzas_cross_section(self, photon_energy: u.erg, ionization_energy: u.erg, n, l) -> u.cm**2:
         """
         Photoionization cross-section using the method of [1]_.
 

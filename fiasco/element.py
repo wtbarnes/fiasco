@@ -2,6 +2,7 @@
 Classes and functions for element-level operations
 """
 from functools import cached_property
+
 import numpy as np
 import astropy.units as u
 import plasmapy
@@ -61,16 +62,16 @@ class Element(fiasco.IonCollection):
     @cached_property
     def _rate_matrix(self):
         rate_matrix = np.zeros(self.temperature.shape+(self.atomic_number+1, self.atomic_number+1))
-        rate_unit = self[0].ionization_rate().unit
+        rate_unit = self[0].ionization_rate.unit
         rate_matrix = rate_matrix * rate_unit
         for i in range(1, self.atomic_number):
-            rate_matrix[:, i, i] = -(self[i].ionization_rate() + self[i].recombination_rate())
-            rate_matrix[:, i, i-1] = self[i-1].ionization_rate()
-            rate_matrix[:, i, i+1] = self[i+1].recombination_rate()
-        rate_matrix[:, 0, 0] = -(self[0].ionization_rate() + self[0].recombination_rate())
-        rate_matrix[:, 0, 1] = self[1].recombination_rate()
-        rate_matrix[:, -1, -1] = -(self[-1].ionization_rate() + self[-1].recombination_rate())
-        rate_matrix[:, -1, -2] = self[-2].ionization_rate()
+            rate_matrix[:, i, i] = -(self[i].ionization_rate + self[i].recombination_rate)
+            rate_matrix[:, i, i-1] = self[i-1].ionization_rate
+            rate_matrix[:, i, i+1] = self[i+1].recombination_rate
+        rate_matrix[:, 0, 0] = -(self[0].ionization_rate + self[0].recombination_rate)
+        rate_matrix[:, 0, 1] = self[1].recombination_rate
+        rate_matrix[:, -1, -1] = -(self[-1].ionization_rate + self[-1].recombination_rate)
+        rate_matrix[:, -1, -2] = self[-2].ionization_rate
 
         return rate_matrix
 

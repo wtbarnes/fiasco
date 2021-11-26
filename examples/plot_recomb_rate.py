@@ -21,37 +21,27 @@ from fiasco import Ion
 ion = Ion('Fe XVI', np.logspace(4, 8, 100) * u.K)
 
 #################################################
-# Calculate the recombination rate, which includes contributions from both
+# We can calculate the recombination rate, which includes contributions from both
 # radiative and dielectronic recombination. We can also compute these
 # separately in order to understand over what temperature range each
 # process dominates.
-total_recombination = ion.recombination_rate()
-dielectronic_recombination = ion.dielectronic_recombination_rate()
-radiative_recombination = ion.radiative_recombination_rate()
-
-#################################################
 # Similarly, we can calculate the ionization rate which includes
 # contributions from direction ionization and excitation
-# autoionization
-total_ionization = ion.ionization_rate()
-direct_ionization = ion.direct_ionization_rate()
-excitation_autoionization = ion.excitation_autoionization_rate()
-
-#################################################
-# Plot the recombination and ionization rates, including all
+# autoionization.
+# We can plot the recombination and ionization rates, including all
 # components, as a function of temperature.
 fig, ax = plt.subplots(tight_layout=True)
-ax.plot(ion.temperature, total_recombination,
+ax.plot(ion.temperature, ion.recombination_rate,
         label='Recombination', color='C0',)
-ax.plot(ion.temperature, dielectronic_recombination,
+ax.plot(ion.temperature, ion.dielectronic_recombination_rate,
         label='Dielectronic', color='C0', ls='--')
-ax.plot(ion.temperature, radiative_recombination,
+ax.plot(ion.temperature, ion.radiative_recombination_rate,
         label='Radiative', color='C0', ls=':')
-ax.plot(ion.temperature, total_ionization,
+ax.plot(ion.temperature, ion.ionization_rate,
         label='Ionization', color='C1')
-ax.plot(ion.temperature, direct_ionization,
+ax.plot(ion.temperature, ion.direct_ionization_rate,
         label='Direct', color='C1', ls='--')
-ax.plot(ion.temperature, excitation_autoionization,
+ax.plot(ion.temperature, ion.excitation_autoionization_rate,
         label='Excitation Autoionization', color='C1', ls=':')
 ax.set_xscale('log')
 ax.set_yscale('log')
