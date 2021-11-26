@@ -69,5 +69,5 @@ def test_create_element_with_wrong_units_raises_unit_conversion_error(hdf5_dbase
 
 
 def test_equilibrium_ionization(element):
-    ioneq = element.equilibrium_ionization()
+    ioneq = element.equilibrium_ionization
     assert ioneq.shape == element.temperature.shape + (element.atomic_number + 1,)

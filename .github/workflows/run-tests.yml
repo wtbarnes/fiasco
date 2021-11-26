@@ -16,8 +16,8 @@ jobs:
         include:
         # Test the oldest and newest configuration on Mac and Windows
         - os: macos-latest
-          python-version: 3.6
-          toxenv: py36
+          python-version: 3.8
+          toxenv: py38
           cache_cmd: -- --dbase-download-dir ~/.chianti
         - os: macos-latest
           python-version: 3.8
@@ -25,24 +25,24 @@ jobs:
           cache_cmd: -- --dbase-download-dir ~/.chianti
         # Test all configurations on Linux
         - os: ubuntu-latest
-          python-version: 3.6
-          toxenv: py36
-          cache_cmd: -- --dbase-download-dir ~/.chianti
-        - os: ubuntu-latest
-          python-version: 3.7
-          toxenv: py37
-          cache_cmd: -- --dbase-download-dir ~/.chianti
-        - os: ubuntu-latest
           python-version: 3.8
-          cache_cmd: -- --dbase-download-dir ~/.chianti
           toxenv: py38
+          cache_cmd: -- --dbase-download-dir ~/.chianti
+        - os: ubuntu-latest
+          python-version: 3.9
+          toxenv: py39
+          cache_cmd: -- --dbase-download-dir ~/.chianti
+        - os: ubuntu-latest
+          python-version: '3.10'
+          cache_cmd: -- --dbase-download-dir ~/.chianti
+          toxenv: py310
         # Docs
         - os: ubuntu-latest
-          python-version: 3.8
+          python-version: 3.9
           toxenv: build_docs
         # Code style checks
         - os: ubuntu-latest
-          python-version: 3.8
+          python-version: 3.9
           toxenv: codestyle
 
     steps:

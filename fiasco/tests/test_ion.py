@@ -112,10 +112,10 @@ def test_abundance(ion):
 
 
 def test_proton_collision(fe10):
-    rate = fe10.proton_collision_excitation_rate()
+    rate = fe10.proton_collision_excitation_rate
     assert u.allclose(rate[0, 0], 4.69587161e-13 * u.cm**3 / u.s)
 
-    rate = fe10.proton_collision_deexcitation_rate()
+    rate = fe10.proton_collision_deexcitation_rate
     assert u.allclose(rate[0, 0], 1.17688025e-12 * u.cm**3 / u.s)
 
 
@@ -165,14 +165,14 @@ def test_intensity(ion, em):
 
 
 def test_excitation_autoionization_rate(ion):
-    rate = ion.excitation_autoionization_rate()
+    rate = ion.excitation_autoionization_rate
     assert rate.shape == ion.temperature.shape
     # This value has not been tested for correctness
     assert u.allclose(rate[0], 1.14821255e-12 * u.cm**3 / u.s)
 
 
 def test_dielectronic_recombination_rate(ion):
-    rate = ion.dielectronic_recombination_rate()
+    rate = ion.dielectronic_recombination_rate
     assert rate.shape == ion.temperature.shape
     # This value has not been tested for correctness
     assert u.allclose(rate[0], 1.60593802e-11 * u.cm**3 / u.s)
