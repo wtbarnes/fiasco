@@ -1,11 +1,9 @@
 """
 Various functions for downloading and setting up the database
 """
-
 import hashlib
 import os
 import tarfile
-import warnings
 
 import numpy as np
 import h5py
@@ -107,6 +105,9 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
         expected md5 hash of the file. Builind the database will fail if any
         of the md5 hashes is not as expected.
     """
+    # Import the logger here to avoid circular imports
+    from fiasco import log
+
     if files is None:
         files = []
         tmp = get_masterlist(ascii_dbase_root)
@@ -124,8 +125,7 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
                 try:
                     df = parser.parse()
                 except MissingASCIIFileError as e:
-                    # FIXME: use the logger here
-                    warnings.warn(f'{e}. Not including {f} in {hdf5_dbase_root}')
+                    log.debug(f'{e}. Not including {f} in {hdf5_dbase_root}')
                 else:
                     parser.to_hdf5(hf, df)
                 progress.update()

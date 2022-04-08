@@ -14,3 +14,7 @@ except ImportError:
     __version__ = "unknown"
 
 defaults = setup_paths()
+
+
+from fiasco.util.logger import _init_log
+log = _init_log()
