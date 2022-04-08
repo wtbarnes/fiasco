@@ -1,7 +1,6 @@
 """
 Various functions for downloading and setting up the database
 """
-import re
 import hashlib
 import os
 import tarfile
@@ -126,13 +125,7 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
                 try:
                     df = parser.parse()
                 except MissingASCIIFileError as e:
-                    if re.compile('fe_[0-9][0-9]_all.scups').match(f):
-                        # These files are known to be safe to ignore, so log at
-                        # a level that isn't shown by default
-                        log_level = log.debug
-                    else:
-                        log_level = log.info
-                    log_level(f'{e}. Not including {f} in {hdf5_dbase_root}')
+                    log.debug(f'{e}. Not including {f} in {hdf5_dbase_root}')
                 else:
                     parser.to_hdf5(hf, df)
                 progress.update()
