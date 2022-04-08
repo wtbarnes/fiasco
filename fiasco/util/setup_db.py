@@ -1,11 +1,10 @@
 """
 Various functions for downloading and setting up the database
 """
-
+import re
 import hashlib
 import os
 import tarfile
-import warnings
 
 import numpy as np
 import h5py
@@ -13,7 +12,6 @@ from astropy.config import set_temp_cache
 from astropy.utils.data import download_file
 from astropy.utils.console import ProgressBar
 
-from fiasco import log
 import fiasco.io
 from .util import get_masterlist, query_yes_no
 from .exceptions import MissingASCIIFileError
@@ -108,6 +106,9 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
         expected md5 hash of the file. Builind the database will fail if any
         of the md5 hashes is not as expected.
     """
+    # Import the logger here to avoid circular imports
+    from fiasco import log
+
     if files is None:
         files = []
         tmp = get_masterlist(ascii_dbase_root)

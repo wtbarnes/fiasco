@@ -1,8 +1,6 @@
 """
 Package-level functions
 """
-import warnings
-
 import numpy as np
 from scipy.interpolate import interp1d
 import astropy.units as u
@@ -77,6 +75,8 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
     ----------
     .. [1] Young, P. et al., 2003, ApJS, `144 135 <http://adsabs.harvard.edu/abs/2003ApJS..144..135Y>`_
     """
+    # Import here to avoid circular imports
+    from fiasco import log
     h_2 = fiasco.Ion('H +1', temperature, **kwargs)
     numerator = h_2.abundance * h_2._ioneq[h_2._instance_kwargs['ioneq_filename']]['ionization_fraction']
     denominator = u.Quantity(np.zeros(numerator.shape))
@@ -86,7 +86,7 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
             abundance = el.abundance
         except KeyError:
             abund_file = el[0]._instance_kwargs['abundance_filename']
-            warnings.warn(
+            log.warning(
                 f'Not including {el.atomic_symbol}. Abundance not available from {abund_file}.')
             continue
         for ion in el:
@@ -98,7 +98,7 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
                 ioneq = ion._ioneq[ioneq_file]['ionization_fraction']
                 t_ioneq = ion._ioneq[ioneq_file]['temperature']
             except KeyError:
-                warnings.warn(
+                log.warning(
                     f'Not including {ion.ion_name}. Ionization fraction not available from {ioneq_file}.')
                 continue
             denominator += ioneq * abundance * ion.charge_state

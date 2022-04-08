@@ -1,8 +1,6 @@
 """
 Multi-ion container
 """
-import warnings
-
 import numpy as np
 import astropy.units as u
 from astropy.convolution import convolve, Model1DKernel
@@ -25,6 +23,9 @@ class IonCollection(object):
     """
 
     def __init__(self, *args, **kwargs):
+        # Import here to avoid circular imports
+        from fiasco import log
+        self.log = log
         self._ion_list = []
         for item in args:
             if isinstance(item, fiasco.Ion):
@@ -146,7 +147,7 @@ class IonCollection(object):
             try:
                 wave = ion.transitions.wavelength[~ion.transitions.is_twophoton]
             except MissingDatasetException:
-                warnings.warn(f'No transition data available for {ion.ion_name}')
+                self.log.warning(f'No transition data available for {ion.ion_name}')
                 continue
             else:
                 i_wavelength, = np.where(np.logical_and(wave >= wavelength_range[0],
@@ -158,7 +159,7 @@ class IonCollection(object):
             try:
                 intens = ion.intensity(density, emission_measure, **kwargs)
             except MissingDatasetException:
-                warnings.warn(f'No collision data available for {ion.ion_name}')
+                self.log.warning(f'No collision data available for {ion.ion_name}')
                 continue
             if wavelength is None:
                 wavelength = wave[i_wavelength].value
@@ -180,7 +181,7 @@ class IonCollection(object):
         wavelength_edges = np.linspace(*wavelength_range.value, num_bins+1)
         # Setup convolution kernel
         if kernel is None:
-            warnings.warn('Using 0.1 Angstroms (ie. not the actual thermal width) for thermal broadening')
+            self.log.warning('Using 0.1 Angstroms (ie. not the actual thermal width) for thermal broadening')
             std = 0.1*u.angstrom  # FIXME: should default to thermal width
             std_eff = (std/bin_width).value  # Scale sigma by bin width
             # Kernel size must be odd

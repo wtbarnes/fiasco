@@ -2,7 +2,6 @@
 Factory and interface for file parser
 """
 import os
-import warnings
 
 from .sources import *
 from .generic import GenericParser
@@ -14,6 +13,8 @@ class ParserFactory(type):
     """
 
     def __call__(cls, *args, **kwargs):
+        # Import here to avoid circular imports
+        from fiasco import log
         # Allow for standalone files
         if os.path.exists(args[0]):
             kwargs['standalone'] = True
@@ -34,7 +35,7 @@ class ParserFactory(type):
         elif filetype_name in subclass_dict:
             return subclass_dict[filetype_name](*args, **kwargs)
         else:
-            warnings.warn('Unrecognized filename and extension {}'.format(args[0]), stacklevel=2)
+            log.warning('Unrecognized filename and extension {}'.format(args[0]), stacklevel=2)
             return type.__call__(cls, *args, **kwargs)
 
 

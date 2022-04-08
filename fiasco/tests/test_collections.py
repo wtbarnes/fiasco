@@ -1,8 +1,6 @@
 """
 Test collection functionality
 """
-import warnings
-
 import numpy as np
 import astropy.units as u
 import pytest
@@ -89,8 +87,7 @@ def test_spectrum(hdf5_dbase_root):
     # Add an ion with no spectral information
     i3 = fiasco.Ion('H 2', 1 * u.MK, hdf5_dbase_root=hdf5_dbase_root)
     c += i3
-    with pytest.warns(UserWarning, match=f'No transition data available for {i3.ion_name}'):
-        w2, spec2 = c.spectrum(density, em)
+    w2, spec2 = c.spectrum(density, em)
     assert spec2.shape == (1, 1, ) + w2.shape
     assert np.all(spec == spec2)
 
