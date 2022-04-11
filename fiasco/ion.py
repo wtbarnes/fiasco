@@ -24,9 +24,9 @@ class Ion(IonBase, ContinuumBase):
     """
     Ion class
 
-    The ion object is the fundamental unit of the fiasco library. An Ion object contains
+    The ion object is the fundamental unit of `fiasco`. This object contains
     all of the properties and methods needed to access important information about each ion
-    from the CHIANTI database.
+    from the CHIANTI database as well as compute common derived quantities.
 
     Parameters
     ----------
@@ -195,7 +195,8 @@ Using Datasets:
     @u.quantity_input
     def formation_temperature(self) -> u.K:
         """
-        Temperature at which `~fiasco.Ion.ioneq` is maximum.
+        Temperature at which `~fiasco.Ion.ioneq` is maximum. This is a useful proxy for
+        the temperature at which lines for this ion are formed.
         """
         return self.temperature[np.argmax(self.ioneq)]
 
@@ -204,7 +205,19 @@ Using Datasets:
     @u.quantity_input
     def effective_collision_strength(self) -> u.dimensionless_unscaled:
         r"""
-        Maxwellian-averaged collision strength, typically denoted by :math:`\Upsilon`.
+        Maxwellian-averaged collision strength, typically denoted by :math:`\Upsilon`, as a function of temperature.
+
+        According to Eq. 4.11 of :cite:t:`phillips_ultraviolet_2008`,
+        :math:`\Upsilon` is given by,
+
+        .. math::
+
+            \Upsilon = \int_0\infty\mathrm{d}\left(\frac{E}{k_BT}\right)\,\Omega_{ji}\exp{\left(-\frac{E}{k_BT}\right)}
+
+        where :math:`\Omega_{ji}` is the collision strength.
+        These Maxwellian-averaged collision strengths are stored in
+        dimensionless form in CHIANTI and are rescaled to the appropriate
+        temperature.
 
         See Also
         --------
@@ -226,7 +239,7 @@ Using Datasets:
         r"""
         Collisional de-excitation rate coefficient for electrons.
 
-        According to Eq. (4.12) of [phillips]_, the rate coefficient for collisional de-excitation
+        According to Eq. 4.12 of :cite:t:`phillips_ultraviolet_2008`, the rate coefficient for collisional de-excitation
         is given by,
 
         .. math::
@@ -237,10 +250,6 @@ Using Datasets:
         ionization potential for H, :math:`a_0` is the Bohr radius, :math:`\Upsilon` is the
         effective collision strength, and :math:`\omega_j` is the statistical weight of the
         level :math:`j`.
-
-        References
-        ----------
-        .. [phillips] Phillips, K., et al., 2008, `Ultraviolet and X-ray Spectroscopy of the Solar Atmosphere <http://adsabs.harvard.edu/abs/2008uxss.book.....P>`_
 
         See Also
         --------
@@ -267,7 +276,7 @@ Using Datasets:
 
         where :math:`j,i` are the upper and lower level indices, respectively, :math:`\omega_j,\omega_i`
         are the statistical weights of the upper and lower levels, respectively, and :math:`\Delta E_{ij}`
-        is the energy of the transition.
+        is the energy of the transition :cite:p:`phillips_ultraviolet_2008`.
 
         Parameters
         ----------
@@ -289,6 +298,13 @@ Using Datasets:
     def proton_collision_excitation_rate(self) -> u.cm**3 / u.s:
         """
         Collisional excitation rate coefficient for protons.
+
+        These excitation rates are stored in CHIANTI and then rescaled
+        to the appropriate temperatures.
+
+        See Also
+        --------
+        electron_collision_excitation_rate
         """
         # Create scaled temperature--these are not stored in the file
         bt_t = [np.linspace(0, 1, ups.shape[0]) for ups in self._psplups['bt_rate']]
@@ -306,8 +322,25 @@ Using Datasets:
     @needs_dataset('elvlc', 'psplups')
     @u.quantity_input
     def proton_collision_deexcitation_rate(self) -> u.cm**3 / u.s:
-        """
+        r"""
         Collisional de-excitation rate coefficient for protons.
+
+        As in the electron case, the proton collision de-excitation
+        rate is given by,
+
+        .. math::
+
+            C^{d,p}_{ji} = \frac{\omega_i}{\omega_j}exp{\left(\frac{E}{k_BT}\right)}C^{e,p}_{ij}
+
+        where :math:`C^{e,p}_{ji}` is the excitation rate due to collisions
+        with protons.
+
+        Note that :math:`T` is technically the proton temperature. In the case of a thermal plasma, the electron and proton temperatures are equal, :math:`T_e=T_p`.
+        See Section 4.9.4 of :cite:t:`phillips_ultraviolet_2008` for additional information on proton collision rates.
+
+        See Also
+        --------
+        proton_collision_excitation_rate : Excitation rate due to collisions with protons
         """
         kBTE = np.outer(const.k_B * self.temperature, 1.0 / self._psplups['delta_energy'])
         omega_upper = 2. * self._elvlc['J'][self._psplups['upper_level'] - 1] + 1.
@@ -341,7 +374,9 @@ Using Datasets:
         try:
             _ = self._psplups
         except KeyError:
-            # TODO: log this
+            self.log.warning(
+                f'No proton data available for {self.ion_name}. '
+                'Not including proton excitation and de-excitation in level populations calculation.')
             include_protons = False
 
         level = self._elvlc['level']
@@ -415,7 +450,7 @@ Using Datasets:
     @u.quantity_input
     def contribution_function(self, density: u.cm**(-3), **kwargs) -> u.cm**3 * u.erg / u.s:
         r"""
-        Contribution function :math:`G(n,T)` for all transitions.
+        Contribution function :math:`G(n_e,T)` for all transitions.
 
         The contribution function for ion :math:`k` of element :math:`X` for a
         particular transition :math:`ij` is given by,
@@ -425,7 +460,7 @@ Using Datasets:
            G_{ij} = \frac{n_H}{n_e}\mathrm{Ab}(X)f_{X,k}N_jA_{ij}\Delta E_{ij}\frac{1}{n_e},
 
         Note that the contribution function is often defined in differing ways by different authors.
-        The contribution function is defined as above in [young]_.
+        The contribution function is defined as above in :cite:t:`young_chianti_2016`.
 
         The corresponding wavelengths can be retrieved with,
 
@@ -437,10 +472,6 @@ Using Datasets:
         ----------
         density : `~astropy.units.Quantity`
             Electron number density
-
-        References
-        ----------
-        .. [young] Young, P. et al., 2016, J. Phys. B: At. Mol. Opt. Phys., `49, 7 <http://iopscience.iop.org/article/10.1088/0953-4075/49/7/074009/meta>`_
         """
         populations = self.level_populations(density, **kwargs)
         term = np.outer(self.ioneq, 1./density) * self.abundance * 0.83
@@ -462,10 +493,11 @@ Using Datasets:
 
         .. math::
 
-           \epsilon(n,T) = G(n,T)n^2
+           \epsilon(n_e,T) = G(n_e,T)n_e^2
 
         Note that, like the contribution function, emissivity is often defined in
         in differing ways by different authors.
+        Here, we use the definition of the emissivity as given by Eq. 3 of :cite:t:`young_chianti_2016`.
 
         Parameters
         ----------
@@ -535,10 +567,40 @@ Using Datasets:
     @needs_dataset('ip')
     @u.quantity_input
     def direct_ionization_rate(self) -> u.cm**3 / u.s:
-        """
-        Calculate direct ionization rate.
+        r"""
+        Total ionization rate due to collisions as a function of temperature.
 
-        Needs an equation reference or explanation.
+        The ionization rate due to the collisions with free electrons can
+        be written as the integral of the velocity-weighted collisional
+        cross-section over the Maxwell-Boltzmann distribution.
+        Following Section 3.5.1 of :cite:t:`del_zanna_solar_2018`, this can be
+        written as,
+
+        .. math::
+
+            C^I = \sqrt{\frac{8}{\pi m_e}}(k_BT)^{-3/2}\int_I^{\infty}\mathrm{d}E\,E\sigma_I(E)\exp{\left(-\frac{E}{k_BT}\right)}
+
+        where :math:`E` is the energy of the incident electron,
+        :math:`I` is the ionization energy of the initially bound electron,
+        and :math:`\sigma_I` is the ionization cross-section.
+
+        Making the substitution :math:`x=(E-I)/k_BT`, the above integral can be
+        rewritten as,
+
+        .. math::
+
+            \begin{aligned}
+                C^I = \sqrt{\frac{8k_BT}{\pi m_e}}\exp{\left(-\frac{I}{k_BT}\right)}&\left(\int_0^{\infty}\mathrm{d}x\,x\sigma_{I}(k_BTx+I)e^{-x} \right. \\
+                                                                                    &\left. + \frac{I}{k_BT}\int_0^{\infty}\mathrm{d}x\,\sigma_{I}(k_BTx+I)e^{-x}\right).
+            \end{aligned}
+
+        Each of these integrals is of the form such that they can be evaluated using Gauss-Laguerre quadrature.
+        Note that there is a typo in the expression for the ionization rate integral in Eq. 32 of :cite:t:`del_zanna_solar_2018`.
+        The details of the ionization cross-section calculation can be found in `direct_ionization_cross_section`.
+
+        See Also
+        --------
+        direct_ionization_cross_section : Calculation of :math:`\sigma_I` as a function of :math:`E`.
         """
         xgl, wgl = np.polynomial.laguerre.laggauss(12)
         kBT = const.k_B * self.temperature
@@ -552,7 +614,7 @@ Using Datasets:
     @u.quantity_input
     def direct_ionization_cross_section(self, energy: u.erg) -> u.cm**2:
         """
-        Calculate direct ionization cross-section.
+        Direct ionization cross-section as a function of energy.
 
         The cross-sections are calculated one of two ways:
 

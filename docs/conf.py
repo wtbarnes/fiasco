@@ -39,6 +39,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx_automodapi.automodapi',
     'sphinx_automodapi.smart_resolver',
+    'sphinxcontrib.bibtex',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -88,12 +89,14 @@ intersphinx_mapping = {
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 
-try:
-    html_theme = "sphinx_rtd_theme"
-    import sphinx_rtd_theme
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-except ImportError:
-    html_theme = 'default'
+html_theme = 'pydata_sphinx_theme'
+
+# -- PyData Theme Options -----------------------------------------------------
+html_theme_options = {
+    'github_url': 'https://github.com/wtbarnes/fiasco',
+    'show_prev_next': False,
+}
+html_logo = '_static/fiasco-logo.png'
 
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -112,6 +115,9 @@ graphviz_dot_args = [
     '-Gfontsize=10',
     '-Gfontname=Helvetica Neue, Helvetica, Arial, sans-serif'
 ]
+
+# Set path for BibTeX file for all of our references
+bibtex_bibfiles = ['references.bib']
 
 
 ON_RTD = os.environ.get('READTHEDOCS') == 'True'
