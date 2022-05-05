@@ -169,7 +169,7 @@ Using Datasets:
 
     @property
     def hydrogenic(self):
-        """
+        r"""
         Is the ion hydrogen-like or not.
 
         Notes
@@ -180,7 +180,7 @@ Using Datasets:
 
     @property
     def helium_like(self):
-        """
+        r"""
         Is the ion helium like or not.
 
         Notes
@@ -915,7 +915,7 @@ Using Datasets:
                      * np.sqrt(2. * np.pi / 3. / const.m_e / const.k_B))
         tmp = np.outer(self.temperature, wavelength)
         exp_factor = np.exp(-const.h * const.c / const.k_B / tmp) / (wavelength**2)
-        gf = self._gaunt_factor_free_free(wavelength)
+        gf = self.gaunt_factor_free_free(wavelength)
 
         return (prefactor * self.atomic_number**2 * exp_factor * gf
                 / np.sqrt(self.temperature)[:, np.newaxis])
@@ -997,17 +997,25 @@ Using Datasets:
         raise NotImplementedError
 
     @u.quantity_input
-    def _gaunt_factor_free_free(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
-        """
-        Compute free-free gaunt factor using the approaches of [1]_
-        and [2]_ where appropriate.
+    def gaunt_factor_free_free(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
+        r"""
+        Free-free Gaunt factor as a function of wavelength.
 
-        References
-        ----------
-        .. [1] Itoh, N. et al., 2000, ApJS, `128, 125
-            <http://adsabs.harvard.edu/abs/2000ApJS..128..125I>`_
-        .. [2] Sutherland, R. S., 1998, MNRAS, `300, 321
-            <http://adsabs.harvard.edu/abs/1998MNRAS.300..321S>`_
+        The free-free Gaunt factor is calculated from a lookup table of temperature averaged
+        free-free Gaunt factors from Table 2 of :cite:t:`sutherland_accurate_1998` as a function
+        of :math:`\log{\gamma^2},\log{u}`, where :math:`\gamma^2=Z^2\mathrm{Ry}/k_BT`
+        and :math:`u=hc/\lambda k_BT`.
+
+        For the regime, :math:`6<\log_{10}(T)< 8.5` and :math:`-4<\log_{10}(u)<1`, the above
+        prescription is replaced with the fitting formula of :cite:t:`itoh_relativistic_2000`
+        for the relativistic free-free Gaunt factor. This is given by Eq. 4 of
+        :cite:t:`itoh_relativistic_2000`,
+
+        .. math::
+
+            g_{ff} = \sum_{ij}^10 a_{ij}t^iU^j
+
+        where :math:`t=(\log{T} - 7.25)/1.25` and :math:`U=(\log{u} + 1.5)/2.5`.
         """
         gf_itoh = self._gaunt_factor_free_free_itoh(wavelength)
         gf_sutherland = self._gaunt_factor_free_free_sutherland(wavelength)
@@ -1018,21 +1026,6 @@ Using Datasets:
     @needs_dataset('itoh')
     @u.quantity_input
     def _gaunt_factor_free_free_itoh(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
-        r"""
-        Calculates the free-free gaunt factor of [1]_.
-
-        Need some equations here...
-
-        Notes
-        -----
-        The relativistic values are valid for :math:`6<\log_{10}(T)< 8.5` and
-        :math:`-4<\log_{10}(u)<1`
-
-        References
-        ----------
-        .. [1] Itoh, N. et al., 2000, ApJS, `128, 125
-            <http://adsabs.harvard.edu/abs/2000ApJS..128..125I>`_
-        """
         log10_temperature = np.log10(self.temperature.to(u.K).value)
         # calculate scaled energy and temperature
         tmp = np.outer(self.temperature, wavelength)
@@ -1056,16 +1049,6 @@ Using Datasets:
     @u.quantity_input
     def _gaunt_factor_free_free_sutherland(self,
                                            wavelength: u.angstrom) -> u.dimensionless_unscaled:
-        """
-        Calculates the free-free gaunt factor calculations of [1]_.
-
-        Need some equations here.
-
-        References
-        ----------
-        .. [1] Sutherland, R. S., 1998, MNRAS, `300, 321
-            <http://adsabs.harvard.edu/abs/1998MNRAS.300..321S>`_
-        """
         Ry = const.h * const.c * const.Ryd
         tmp = np.outer(self.temperature, wavelength)
         lower_u = const.h * const.c / const.k_B / tmp
