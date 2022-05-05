@@ -1,10 +1,7 @@
-Getting Started
-================
-
 Installation
-------------
+=============
 Currently, fiasco is only available via GitHub. We plan to make it available as a package
-on both `conda forge`_ and pip in the near future. To install the package,
+on both ``conda-forge`` and pip in the near future. To install the package,
 
 .. code-block:: shell
 

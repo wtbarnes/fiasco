@@ -14,9 +14,9 @@ Welcome to the documentation for fiasco. fiasco provides a Python interface to t
              the future, older versions of the database will be supported.
 
 .. toctree::
-  :maxdepth: 2
+  :maxdepth: 1
 
-  getting_started
+  install
   generated/gallery/index
   chianti
   code_ref/index
