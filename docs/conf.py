@@ -89,12 +89,13 @@ intersphinx_mapping = {
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 
-html_theme = 'pydata_sphinx_theme'
+html_theme = 'sphinx_book_theme'
 
-# -- PyData Theme Options -----------------------------------------------------
+# -- Sphinx Book Theme Options -----------------------------------------------------
 html_theme_options = {
-    'github_url': 'https://github.com/wtbarnes/fiasco',
-    'show_prev_next': False,
+    "repository_url": 'https://github.com/wtbarnes/fiasco',
+    "use_repository_button": True,
+    "use_issues_button": True,
 }
 html_logo = '_static/fiasco-logo.png'
 
