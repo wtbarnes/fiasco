@@ -174,8 +174,7 @@ Using Datasets:
 
         Notes
         -----
-        This is `True` if (atomic number - charge state) == 1 and atomic number is
-        >= 6.
+        This is `True` if :math:`Z - z = 1` and :math:`Z\ge6`.
         """
         return (self.atomic_number - self.charge_state == 1) and (self.atomic_number >= 6)
 
@@ -186,8 +185,7 @@ Using Datasets:
 
         Notes
         -----
-        This is `True` if (atomic number - charge state) == 2 and atomic number is
-        >= 10.
+        This is `True` if :math:`Z - z = 2` and :math:`Z\ge10`.
         """
         return (self.atomic_number - self.charge_state == 2) and (self.atomic_number >= 10)
 
@@ -212,7 +210,7 @@ Using Datasets:
 
         .. math::
 
-            \Upsilon = \int_0\infty\mathrm{d}\left(\frac{E}{k_BT}\right)\,\Omega_{ji}\exp{\left(-\frac{E}{k_BT}\right)}
+            \Upsilon = \int_0^\infty\mathrm{d}\left(\frac{E}{k_BT}\right)\,\Omega_{ji}\exp{\left(-\frac{E}{k_BT}\right)}
 
         where :math:`\Omega_{ji}` is the collision strength.
         These Maxwellian-averaged collision strengths are stored in
@@ -272,7 +270,7 @@ Using Datasets:
 
         .. math::
 
-            C^e_{ij} = \frac{\omega_j}{\omega_i}C^d_{ji}e^{-k_BT_e/\Delta E_{ij}}
+            C^e_{ij} = \frac{\omega_j}{\omega_i}C^d_{ji}\exp{\left(-\frac{k_BT_e}{\Delta E_{ij}}\right)}
 
         where :math:`j,i` are the upper and lower level indices, respectively, :math:`\omega_j,\omega_i`
         are the statistical weights of the upper and lower levels, respectively, and :math:`\Delta E_{ij}`
@@ -300,7 +298,8 @@ Using Datasets:
         Collisional excitation rate coefficient for protons.
 
         These excitation rates are stored in CHIANTI and then rescaled
-        to the appropriate temperatures.
+        to the appropriate temperatures using the method of
+        :cite:t:`burgess_analysis_1992`.
 
         See Also
         --------
@@ -330,7 +329,7 @@ Using Datasets:
 
         .. math::
 
-            C^{d,p}_{ji} = \frac{\omega_i}{\omega_j}exp{\left(\frac{E}{k_BT}\right)}C^{e,p}_{ij}
+            C^{d,p}_{ji} = \frac{\omega_i}{\omega_j}\exp{\left(\frac{E}{k_BT}\right)}C^{e,p}_{ij}
 
         where :math:`C^{e,p}_{ji}` is the excitation rate due to collisions
         with protons.
@@ -495,9 +494,12 @@ Using Datasets:
 
            \epsilon(n_e,T) = G(n_e,T)n_e^2
 
+        where :math:`G` is the contribution function, :math:`n_e` is the electron
+        density, and :math:`T` is the temperature.
         Note that, like the contribution function, emissivity is often defined in
         in differing ways by different authors.
-        Here, we use the definition of the emissivity as given by Eq. 3 of :cite:t:`young_chianti_2016`.
+        Here, we use the definition of the emissivity as given by Eq. 3 of
+        :cite:t:`young_chianti_2016`.
 
         Parameters
         ----------
@@ -613,18 +615,43 @@ Using Datasets:
 
     @u.quantity_input
     def direct_ionization_cross_section(self, energy: u.erg) -> u.cm**2:
-        """
+        r"""
         Direct ionization cross-section as a function of energy.
 
-        The cross-sections are calculated one of two ways:
+        The direction ionization cross-section is calculated one of two ways.
+        For H and He like ions, the cross-section is computed according to
+        the method of :cite:t:`fontes_fully_1999`,
 
-        - Using the method of [fontes]_ for H and He like ions.
-        - Using the scaled cross-sections of [dere]_ for all other ions.
+        .. math::
 
-        References
-        ----------
-        .. [fontes] Fontes, C. J., et al., 1999, Phys. Rev. A., `59 1329 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.59.1329>`_
-        .. [dere] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
+            \sigma_I = B\frac{\pi a_0^2}{I^2}Q_R
+
+        where :math:`B=1` for H-like ions and :math:`B=2` for He-like ions,
+        :math:`I` is the ionization energy (expressed in Ry),
+        :math:`a_0` is the Bohr radius,
+        and :math:`Q_R` is a reduced cross-section which can be approximated by
+        the fitting formula given in Eqs. 2.10, 2.11, and 2.12 of
+        :cite:t:`fontes_fully_1999`.
+
+        For all other ions, the cross-section is computed according to the method
+        of :cite:t:`dere_ionization_2007` which employs a scaling similar to that
+        used by :cite:t:`burgess_analysis_1992`.
+        Rearranging Eq. 3 of :cite:t:`dere_ionization_2007`,
+
+        .. math::
+
+            \sigma_I = \frac{\Sigma (\log{u} + 1)}{uI^2}
+
+        where :math:`u=E/I` is the energy of the incident electron scaled by ionization
+        potential and :math:`\Sigma` is the scaled cross-section which is defined over,
+
+        .. math::
+
+            U = 1 - \frac{\log{f}}{\log{u - 1 + f}}
+
+        where :math:`f` is a fitting parameter.
+        :math:`U,f,\Sigma` are all stored in the CHIANTI database such that :math:`\sigma_I`
+        can be computed for a given :math:`E`.
         """
         if self.hydrogenic or self.helium_like:
             return self._fontes_cross_section(energy)
@@ -634,13 +661,6 @@ Using Datasets:
     @needs_dataset('diparams')
     @u.quantity_input
     def _dere_cross_section(self, energy: u.erg) -> u.cm**2:
-        """
-        Calculate direct ionization cross-sections according to [1]_.
-
-        References
-        ----------
-        .. [1] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
-        """
         # Cross-sections from diparams file
         cross_section_total = np.zeros(energy.shape)
         for ip, bt_c, bt_e, bt_cross_section in zip(self._diparams['ip'],
@@ -663,13 +683,6 @@ Using Datasets:
     @needs_dataset('ip')
     @u.quantity_input
     def _fontes_cross_section(self, energy: u.erg) -> u.cm**2:
-        """
-        Calculate direct ionization cross-section according to [fontes]_.
-
-        References
-        ----------
-        .. [fontes] Fontes, C. J., et al., 1999, Phys. Rev. A., `59 1329 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.59.1329>`_
-        """
         U = energy/self.ip
         A = 1.13
         B = 1 if self.hydrogenic else 2
@@ -692,8 +705,23 @@ Using Datasets:
     @needs_dataset('easplups')
     @u.quantity_input
     def excitation_autoionization_rate(self) -> u.cm**3 / u.s:
-        """
-        Calculate ionization rate due to excitation autoionization.
+        r"""
+        Ionization rate due to excitation autoionization.
+
+        Following Eq. 4.74 of :cite:t:`phillips_ultraviolet_2008`, the excitation
+        autoionization rate is given by,
+
+        .. math::
+
+            \alpha_{EA} = \frac{h^2}{(2\pi m_e)^{3/2}}(k_BT)^{-1/2}\sum_{lj}\Upsilon^{EA}_{lj}\exp{\left(-\frac{\Delta E_{lj}}{k_BT}\right)}
+
+        where :math:`\Upsilon^{EA}` is the thermally-averaged excitation autoionization
+        cross-section as stored in CHIANTI and includes the additional :math:`\omega_j`
+        multiplicity factor compared to the expression in :cite:t:`phillips_ultraviolet_2008`.
+        The sum is taken over inelastic collisions to level :math:`j` from a level :math:`l`
+        below the ionization threshold.
+        Additionally, note that the constant has been rewritten in terms of :math:`h`
+        rather than :math:`I_H` and :math:`a_0`.
         """
         c = (const.h**2)/((2. * np.pi * const.m_e)**(1.5) * np.sqrt(const.k_B))
         kBTE = np.outer(const.k_B*self.temperature, 1.0/self._easplups['delta_energy'])
@@ -715,10 +743,15 @@ Using Datasets:
     @cached_property
     @u.quantity_input
     def ionization_rate(self) -> u.cm**3 / u.s:
-        """
-        Total ionization rate.
+        r"""
+        Total ionization rate as a function of temperature.
 
-        Includes contributions from both direct ionization and excitation-autoionization.
+        The total ionization rate, as a function of temperature, for a given ion
+        is the sum of the direct ionization and excitation autoionization rates such that,
+
+        .. math::
+
+            \alpha_{I} = \alpha_{DI} + \alpha_{EA}
 
         See Also
         --------
@@ -739,14 +772,42 @@ Using Datasets:
     @needs_dataset('rrparams')
     @u.quantity_input
     def radiative_recombination_rate(self) -> u.cm**3 / u.s:
-        """
-        Radiative recombination rate.
+        r"""
+        Radiative recombination rate as a function of temperature.
 
         The recombination rate due to interaction with the ambient radiation field
-        is calculated using a set of fit parameters using one of two methods:
+        is calculated using a set of fit parameters using one of two methods.
+        The methodology used depends on the type of radiative recombination
+        rate fitting coefficients available for the particular ion in the CHIANTI atomic
+        database.
 
-        - Method of [badnell]_, (show expression)
-        - Method of [shull]_, (show expression)
+        The first method is given in Eq. 4 of :cite:t:`verner_atomic_1996` and
+        Eq. 1 of :cite:t:`badnell_radiative_2006`,
+
+        .. math::
+
+            \alpha_{RR} = A(\sqrt{T/T_0}(1 + \sqrt{T/T_0})^{1-B}(1 + \sqrt{T/T_1})^{1+B})^{-1}
+
+        where :math:`A,B,T_0,T_1` are fitting coefficients provided for each ion in the CHIANTI
+        atomic database.
+        In some cases, the fitting coefficient :math:`B` is also modified as,
+
+        .. math::
+
+            B \to B + Ce^{-T_2/T}
+
+        where :math:`C` and :math:`T_2` are additional fitting coefficients
+        (see Eq. 2 of :cite:t:`badnell_radiative_2006`).
+
+        The second method is given by Eq. 4 of :cite:t:`shull_ionization_1982`
+        and Eq. 1 of :cite:t:`verner_atomic_1996`,
+
+        .. math::
+
+            \alpha_{RR} = A(T/T_0)^{-\eta}
+
+        where :math:`A` and :math:`\eta` are fitting parameters provided in the
+        CHIANTI atomic database and :math:`T_0=10^4` K.
         """
         if self._rrparams['fit_type'][0] == 1 or self._rrparams['fit_type'][0] == 2:
             A = self._rrparams['A_fit']
@@ -768,16 +829,31 @@ Using Datasets:
     @needs_dataset('drparams')
     @u.quantity_input
     def dielectronic_recombination_rate(self) -> u.cm**3 / u.s:
-        """
-        Dielectronic recombination rate.
+        r"""
+        Dielectronic recombination rate as a function of temperature.
 
-        Calculated according to one of two methods,
+        The dielectronic recombination rate, as a function of :math:`T`, is computed
+        using one of two methods.
+        The methodology used depends on the type of dielectronic recombination
+        rate fitting coefficients available for the particular ion in the CHIANTI atomic
+        database.
 
-        - Method of [1]_, (show expression)
-        - Method of [2]_, (show expression)
+        The first method is given in Eq. 3 of :cite:t:`zatsarinny_dielectronic_2003`,
 
-        References
-        ----------
+        .. math::
+
+            \alpha_{DR} = T^{-3/2}\sum_ic_ie^{-E_i/T}
+
+        where :math:`c_i` and :math:`E_i` are fitting coefficients stored in the CHIANTI
+        database.
+
+        The second method is given by Eq. 5 of :cite:t:`shull_ionization_1982`,
+
+        .. math::
+
+            \alpha_{DR} = A T^{-3/2}e^{-T_0/T}(1 + B e^{-T_1/T})
+
+        where :math:`A,B,T_0,T_1` are fitting coefficients stored in the CHIANTI database.
         """
         if self._drparams['fit_type'][0] == 1:
             E_over_T = np.outer(self._drparams['E_fit'], 1./self.temperature)
@@ -796,10 +872,15 @@ Using Datasets:
     @cached_property
     @u.quantity_input
     def recombination_rate(self) -> u.cm**3 / u.s:
-        """
-        Total recombination rate.
+        r"""
+        Total recombination rate as a function of temperature.
 
-        Includes contributions from dielectronic recombination and radiative recombination.
+        The total recombination rate, as a function of temperature, for a given ion
+        is the sum of the radiative and dielectronic recombination rates such that,
+
+        .. math::
+
+            \alpha_{R} = \alpha_{RR} + \alpha_{DR}
 
         See Also
         --------
