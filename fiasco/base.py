@@ -41,6 +41,9 @@ class Base(object):
         check_database(self.hdf5_dbase_root, **kwargs)
         if self.ion_name not in fiasco.list_ions(self.hdf5_dbase_root, sort=False):
             raise MissingIonError(f'{self.ion_name} not found in {self.hdf5_dbase_root}')
+        # Put import here to avoid circular imports
+        from fiasco import log
+        self.log = log
 
     @property
     def atomic_number(self):

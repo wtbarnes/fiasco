@@ -24,9 +24,9 @@ class Ion(IonBase, ContinuumBase):
     """
     Ion class
 
-    The ion object is the fundamental unit of the fiasco library. An Ion object contains
+    The ion object is the fundamental unit of `fiasco`. This object contains
     all of the properties and methods needed to access important information about each ion
-    from the CHIANTI database.
+    from the CHIANTI database as well as compute common derived quantities.
 
     Parameters
     ----------
@@ -169,25 +169,23 @@ Using Datasets:
 
     @property
     def hydrogenic(self):
-        """
+        r"""
         Is the ion hydrogen-like or not.
 
         Notes
         -----
-        This is `True` if (atomic number - charge state) == 1 and atomic number is
-        >= 6.
+        This is `True` if :math:`Z - z = 1` and :math:`Z\ge6`.
         """
         return (self.atomic_number - self.charge_state == 1) and (self.atomic_number >= 6)
 
     @property
     def helium_like(self):
-        """
+        r"""
         Is the ion helium like or not.
 
         Notes
         -----
-        This is `True` if (atomic number - charge state) == 2 and atomic number is
-        >= 10.
+        This is `True` if :math:`Z - z = 2` and :math:`Z\ge10`.
         """
         return (self.atomic_number - self.charge_state == 2) and (self.atomic_number >= 10)
 
@@ -195,7 +193,8 @@ Using Datasets:
     @u.quantity_input
     def formation_temperature(self) -> u.K:
         """
-        Temperature at which `~fiasco.Ion.ioneq` is maximum.
+        Temperature at which `~fiasco.Ion.ioneq` is maximum. This is a useful proxy for
+        the temperature at which lines for this ion are formed.
         """
         return self.temperature[np.argmax(self.ioneq)]
 
@@ -204,7 +203,19 @@ Using Datasets:
     @u.quantity_input
     def effective_collision_strength(self) -> u.dimensionless_unscaled:
         r"""
-        Maxwellian-averaged collision strength, typically denoted by :math:`\Upsilon`.
+        Maxwellian-averaged collision strength, typically denoted by :math:`\Upsilon`, as a function of temperature.
+
+        According to Eq. 4.11 of :cite:t:`phillips_ultraviolet_2008`,
+        :math:`\Upsilon` is given by,
+
+        .. math::
+
+            \Upsilon = \int_0^\infty\mathrm{d}\left(\frac{E}{k_BT}\right)\,\Omega_{ji}\exp{\left(-\frac{E}{k_BT}\right)}
+
+        where :math:`\Omega_{ji}` is the collision strength.
+        These Maxwellian-averaged collision strengths are stored in
+        dimensionless form in CHIANTI and are rescaled to the appropriate
+        temperature.
 
         See Also
         --------
@@ -226,7 +237,7 @@ Using Datasets:
         r"""
         Collisional de-excitation rate coefficient for electrons.
 
-        According to Eq. (4.12) of [phillips]_, the rate coefficient for collisional de-excitation
+        According to Eq. 4.12 of :cite:t:`phillips_ultraviolet_2008`, the rate coefficient for collisional de-excitation
         is given by,
 
         .. math::
@@ -237,10 +248,6 @@ Using Datasets:
         ionization potential for H, :math:`a_0` is the Bohr radius, :math:`\Upsilon` is the
         effective collision strength, and :math:`\omega_j` is the statistical weight of the
         level :math:`j`.
-
-        References
-        ----------
-        .. [phillips] Phillips, K., et al., 2008, `Ultraviolet and X-ray Spectroscopy of the Solar Atmosphere <http://adsabs.harvard.edu/abs/2008uxss.book.....P>`_
 
         See Also
         --------
@@ -263,11 +270,11 @@ Using Datasets:
 
         .. math::
 
-            C^e_{ij} = \frac{\omega_j}{\omega_i}C^d_{ji}e^{-k_BT_e/\Delta E_{ij}}
+            C^e_{ij} = \frac{\omega_j}{\omega_i}C^d_{ji}\exp{\left(-\frac{k_BT_e}{\Delta E_{ij}}\right)}
 
         where :math:`j,i` are the upper and lower level indices, respectively, :math:`\omega_j,\omega_i`
         are the statistical weights of the upper and lower levels, respectively, and :math:`\Delta E_{ij}`
-        is the energy of the transition.
+        is the energy of the transition :cite:p:`phillips_ultraviolet_2008`.
 
         Parameters
         ----------
@@ -289,6 +296,14 @@ Using Datasets:
     def proton_collision_excitation_rate(self) -> u.cm**3 / u.s:
         """
         Collisional excitation rate coefficient for protons.
+
+        These excitation rates are stored in CHIANTI and then rescaled
+        to the appropriate temperatures using the method of
+        :cite:t:`burgess_analysis_1992`.
+
+        See Also
+        --------
+        electron_collision_excitation_rate
         """
         # Create scaled temperature--these are not stored in the file
         bt_t = [np.linspace(0, 1, ups.shape[0]) for ups in self._psplups['bt_rate']]
@@ -306,8 +321,25 @@ Using Datasets:
     @needs_dataset('elvlc', 'psplups')
     @u.quantity_input
     def proton_collision_deexcitation_rate(self) -> u.cm**3 / u.s:
-        """
+        r"""
         Collisional de-excitation rate coefficient for protons.
+
+        As in the electron case, the proton collision de-excitation
+        rate is given by,
+
+        .. math::
+
+            C^{d,p}_{ji} = \frac{\omega_i}{\omega_j}\exp{\left(\frac{E}{k_BT}\right)}C^{e,p}_{ij}
+
+        where :math:`C^{e,p}_{ji}` is the excitation rate due to collisions
+        with protons.
+
+        Note that :math:`T` is technically the proton temperature. In the case of a thermal plasma, the electron and proton temperatures are equal, :math:`T_e=T_p`.
+        See Section 4.9.4 of :cite:t:`phillips_ultraviolet_2008` for additional information on proton collision rates.
+
+        See Also
+        --------
+        proton_collision_excitation_rate : Excitation rate due to collisions with protons
         """
         kBTE = np.outer(const.k_B * self.temperature, 1.0 / self._psplups['delta_energy'])
         omega_upper = 2. * self._elvlc['J'][self._psplups['upper_level'] - 1] + 1.
@@ -341,7 +373,9 @@ Using Datasets:
         try:
             _ = self._psplups
         except KeyError:
-            # TODO: log this
+            self.log.warning(
+                f'No proton data available for {self.ion_name}. '
+                'Not including proton excitation and de-excitation in level populations calculation.')
             include_protons = False
 
         level = self._elvlc['level']
@@ -415,7 +449,7 @@ Using Datasets:
     @u.quantity_input
     def contribution_function(self, density: u.cm**(-3), **kwargs) -> u.cm**3 * u.erg / u.s:
         r"""
-        Contribution function :math:`G(n,T)` for all transitions.
+        Contribution function :math:`G(n_e,T)` for all transitions.
 
         The contribution function for ion :math:`k` of element :math:`X` for a
         particular transition :math:`ij` is given by,
@@ -425,7 +459,7 @@ Using Datasets:
            G_{ij} = \frac{n_H}{n_e}\mathrm{Ab}(X)f_{X,k}N_jA_{ij}\Delta E_{ij}\frac{1}{n_e},
 
         Note that the contribution function is often defined in differing ways by different authors.
-        The contribution function is defined as above in [young]_.
+        The contribution function is defined as above in :cite:t:`young_chianti_2016`.
 
         The corresponding wavelengths can be retrieved with,
 
@@ -437,10 +471,6 @@ Using Datasets:
         ----------
         density : `~astropy.units.Quantity`
             Electron number density
-
-        References
-        ----------
-        .. [young] Young, P. et al., 2016, J. Phys. B: At. Mol. Opt. Phys., `49, 7 <http://iopscience.iop.org/article/10.1088/0953-4075/49/7/074009/meta>`_
         """
         populations = self.level_populations(density, **kwargs)
         term = np.outer(self.ioneq, 1./density) * self.abundance * 0.83
@@ -462,10 +492,14 @@ Using Datasets:
 
         .. math::
 
-           \epsilon(n,T) = G(n,T)n^2
+           \epsilon(n_e,T) = G(n_e,T)n_e^2
 
+        where :math:`G` is the contribution function, :math:`n_e` is the electron
+        density, and :math:`T` is the temperature.
         Note that, like the contribution function, emissivity is often defined in
         in differing ways by different authors.
+        Here, we use the definition of the emissivity as given by Eq. 3 of
+        :cite:t:`young_chianti_2016`.
 
         Parameters
         ----------
@@ -535,10 +569,40 @@ Using Datasets:
     @needs_dataset('ip')
     @u.quantity_input
     def direct_ionization_rate(self) -> u.cm**3 / u.s:
-        """
-        Calculate direct ionization rate.
+        r"""
+        Total ionization rate due to collisions as a function of temperature.
 
-        Needs an equation reference or explanation.
+        The ionization rate due to the collisions with free electrons can
+        be written as the integral of the velocity-weighted collisional
+        cross-section over the Maxwell-Boltzmann distribution.
+        Following Section 3.5.1 of :cite:t:`del_zanna_solar_2018`, this can be
+        written as,
+
+        .. math::
+
+            C^I = \sqrt{\frac{8}{\pi m_e}}(k_BT)^{-3/2}\int_I^{\infty}\mathrm{d}E\,E\sigma_I(E)\exp{\left(-\frac{E}{k_BT}\right)}
+
+        where :math:`E` is the energy of the incident electron,
+        :math:`I` is the ionization energy of the initially bound electron,
+        and :math:`\sigma_I` is the ionization cross-section.
+
+        Making the substitution :math:`x=(E-I)/k_BT`, the above integral can be
+        rewritten as,
+
+        .. math::
+
+            \begin{aligned}
+                C^I = \sqrt{\frac{8k_BT}{\pi m_e}}\exp{\left(-\frac{I}{k_BT}\right)}&\left(\int_0^{\infty}\mathrm{d}x\,x\sigma_{I}(k_BTx+I)e^{-x} \right. \\
+                                                                                    &\left. + \frac{I}{k_BT}\int_0^{\infty}\mathrm{d}x\,\sigma_{I}(k_BTx+I)e^{-x}\right).
+            \end{aligned}
+
+        Each of these integrals is of the form such that they can be evaluated using Gauss-Laguerre quadrature.
+        Note that there is a typo in the expression for the ionization rate integral in Eq. 32 of :cite:t:`del_zanna_solar_2018`.
+        The details of the ionization cross-section calculation can be found in `direct_ionization_cross_section`.
+
+        See Also
+        --------
+        direct_ionization_cross_section : Calculation of :math:`\sigma_I` as a function of :math:`E`.
         """
         xgl, wgl = np.polynomial.laguerre.laggauss(12)
         kBT = const.k_B * self.temperature
@@ -551,18 +615,43 @@ Using Datasets:
 
     @u.quantity_input
     def direct_ionization_cross_section(self, energy: u.erg) -> u.cm**2:
-        """
-        Calculate direct ionization cross-section.
+        r"""
+        Direct ionization cross-section as a function of energy.
 
-        The cross-sections are calculated one of two ways:
+        The direction ionization cross-section is calculated one of two ways.
+        For H and He like ions, the cross-section is computed according to
+        the method of :cite:t:`fontes_fully_1999`,
 
-        - Using the method of [fontes]_ for H and He like ions.
-        - Using the scaled cross-sections of [dere]_ for all other ions.
+        .. math::
 
-        References
-        ----------
-        .. [fontes] Fontes, C. J., et al., 1999, Phys. Rev. A., `59 1329 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.59.1329>`_
-        .. [dere] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
+            \sigma_I = B\frac{\pi a_0^2}{I^2}Q_R
+
+        where :math:`B=1` for H-like ions and :math:`B=2` for He-like ions,
+        :math:`I` is the ionization energy (expressed in Ry),
+        :math:`a_0` is the Bohr radius,
+        and :math:`Q_R` is a reduced cross-section which can be approximated by
+        the fitting formula given in Eqs. 2.10, 2.11, and 2.12 of
+        :cite:t:`fontes_fully_1999`.
+
+        For all other ions, the cross-section is computed according to the method
+        of :cite:t:`dere_ionization_2007` which employs a scaling similar to that
+        used by :cite:t:`burgess_analysis_1992`.
+        Rearranging Eq. 3 of :cite:t:`dere_ionization_2007`,
+
+        .. math::
+
+            \sigma_I = \frac{\Sigma (\log{u} + 1)}{uI^2}
+
+        where :math:`u=E/I` is the energy of the incident electron scaled by ionization
+        potential and :math:`\Sigma` is the scaled cross-section which is defined over,
+
+        .. math::
+
+            U = 1 - \frac{\log{f}}{\log{u - 1 + f}}
+
+        where :math:`f` is a fitting parameter.
+        :math:`U,f,\Sigma` are all stored in the CHIANTI database such that :math:`\sigma_I`
+        can be computed for a given :math:`E`.
         """
         if self.hydrogenic or self.helium_like:
             return self._fontes_cross_section(energy)
@@ -572,13 +661,6 @@ Using Datasets:
     @needs_dataset('diparams')
     @u.quantity_input
     def _dere_cross_section(self, energy: u.erg) -> u.cm**2:
-        """
-        Calculate direct ionization cross-sections according to [1]_.
-
-        References
-        ----------
-        .. [1] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
-        """
         # Cross-sections from diparams file
         cross_section_total = np.zeros(energy.shape)
         for ip, bt_c, bt_e, bt_cross_section in zip(self._diparams['ip'],
@@ -601,13 +683,6 @@ Using Datasets:
     @needs_dataset('ip')
     @u.quantity_input
     def _fontes_cross_section(self, energy: u.erg) -> u.cm**2:
-        """
-        Calculate direct ionization cross-section according to [fontes]_.
-
-        References
-        ----------
-        .. [fontes] Fontes, C. J., et al., 1999, Phys. Rev. A., `59 1329 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.59.1329>`_
-        """
         U = energy/self.ip
         A = 1.13
         B = 1 if self.hydrogenic else 2
@@ -630,8 +705,23 @@ Using Datasets:
     @needs_dataset('easplups')
     @u.quantity_input
     def excitation_autoionization_rate(self) -> u.cm**3 / u.s:
-        """
-        Calculate ionization rate due to excitation autoionization.
+        r"""
+        Ionization rate due to excitation autoionization.
+
+        Following Eq. 4.74 of :cite:t:`phillips_ultraviolet_2008`, the excitation
+        autoionization rate is given by,
+
+        .. math::
+
+            \alpha_{EA} = \frac{h^2}{(2\pi m_e)^{3/2}}(k_BT)^{-1/2}\sum_{lj}\Upsilon^{EA}_{lj}\exp{\left(-\frac{\Delta E_{lj}}{k_BT}\right)}
+
+        where :math:`\Upsilon^{EA}` is the thermally-averaged excitation autoionization
+        cross-section as stored in CHIANTI and includes the additional :math:`\omega_j`
+        multiplicity factor compared to the expression in :cite:t:`phillips_ultraviolet_2008`.
+        The sum is taken over inelastic collisions to level :math:`j` from a level :math:`l`
+        below the ionization threshold.
+        Additionally, note that the constant has been rewritten in terms of :math:`h`
+        rather than :math:`I_H` and :math:`a_0`.
         """
         c = (const.h**2)/((2. * np.pi * const.m_e)**(1.5) * np.sqrt(const.k_B))
         kBTE = np.outer(const.k_B*self.temperature, 1.0/self._easplups['delta_energy'])
@@ -653,10 +743,15 @@ Using Datasets:
     @cached_property
     @u.quantity_input
     def ionization_rate(self) -> u.cm**3 / u.s:
-        """
-        Total ionization rate.
+        r"""
+        Total ionization rate as a function of temperature.
 
-        Includes contributions from both direct ionization and excitation-autoionization.
+        The total ionization rate, as a function of temperature, for a given ion
+        is the sum of the direct ionization and excitation autoionization rates such that,
+
+        .. math::
+
+            \alpha_{I} = \alpha_{DI} + \alpha_{EA}
 
         See Also
         --------
@@ -677,14 +772,42 @@ Using Datasets:
     @needs_dataset('rrparams')
     @u.quantity_input
     def radiative_recombination_rate(self) -> u.cm**3 / u.s:
-        """
-        Radiative recombination rate.
+        r"""
+        Radiative recombination rate as a function of temperature.
 
         The recombination rate due to interaction with the ambient radiation field
-        is calculated using a set of fit parameters using one of two methods:
+        is calculated using a set of fit parameters using one of two methods.
+        The methodology used depends on the type of radiative recombination
+        rate fitting coefficients available for the particular ion in the CHIANTI atomic
+        database.
 
-        - Method of [badnell]_, (show expression)
-        - Method of [shull]_, (show expression)
+        The first method is given in Eq. 4 of :cite:t:`verner_atomic_1996` and
+        Eq. 1 of :cite:t:`badnell_radiative_2006`,
+
+        .. math::
+
+            \alpha_{RR} = A(\sqrt{T/T_0}(1 + \sqrt{T/T_0})^{1-B}(1 + \sqrt{T/T_1})^{1+B})^{-1}
+
+        where :math:`A,B,T_0,T_1` are fitting coefficients provided for each ion in the CHIANTI
+        atomic database.
+        In some cases, the fitting coefficient :math:`B` is also modified as,
+
+        .. math::
+
+            B \to B + Ce^{-T_2/T}
+
+        where :math:`C` and :math:`T_2` are additional fitting coefficients
+        (see Eq. 2 of :cite:t:`badnell_radiative_2006`).
+
+        The second method is given by Eq. 4 of :cite:t:`shull_ionization_1982`
+        and Eq. 1 of :cite:t:`verner_atomic_1996`,
+
+        .. math::
+
+            \alpha_{RR} = A(T/T_0)^{-\eta}
+
+        where :math:`A` and :math:`\eta` are fitting parameters provided in the
+        CHIANTI atomic database and :math:`T_0=10^4` K.
         """
         if self._rrparams['fit_type'][0] == 1 or self._rrparams['fit_type'][0] == 2:
             A = self._rrparams['A_fit']
@@ -706,16 +829,31 @@ Using Datasets:
     @needs_dataset('drparams')
     @u.quantity_input
     def dielectronic_recombination_rate(self) -> u.cm**3 / u.s:
-        """
-        Dielectronic recombination rate.
+        r"""
+        Dielectronic recombination rate as a function of temperature.
 
-        Calculated according to one of two methods,
+        The dielectronic recombination rate, as a function of :math:`T`, is computed
+        using one of two methods.
+        The methodology used depends on the type of dielectronic recombination
+        rate fitting coefficients available for the particular ion in the CHIANTI atomic
+        database.
 
-        - Method of [1]_, (show expression)
-        - Method of [2]_, (show expression)
+        The first method is given in Eq. 3 of :cite:t:`zatsarinny_dielectronic_2003`,
 
-        References
-        ----------
+        .. math::
+
+            \alpha_{DR} = T^{-3/2}\sum_ic_ie^{-E_i/T}
+
+        where :math:`c_i` and :math:`E_i` are fitting coefficients stored in the CHIANTI
+        database.
+
+        The second method is given by Eq. 5 of :cite:t:`shull_ionization_1982`,
+
+        .. math::
+
+            \alpha_{DR} = A T^{-3/2}e^{-T_0/T}(1 + B e^{-T_1/T})
+
+        where :math:`A,B,T_0,T_1` are fitting coefficients stored in the CHIANTI database.
         """
         if self._drparams['fit_type'][0] == 1:
             E_over_T = np.outer(self._drparams['E_fit'], 1./self.temperature)
@@ -734,10 +872,15 @@ Using Datasets:
     @cached_property
     @u.quantity_input
     def recombination_rate(self) -> u.cm**3 / u.s:
-        """
-        Total recombination rate.
+        r"""
+        Total recombination rate as a function of temperature.
 
-        Includes contributions from dielectronic recombination and radiative recombination.
+        The total recombination rate, as a function of temperature, for a given ion
+        is the sum of the radiative and dielectronic recombination rates such that,
+
+        .. math::
+
+            \alpha_{R} = \alpha_{RR} + \alpha_{DR}
 
         See Also
         --------
@@ -772,7 +915,7 @@ Using Datasets:
                      * np.sqrt(2. * np.pi / 3. / const.m_e / const.k_B))
         tmp = np.outer(self.temperature, wavelength)
         exp_factor = np.exp(-const.h * const.c / const.k_B / tmp) / (wavelength**2)
-        gf = self._gaunt_factor_free_free(wavelength)
+        gf = self.gaunt_factor_free_free(wavelength)
 
         return (prefactor * self.atomic_number**2 * exp_factor * gf
                 / np.sqrt(self.temperature)[:, np.newaxis])
@@ -854,17 +997,25 @@ Using Datasets:
         raise NotImplementedError
 
     @u.quantity_input
-    def _gaunt_factor_free_free(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
-        """
-        Compute free-free gaunt factor using the approaches of [1]_
-        and [2]_ where appropriate.
+    def gaunt_factor_free_free(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
+        r"""
+        Free-free Gaunt factor as a function of wavelength.
 
-        References
-        ----------
-        .. [1] Itoh, N. et al., 2000, ApJS, `128, 125
-            <http://adsabs.harvard.edu/abs/2000ApJS..128..125I>`_
-        .. [2] Sutherland, R. S., 1998, MNRAS, `300, 321
-            <http://adsabs.harvard.edu/abs/1998MNRAS.300..321S>`_
+        The free-free Gaunt factor is calculated from a lookup table of temperature averaged
+        free-free Gaunt factors from Table 2 of :cite:t:`sutherland_accurate_1998` as a function
+        of :math:`\log{\gamma^2},\log{u}`, where :math:`\gamma^2=Z^2\mathrm{Ry}/k_BT`
+        and :math:`u=hc/\lambda k_BT`.
+
+        For the regime, :math:`6<\log_{10}(T)< 8.5` and :math:`-4<\log_{10}(u)<1`, the above
+        prescription is replaced with the fitting formula of :cite:t:`itoh_relativistic_2000`
+        for the relativistic free-free Gaunt factor. This is given by Eq. 4 of
+        :cite:t:`itoh_relativistic_2000`,
+
+        .. math::
+
+            g_{ff} = \sum_{ij}^10 a_{ij}t^iU^j
+
+        where :math:`t=(\log{T} - 7.25)/1.25` and :math:`U=(\log{u} + 1.5)/2.5`.
         """
         gf_itoh = self._gaunt_factor_free_free_itoh(wavelength)
         gf_sutherland = self._gaunt_factor_free_free_sutherland(wavelength)
@@ -875,21 +1026,6 @@ Using Datasets:
     @needs_dataset('itoh')
     @u.quantity_input
     def _gaunt_factor_free_free_itoh(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
-        r"""
-        Calculates the free-free gaunt factor of [1]_.
-
-        Need some equations here...
-
-        Notes
-        -----
-        The relativistic values are valid for :math:`6<\log_{10}(T)< 8.5` and
-        :math:`-4<\log_{10}(u)<1`
-
-        References
-        ----------
-        .. [1] Itoh, N. et al., 2000, ApJS, `128, 125
-            <http://adsabs.harvard.edu/abs/2000ApJS..128..125I>`_
-        """
         log10_temperature = np.log10(self.temperature.to(u.K).value)
         # calculate scaled energy and temperature
         tmp = np.outer(self.temperature, wavelength)
@@ -913,16 +1049,6 @@ Using Datasets:
     @u.quantity_input
     def _gaunt_factor_free_free_sutherland(self,
                                            wavelength: u.angstrom) -> u.dimensionless_unscaled:
-        """
-        Calculates the free-free gaunt factor calculations of [1]_.
-
-        Need some equations here.
-
-        References
-        ----------
-        .. [1] Sutherland, R. S., 1998, MNRAS, `300, 321
-            <http://adsabs.harvard.edu/abs/1998MNRAS.300..321S>`_
-        """
         Ry = const.h * const.c * const.Ryd
         tmp = np.outer(self.temperature, wavelength)
         lower_u = const.h * const.c / const.k_B / tmp
