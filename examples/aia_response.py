@@ -7,7 +7,7 @@ the Fe XVIII contribution function with the instrument response
 function to understand the temperature sensitivity of the 94
 angstrom channel.
 """
-
+# sphinx_gallery_thumbnail_number = 2
 import numpy as np
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt

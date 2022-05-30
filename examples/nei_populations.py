@@ -7,6 +7,7 @@ fractions of iron in the case where the the timescale of the
 temperature change is shorter than the ionization timescale.
 This is often referred to as *non-equilibrium ionization*.
 """
+# sphinx_gallery_thumbnail_number = 3
 import numpy as np
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
@@ -35,7 +36,7 @@ from fiasco import Element
 # to :math:`10^4` K.
 t = np.arange(0, 30, 0.01) * u.s
 Te_min = 1e4 * u.K
-Te_max = 15e6 * u.K
+Te_max = 2e6 * u.K
 t_mid = 15 * u.s
 Te = Te_min + (Te_max - Te_min) / t_mid * t
 Te[t>t_mid] = Te_max - (Te_max - Te_min) / t_mid * (t[t>t_mid] - t_mid)
@@ -45,7 +46,7 @@ Te[t>t_mid] = Te_max - (Te_max - Te_min) / t_mid * (t[t>t_mid] - t_mid)
 # :math:`10^8\,\mathrm{cm}^{-3}` to :math:`1.5^10\,\mathrm{cm}^{-3}`
 # and then back down to :math:`10^8\,\mathrm{cm}^{-3}`.
 ne_min = 1e8 * u.cm**(-3)
-ne_max = 1.5e10 * u.cm**(-3)
+ne_max = 1e10 * u.cm**(-3)
 ne = ne_min + (ne_max - ne_min) / t_mid * t
 ne[t>t_mid] = ne_max - (ne_max - ne_min) / t_mid * (t[t>t_mid] - t_mid)
 
@@ -65,19 +66,19 @@ plt.show()
 # As shown in previous examples, we can get the ion population
 # fractions of any element in the CHIANTI database over some
 # temperature array with `~fiasco.Element.equilibrium_ionization`.
-# First, let's model the ionization fractions of Fe for the above
+# First, let's model the ionization fractions of C for the above
 # temperature model, assuming ionization equilibrium.
 temperature_array = np.logspace(4, 8, 1000) * u.K
-fe = Element('iron', temperature_array)
-func_interp = interp1d(fe.temperature.to_value('K'), fe.equilibrium_ionization.value,
+carbon = Element('carbon', temperature_array)
+func_interp = interp1d(carbon.temperature.to_value('K'), carbon.equilibrium_ionization.value,
                        axis=0, kind='cubic', fill_value='extrapolate')
-fe_ieq = u.Quantity(func_interp(Te.to_value('K')))
+carbon_ieq = u.Quantity(func_interp(Te.to_value('K')))
 
 ###############################################################
-# We can plot the population fractions for Fe IX through Fe XXVII as a function of time.
+# We can plot the population fractions as a function of time.
 plt.figure(figsize=(12, 4))
-for i in range(8,27):
-    plt.plot(t, fe_ieq[:, i], label=fe[i].roman_name)
+for ion in carbon:
+    plt.plot(t, carbon_ieq[:, ion.charge_state], label=ion.roman_name)
 plt.xlim(t[[0,-1]].value)
 plt.legend(ncol=4, frameon=False)
 plt.show()
@@ -99,46 +100,45 @@ plt.show()
 # is the time step.
 #
 # First, we can set our inital state to the equilibrium populations.
-fe_nei = np.zeros(t.shape + (fe.atomic_number + 1,))
-fe_nei[0, :] = fe_ieq[0,:]
+carbon_nei = np.zeros(t.shape + (carbon.atomic_number + 1,))
+carbon_nei[0, :] = carbon_ieq[0,:]
 
 ###############################################################
 # Then, interpolate the rate matrix to our modeled temperatures
-func_interp = interp1d(fe.temperature.to_value('K'), fe._rate_matrix.value,
+func_interp = interp1d(carbon.temperature.to_value('K'), carbon._rate_matrix.value,
                        axis=0, kind='cubic', fill_value='extrapolate')
-fe_rate_matrix = func_interp(Te.to_value('K')) * fe._rate_matrix.unit
+fe_rate_matrix = func_interp(Te.to_value('K')) * carbon._rate_matrix.unit
 
 ###############################################################
 # Finally, we can iteratively compute the non-equilibrium ion
 # fractions using the above equation.
-identity = u.Quantity(np.eye(fe.atomic_number + 1))
+identity = u.Quantity(np.eye(carbon.atomic_number + 1))
 for i in range(1, t.shape[0]):
     dt = t[i] - t[i-1]
     term1 = identity - ne[i] * dt/2. * fe_rate_matrix[i, ...]
     term2 = identity + ne[i-1] * dt/2. * fe_rate_matrix[i-1, ...]
-    fe_nei[i, :] = np.linalg.inv(term1) @ term2 @ fe_nei[i-1, :]
-    fe_nei[i, :] = np.fabs(fe_nei[i, :])
-    fe_nei[i, :] /= fe_nei[i, :].sum()
+    carbon_nei[i, :] = np.linalg.inv(term1) @ term2 @ carbon_nei[i-1, :]
+    carbon_nei[i, :] = np.fabs(carbon_nei[i, :])
+    carbon_nei[i, :] /= carbon_nei[i, :].sum()
 
-fe_nei = u.Quantity(fe_nei)
+carbon_nei = u.Quantity(carbon_nei)
 
 ###############################################################
-# And overplot the non-equilibrium populations on top of the
-# equilibrium populations
+# And plot the non-equilibrium populations as a function of time
 plt.figure(figsize=(12,4))
-for i in range(8,27):
-    plt.plot(t, fe_nei[:, i], ls='-', label=fe[i].roman_name,)
+for ion in carbon:
+    plt.plot(t, carbon_nei[:, ion.charge_state], ls='-', label=ion.roman_name,)
 plt.xlim(t[[0,-1]].value)
 plt.legend(ncol=4, frameon=False)
 plt.show()
 
 ###############################################################
 # We can compare the two equilibrium and non equilbrium cases
-# directly by overplotting the Fe XVI population fractions for
+# directly by overplotting the C V population fractions for
 # the two cases.
 plt.figure(figsize=(12,4))
-plt.plot(t, fe_ieq[:, 15], label='IEQ')
-plt.plot(t, fe_nei[:, 15], label='NEI',)
+plt.plot(t, carbon_ieq[:, 4], label='IEQ')
+plt.plot(t, carbon_nei[:, 4], label='NEI',)
 plt.xlim(t[[0,-1]].value)
 plt.legend(frameon=False)
 plt.show()
@@ -153,8 +153,8 @@ plt.show()
 # temperature that one would infer if they observed the
 # non-equilibrium populations and assumed the populations
 # were in equilibrium.
-Te_eff =  fe.temperature[[(np.fabs(fe.equilibrium_ionization - fe_nei[i,:])).sum(axis=1).argmin()
-                          for i in range(fe_nei.shape[0])]]
+Te_eff =  carbon.temperature[[(np.fabs(carbon.equilibrium_ionization - carbon_nei[i, :])).sum(axis=1).argmin()
+                          for i in range(carbon_nei.shape[0])]]
 plt.plot(t, Te.to('MK'), label=r'$T$')
 plt.plot(t, Te_eff.to('MK'), label='$T_{\mathrm{eff}}$')
 plt.xlim(t[[0,-1]].value)
