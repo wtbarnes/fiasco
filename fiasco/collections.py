@@ -35,9 +35,8 @@ class IonCollection(object):
             else:
                 raise TypeError(f'{item} has unrecognized type {type(item)}',
                                 'and cannot be added to collection.')
-        # TODO: check for duplicates
-        assert all([all(self[0].temperature == ion.temperature) for ion in self]), (
-            'Temperatures for all ions in collection must be the same.')
+        if not all([all(self[0].temperature == ion.temperature) for ion in self]):
+            raise ValueError('Temperatures for all ions in collection must be the same.')
 
     def __getitem__(self, value):
         ions = self._ion_list[value]
@@ -81,7 +80,15 @@ class IonCollection(object):
         free_free = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape),
                                'erg cm^3 s^-1 Angstrom^-1')
         for ion in self:
-            free_free += ion.free_free(wavelength) * ion.abundance * ion.ioneq[:, np.newaxis]
+            try:
+                ff = ion.free_free(wavelength)
+                abundance = ion.abundance
+                ioneq = ion.ioneq
+            except MissingDatasetException as e:
+                self.log.warning(f'{ion.name} not included in free-free emission. {e}')
+                continue
+            else:
+                free_free += ff * abundance * ioneq[:, np.newaxis]
         return free_free
 
     @u.quantity_input
@@ -100,11 +107,13 @@ class IonCollection(object):
         for ion in self:
             try:
                 fb = ion.free_bound(wavelength, **kwargs)
-            except MissingDatasetException:
-                # TODO: log the skipped ion
+                abundance = ion.abundance
+                ioneq = ion.ioneq
+            except MissingDatasetException as e:
+                self.log.warning(f'{ion.name} not included in free-bound emission. {e}')
                 continue
             else:
-                free_bound += fb * ion.abundance * ion.ioneq[:, np.newaxis]
+                free_bound += fb * abundance * ioneq[:, np.newaxis]
         return free_bound
 
     @u.quantity_input
