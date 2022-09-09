@@ -32,7 +32,7 @@ repos:
       - id: check-ast
       - id: check-case-conflict
       - id: trailing-whitespace
-        exclude: ".*(.fits|.fts|.fit|.txt)$"
+        exclude: ".*(.fits|.fts|.fit|.txt|.pro)$"
       - id: check-yaml
       - id: debug-statements
       - id: check-added-large-files
