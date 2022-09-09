@@ -92,11 +92,18 @@ def pytest_addoption(parser):
                      help='Disable MD5 hash checks on test files')
     parser.addoption('--dbase-download-dir', action='store', default=None,
                      help='Directory to download chianti database to')
+    parser.addoption('--idl-executable', action='store', default=None)
+    parser.addoption('--idl-codebase-root', action='store', default=None)
+    parser.addoption('--include-all-files', action='store', default=False)
 
 
 @pytest.fixture(scope='session')
 def ascii_dbase_root(tmpdir_factory, request):
     path = request.config.getoption('--ascii-dbase-root')
+    # This fixture accepts either a URL or a local filepath to the top
+    # of the CHIANTI database filetree.
+    # If left empty, the filetree will be downloaded from the internet
+    # using the latest supported version.
     if path is None:
         path = CHIANTI_URL.format(version=LATEST_VERSION)
     try:
@@ -116,9 +123,12 @@ def ascii_dbase_root(tmpdir_factory, request):
 @pytest.fixture(scope='session')
 def hdf5_dbase_root(ascii_dbase_root, tmpdir_factory, request):
     path = tmpdir_factory.mktemp('fiasco').join('chianti_dbase.h5')
-    if request.config.getoption('--disable-file-hash'):
-        test_files = [k for k in TEST_FILES]
+    if request.config.getoption('--include-all-files'):
+        test_files = None
     else:
-        test_files = TEST_FILES
+        if request.config.getoption('--disable-file-hash'):
+            test_files = [k for k in TEST_FILES]
+        else:
+            test_files = TEST_FILES
     build_hdf5_dbase(ascii_dbase_root, path, files=test_files)
     return path
