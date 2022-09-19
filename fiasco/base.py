@@ -8,7 +8,7 @@ import fiasco
 from .io.factory import all_subclasses
 from .io.generic import GenericIonParser
 from .io.datalayer import DataIndexer
-from .util import check_database
+from .util import check_database, parse_ion_name
 from .util.exceptions import MissingIonError
 
 __all__ = ['IonBase', 'ContinuumBase']
@@ -27,13 +27,8 @@ class Base(object):
     """
 
     def __init__(self, ion_name, hdf5_dbase_root=None, **kwargs):
-        self._element, ion = ion_name.split()
-        if '+' in ion:
-            ion = f"{int(ion.strip('+')) + 1}"
-        if roman.is_roman_numeral(ion.upper()):
-            ion = roman.from_roman(ion.upper())
-        self.ionization_stage = int(ion)
-        self.charge_state = self.ionization_stage - 1
+        # base rep is a tuple of integers (atomic_number, ionization_stage)
+        self._base_rep = parse_ion_name(ion_name)
         if hdf5_dbase_root is None:
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
@@ -47,19 +42,27 @@ class Base(object):
 
     @property
     def atomic_number(self):
-        return plasmapy.particles.atomic_number(self._element.capitalize())
+        return plasmapy.particles.atomic_number(self._base_rep[0])
 
     @property
     def element_name(self):
-        return plasmapy.particles.element_name(self._element.capitalize())
+        return plasmapy.particles.element_name(self.atomic_number)
 
     @property
     def atomic_symbol(self):
-        return plasmapy.particles.atomic_symbol(self._element.capitalize())
+        return plasmapy.particles.atomic_symbol(self.atomic_number)
 
     @property
     def ion_name(self):
         return f'{self.atomic_symbol} {self.ionization_stage}'
+
+    @property
+    def ionization_stage(self):
+        return self._base_rep[1]
+
+    @property
+    def charge_state(self):
+        return self.ionization_stage - 1
 
     @property
     def _ion_name(self):
@@ -67,12 +70,12 @@ class Base(object):
         return f'{self.atomic_symbol.lower()}_{self.ionization_stage}'
 
     @property
-    def roman_numeral(self):
+    def ionization_stage_roman(self):
         return roman.to_roman(int(self.ionization_stage))
 
     @property
-    def roman_name(self):
-        return f'{self.atomic_symbol} {self.roman_numeral}'
+    def ion_name_roman(self):
+        return f'{self.atomic_symbol} {self.ionization_stage_roman}'
 
 
 class ContinuumBase(Base):

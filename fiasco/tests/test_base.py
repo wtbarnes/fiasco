@@ -14,6 +14,8 @@ from fiasco.util.exceptions import MissingIonError
     "iron XXI",
     "Fe xxi",
     "Fe 20+",
+    (26, 21),
+    ("Fe", "XXI"),
 ])
 def test_create_ion_input_formats(hdf5_dbase_root, ion_name):
     ion = fiasco.base.IonBase(ion_name, hdf5_dbase_root=hdf5_dbase_root)
@@ -23,8 +25,8 @@ def test_create_ion_input_formats(hdf5_dbase_root, ion_name):
     assert ion.ionization_stage == 21
     assert ion.charge_state == 20
     assert ion._ion_name == 'fe_21'
-    assert ion.roman_name == 'Fe XXI'
-    assert ion.roman_numeral == 'XXI'
+    assert ion.ion_name_roman == 'Fe XXI'
+    assert ion.ionization_stage_roman == 'XXI'
 
 
 def test_create_invalid_ion_raises_missing_ion_error(hdf5_dbase_root):
