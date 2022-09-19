@@ -13,7 +13,7 @@ def test_idl_compare_free_free(idl_env, ascii_dbase_root, hdf5_dbase_root):
     # Inputs
     temperature = np.logspace(5, 8, 61) * u.K
     wavelength = np.arange(25, 414, 1) * u.Angstrom
-    abundance_name =  'sun_coronal_1992_feldman.abund'
+    abundance_name =  'sun_coronal_1992_feldman'
     ioneq_name = 'chianti'
     # Run fiasco free-free calculation
     ion_kwargs = {
@@ -44,15 +44,11 @@ def test_idl_compare_free_free(idl_env, ascii_dbase_root, hdf5_dbase_root):
     ; The output of freefree is scaled by 10^40
     ff = ff/1d40
     """
-    temperature = np.logspace(5, 8, 61) * u.K
-    wavelength = np.arange(25, 414, 1) * u.Angstrom
-    abundance_filename =  ascii_dbase_root / 'abundance' / f'{abundance_name}.abund'
-    ioneq_filename = ascii_dbase_root / 'ioneq' / f'{ioneq_name}.ioneq'
     args = {
         'wavelength': wavelength,
         'temperature': temperature,
-        'abundance_filename': abundance_filename,
-        'ioneq_filename': ioneq_filename,
+        'abundance_filename': ascii_dbase_root / 'abundance' / f'{abundance_name}.abund',
+        'ioneq_filename': ascii_dbase_root / 'ioneq' / f'{ioneq_name}.ioneq',
     }
     res = idl_env.run(script, args=args, verbose=True)
     assert res['ff']
