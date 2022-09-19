@@ -98,10 +98,10 @@ def test_spectrum_no_valid_ions(hdf5_dbase_root):
         c2.spectrum(1e9 * u.cm**-3, 1e29 * u.cm**-5)
 
 
-def test_unequal_temperatures_raise_assertion_error(hdf5_dbase_root):
+def test_unequal_temperatures_raise_value_error(hdf5_dbase_root):
     first_ion = fiasco.Ion('Fe 12', [1e6, 1e7]*u.K, hdf5_dbase_root=hdf5_dbase_root)
     second_ion = fiasco.Ion('Fe 9', [1e4, 1e5]*u.K, hdf5_dbase_root=hdf5_dbase_root)
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         fiasco.IonCollection(first_ion, second_ion)
 
 
