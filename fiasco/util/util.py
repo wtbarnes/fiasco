@@ -6,9 +6,46 @@ import sys
 import configparser
 from builtins import input
 
+import plasmapy.particles
+from plasmapy.utils import roman
+
 FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
 
-__all__ = ['setup_paths', 'get_masterlist']
+__all__ = ['setup_paths', 'get_masterlist', 'parse_ion_name']
+
+
+def parse_ion_name(ion_name):
+    """
+    Parse the atomic number and ionization stage from string representation of ion
+
+    This function can take a number of formats for the ion name. As an example, all
+    of the following representations of Fe 18, that is, an iron ion
+    with 17 electrons removed and a total charge of +17, will return (26,18):
+
+    1. 'Fe 18', 'fe 18' (atomic symbol and number)
+    2. 'Fe 17+' (atomic symbol and charge)
+    3. 'Iron 18', 'iron 18' (element name and number)
+    4. 'Fe XVIII', 'fe xviii' (atomic symbol and roman numeral designation)
+    5. '26 18' (atomic number and number)
+    """
+    if isinstance(ion_name, tuple):
+        element, ion = ion_name
+    elif isinstance(ion_name, str):
+        element, ion = ion_name.split('_' if '_' in ion_name else None)
+    else:
+        raise TypeError(f'Unrecognized type {type(ion_name)}. ion_name must be either a string or tuple')
+    # Parse element string
+    if isinstance(element, str):
+        element = element.capitalize()
+    element = plasmapy.particles.atomic_number(element)
+    # Parse ion string
+    if isinstance(ion, str):
+        if '+' in ion:
+            ion = f"{int(ion.strip('+')) + 1}"
+        if roman.is_roman_numeral(ion.upper()):
+            ion = roman.from_roman(ion.upper())
+    ion = int(ion)
+    return (element, ion)
 
 
 def setup_paths():

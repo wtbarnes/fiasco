@@ -31,7 +31,7 @@ for ion in el:
     ioneq = el.equilibrium_ionization[:, ion.charge_state]
     imax = np.argmax(ioneq)
     plt.plot(el.temperature, ioneq)
-    plt.text(el.temperature[imax], ioneq[imax], ion.roman_numeral,
+    plt.text(el.temperature[imax], ioneq[imax], ion.ionization_stage_roman,
              horizontalalignment='center')
 plt.xscale('log')
 plt.title(f'{el.atomic_symbol} Equilibrium Ionization')
@@ -47,7 +47,7 @@ plt.show()
 # for temperatures outside of the tabulated temperature data given in CHIANTI.
 plt.plot(el.temperature, el[3].ioneq)
 plt.xscale('log')
-plt.title(f'{el[3].roman_name} Equilibrium Ionization')
+plt.title(f'{el[3].ion_name_roman} Equilibrium Ionization')
 plt.show()
 
 ################################################
@@ -60,5 +60,5 @@ plt.plot(el.temperature, el[3].ioneq, label='interpolated')
 plt.xlim(4e4, 3e5)
 plt.xscale('log')
 plt.legend()
-plt.title(f'{el[3].roman_name} Equilibrium Ionization')
+plt.title(f'{el[3].ion_name_roman} Equilibrium Ionization')
 plt.show()

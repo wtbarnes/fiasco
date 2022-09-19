@@ -78,7 +78,7 @@ carbon_ieq = u.Quantity(func_interp(Te.to_value('K')))
 # We can plot the population fractions as a function of time.
 plt.figure(figsize=(12, 4))
 for ion in carbon:
-    plt.plot(t, carbon_ieq[:, ion.charge_state], label=ion.roman_name)
+    plt.plot(t, carbon_ieq[:, ion.charge_state], label=ion.ion_name_roman)
 plt.xlim(t[[0,-1]].value)
 plt.legend(ncol=4, frameon=False)
 plt.show()
@@ -127,7 +127,7 @@ carbon_nei = u.Quantity(carbon_nei)
 # And plot the non-equilibrium populations as a function of time
 plt.figure(figsize=(12,4))
 for ion in carbon:
-    plt.plot(t, carbon_nei[:, ion.charge_state], ls='-', label=ion.roman_name,)
+    plt.plot(t, carbon_nei[:, ion.charge_state], ls='-', label=ion.ion_name_roman,)
 plt.xlim(t[[0,-1]].value)
 plt.legend(ncol=4, frameon=False)
 plt.show()

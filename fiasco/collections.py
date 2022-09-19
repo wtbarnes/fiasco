@@ -5,9 +5,9 @@ import numpy as np
 import astropy.units as u
 from astropy.convolution import convolve, Model1DKernel
 from astropy.modeling.models import Gaussian1D
-import plasmapy
 
 import fiasco
+from fiasco.util import parse_ion_name
 from fiasco.util.exceptions import MissingDatasetException
 
 __all__ = ['IonCollection']
@@ -47,20 +47,20 @@ class IonCollection(object):
             return ions
 
     def __contains__(self, value):
-        if type(value) is str:
-            el, ion = value.split()
-            if '+' in ion:
-                ion = int(ion.strip('+')) + 1
-            value = f'{plasmapy.particles.atomic_symbol(el)} {ion}'
+        if isinstance(value, (str, tuple)):
+            pair = parse_ion_name(value)
         elif isinstance(value, fiasco.Ion):
-            value = value.ion_name
-        return value in [i.ion_name for i in self._ion_list]
+            pair = value._base_rep
+        return pair in [i._base_rep for i in self._ion_list]
 
     def __add__(self, value):
         return IonCollection(self, value)
 
     def __radd__(self, value):
         return IonCollection(value, self)
+
+    def __len__(self):
+        return len(self._ion_list)
 
     @property
     def temperature(self,):

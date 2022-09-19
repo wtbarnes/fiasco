@@ -86,7 +86,7 @@ plt.xscale('log')
 plt.yscale('log')
 plt.ylim(1e-29, 1e-26)
 plt.xlim(1e5, 3e7)
-plt.title(f'{ch.channel.to_string(format="latex")} Response for {fe18.roman_name}')
+plt.title(f'{ch.channel.to_string(format="latex")} Response for {fe18.ion_name_roman}')
 plt.show()
 
 ############################################################
