@@ -6,6 +6,7 @@ import astropy.units as u
 import pytest
 
 import fiasco
+from fiasco.level import Level
 from fiasco.util.exceptions import MissingDatasetException
 
 temperature = np.logspace(5, 8, 100)*u.K
@@ -37,6 +38,24 @@ def test_new_instance(ion):
     new_ion = ion._new_instance(abundance_filename='sun_coronal_1992_feldman')
     assert new_ion._instance_kwargs['abundance_filename'] == 'sun_coronal_1992_feldman'
     assert ion._instance_kwargs['abundance_filename'] == abundance_filename
+
+
+def test_level_indexing(ion):
+    # Integer
+    assert isinstance(ion[0], Level)
+    assert ion[0].__repr__() == Level(0, ion._elvlc).__repr__()
+    # Slice
+    levels = ion[:5]
+    assert len(levels) == 5
+    assert isinstance(levels, list)
+    assert isinstance(levels[0], Level)
+    assert levels[2].__repr__() == Level(2, ion._elvlc).__repr__()
+    # Fancy indexing
+    levels = ion[[1, 5, 10]]
+    assert len(levels) == 3
+    assert isinstance(levels, list)
+    assert isinstance(levels[0], Level)
+    assert levels[2].__repr__() == Level(10, ion._elvlc).__repr__()
 
 
 def test_level(ion):
