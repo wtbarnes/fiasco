@@ -95,15 +95,27 @@ Using Datasets:
   abundance: {self._dset_names['abundance_filename']}
   ip: {self._dset_names['ip_filename']}"""
 
-    def __getitem__(self, key):
+    @cached_property
+    def _all_levels(self):
         try:
             _ = self._elvlc
         except KeyError:
+            return None
+        else:
+            n_levels = self._elvlc['level'].shape[0]
+            return [Level(i, self._elvlc) for i in range(n_levels)]
+
+    def __getitem__(self, key):
+        if self._all_levels is None:
             raise IndexError(f'No energy levels available for {self.ion_name}')
         else:
-            # Throw an index error to stop iteration
-            _ = self._elvlc['level'][key]
-            return Level(key, self._elvlc)
+            # NOTE: casting to array first so that "fancy indexing" can
+            # be used to index the energy levels.
+            indexed_levels = np.array(self._all_levels)[key]
+            if isinstance(indexed_levels, Level):
+                return indexed_levels
+            else:
+                return indexed_levels.tolist()
 
     def __add__(self, value):
         return IonCollection(self, value)
