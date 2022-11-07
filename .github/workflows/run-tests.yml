@@ -36,6 +36,10 @@ jobs:
           python-version: '3.10'
           cache_cmd: -- --dbase-download-dir ~/.chianti
           toxenv: py310
+        - os: ubuntu-latest
+          python-version: '3.11'
+          cache_cmd: -- --dbase-download-dir ~/.chianti
+          toxenv: py311
         # Docs
         - os: ubuntu-latest
           python-version: 3.9
