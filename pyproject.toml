@@ -46,7 +46,3 @@ build-backend = 'setuptools.build_meta'
       directory = "trivial"
       name = "Trivial/Internal Changes"
       showcontent = true
-
-[tool.codespell]
-skip="*.dat,*.fits,*.hdr,.idea,*.xml,.git,*extern,fitshdr.htest_groups.py"
-ignore-words-list = "te,ti"
