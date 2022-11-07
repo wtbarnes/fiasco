@@ -39,3 +39,8 @@ repos:
         exclude: ".*(.fits|.fts|.fit|.txt|tca.*)$"
       - id: mixed-line-ending
         exclude: ".*(.fits|.fts|.fit|.txt|tca.*)$"
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.2
+    hooks:
+      - id: codespell
