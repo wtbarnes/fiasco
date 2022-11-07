@@ -99,7 +99,7 @@ plt.show()
 # :math:`Z+1\times Z+1` at time :math:`t_l`,  and :math:`\delta`
 # is the time step.
 #
-# First, we can set our inital state to the equilibrium populations.
+# First, we can set our initial state to the equilibrium populations.
 carbon_nei = np.zeros(t.shape + (carbon.atomic_number + 1,))
 carbon_nei[0, :] = carbon_ieq[0,:]
 

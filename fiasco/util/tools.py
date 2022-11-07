@@ -25,7 +25,7 @@ def vectorize_where(x_1, x_2):
 
 def vectorize_where_sum(x_1, x_2, y, axis=None):
     """
-    Find all occurences of one array in another and sum over a third
+    Find all occurrences of one array in another and sum over a third
 
     Parameters
     ----------
@@ -137,7 +137,7 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
         Ratio between the thermal energy and that of each transition with shape ``(n,m)``,
         where ``m`` is the dimension of the temperature array.
     c : `array-like`
-        Scaling constant for each transiton with shape ``(n,)``
+        Scaling constant for each transition with shape ``(n,)``
     scaling_type : `array-like`
         The type of descaling to apply for each transition with shape ``(n,)``. Must be between
         1 and 6
