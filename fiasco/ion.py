@@ -568,7 +568,7 @@ Using Datasets:
         """
         Construct the spectrum using a given filter over a specified wavelength range.
 
-        All arguments are passed direclty to `fiasco.IonCollection.spectrum`.
+        All arguments are passed directly to `fiasco.IonCollection.spectrum`.
 
         See Also
         --------
