@@ -5,7 +5,7 @@ import numpy as np
 import astropy.units as u
 import fortranformat
 
-from ..generic import GenericIonParser
+from fiasco.io.generic import GenericIonParser
 
 __all__ = ['ElvlcParser', 'FblvlParser', 'ScupsParser',
            'PsplupsParser', 'EasplomParser', 'EasplupsParser',

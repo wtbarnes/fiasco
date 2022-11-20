@@ -9,7 +9,7 @@ from astropy.table import Column
 import fortranformat
 import plasmapy
 
-from ..generic import GenericParser
+from fiasco.io.generic import GenericParser
 
 __all__ = ['AbundParser', 'IoneqParser', 'IpParser']
 

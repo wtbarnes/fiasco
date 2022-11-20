@@ -5,11 +5,11 @@ import plasmapy.particles
 from plasmapy.utils import roman
 
 import fiasco
-from .io.factory import all_subclasses
-from .io.generic import GenericIonParser
-from .io.datalayer import DataIndexer
-from .util import check_database, parse_ion_name
-from .util.exceptions import MissingIonError
+from fiasco.io.factory import all_subclasses
+from fiasco.io.generic import GenericIonParser
+from fiasco.io.datalayer import DataIndexer
+from fiasco.util import check_database, parse_ion_name
+from fiasco.util.exceptions import MissingIonError
 
 __all__ = ['IonBase', 'ContinuumBase']
 

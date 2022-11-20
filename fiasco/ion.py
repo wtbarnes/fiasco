@@ -9,9 +9,9 @@ from scipy.ndimage import map_coordinates
 import astropy.units as u
 import astropy.constants as const
 
-from .base import IonBase, ContinuumBase
-from .collections import IonCollection
-from .level import Level, Transitions
+from fiasco.base import IonBase, ContinuumBase
+from fiasco.collections import IonCollection
+from fiasco.level import Level, Transitions
 from fiasco import proton_electron_ratio
 from fiasco.util import (needs_dataset, vectorize_where, vectorize_where_sum,
                          burgess_tully_descale)

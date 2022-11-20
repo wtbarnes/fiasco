@@ -3,8 +3,8 @@ Factory and interface for file parser
 """
 import os
 
-from .sources import *
-from .generic import GenericParser
+from fiasco.io.sources import *
+from fiasco.io.generic import GenericParser
 
 
 class ParserFactory(type):

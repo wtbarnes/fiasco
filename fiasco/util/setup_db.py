@@ -12,8 +12,8 @@ from astropy.utils.data import download_file
 from astropy.utils.console import ProgressBar
 
 import fiasco.io
-from .util import get_masterlist, query_yes_no
-from .exceptions import MissingASCIIFileError
+from fiasco.util.util import get_masterlist, query_yes_no
+from fiasco.util.exceptions import MissingASCIIFileError
 
 FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
 CHIANTI_URL = 'http://download.chiantidatabase.org/CHIANTI_v{version}_database.tar.gz'

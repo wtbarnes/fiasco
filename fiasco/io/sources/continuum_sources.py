@@ -8,7 +8,7 @@ import astropy.units as u
 import h5py
 import plasmapy
 
-from ..generic import GenericParser
+from fiasco.io.generic import GenericParser
 
 __all__ = ['GffguParser', 'GffintParser', 'KlgfbParser', 'VernerParser', 'ItohParser',
            'HSeqParser', 'HeSeqParser']
