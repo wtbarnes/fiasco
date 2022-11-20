@@ -1,14 +1,15 @@
 """
 Base class for file parser
 """
-import os
-
+import astropy.units as u
 import h5py
 import numpy as np
+import os
+
 from astropy.table import QTable
-import astropy.units as u
 
 import fiasco
+
 from fiasco.util.exceptions import MissingASCIIFileError
 
 

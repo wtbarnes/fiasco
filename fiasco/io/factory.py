@@ -3,8 +3,8 @@ Factory and interface for file parser
 """
 import os
 
-from fiasco.io.sources import *
 from fiasco.io.generic import GenericParser
+from fiasco.io.sources import *
 
 
 class ParserFactory(type):
@@ -15,6 +15,7 @@ class ParserFactory(type):
     def __call__(cls, *args, **kwargs):
         # Import here to avoid circular imports
         from fiasco import log
+
         # Allow for standalone files
         if os.path.exists(args[0]):
             kwargs['standalone'] = True

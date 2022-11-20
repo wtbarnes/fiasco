@@ -1,15 +1,15 @@
 """
 Base classes for access to CHIANTI ion data
 """
-import plasmapy.particles
-from plasmapy.utils import roman
-
 import fiasco
+import plasmapy.particles
+
+from fiasco.io.datalayer import DataIndexer
 from fiasco.io.factory import all_subclasses
 from fiasco.io.generic import GenericIonParser
-from fiasco.io.datalayer import DataIndexer
 from fiasco.util import check_database, parse_ion_name
 from fiasco.util.exceptions import MissingIonError
+from plasmapy.utils import roman
 
 __all__ = ['IonBase', 'ContinuumBase']
 

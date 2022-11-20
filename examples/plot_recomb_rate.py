@@ -7,10 +7,12 @@ temperature for Fe 16, including the radiative and dielectronic
 components.
 """
 
+import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
-import astropy.units as u
+
 from astropy.visualization import quantity_support
+
 quantity_support()
 
 from fiasco import Ion

@@ -1,9 +1,9 @@
 """
 Source classes for CHIANTI filetypes attached to ions
 """
-import numpy as np
 import astropy.units as u
 import fortranformat
+import numpy as np
 
 from fiasco.io.generic import GenericIonParser
 

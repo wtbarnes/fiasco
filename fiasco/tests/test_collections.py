@@ -1,12 +1,11 @@
 """
 Test collection functionality
 """
-import numpy as np
 import astropy.units as u
+import numpy as np
 import pytest
 
 import fiasco
-
 
 temperature = np.logspace(5, 8, 100)*u.K
 

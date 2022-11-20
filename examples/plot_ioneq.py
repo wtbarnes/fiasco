@@ -6,10 +6,12 @@ This example shows how to compute the ionization fraction as a function of
 temperature, assuming equilibrium, for both a single ion as well as a whole
 element.
 """
+import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
-import astropy.units as u
+
 from astropy.visualization import quantity_support
+
 quantity_support()
 
 from fiasco import Element

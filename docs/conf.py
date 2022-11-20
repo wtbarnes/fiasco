@@ -2,8 +2,8 @@
 #
 # Configuration file for the Sphinx documentation builder.
 #
-import os
 import configparser
+import os
 
 # This file does only contain a selection of the most common options. For a
 # full list see the documentation:
@@ -18,6 +18,7 @@ author = 'Will Barnes'
 
 # The full version, including alpha/beta/rc tags
 from fiasco import __version__
+
 release = __version__
 is_development = '.dev' in __version__
 
@@ -126,7 +127,7 @@ ON_GHA = os.environ.get('CI') == 'true'
 
 # On Read the Docs and CI, download the database and build a minimal HDF5 version
 if ON_RTD or ON_GHA:
-    from fiasco.util import download_dbase, build_hdf5_dbase
+    from fiasco.util import build_hdf5_dbase, download_dbase
     from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
     if ON_RTD:
         os.environ['HOME'] = '/home/docs'  # RTD does not set HOME?

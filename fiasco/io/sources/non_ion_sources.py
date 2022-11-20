@@ -1,12 +1,13 @@
 """
 Source classes for CHIANTI filetypes not attached to ions
 """
+import astropy.units as u
+import fortranformat
+import numpy as np
 import os
 
-import numpy as np
-import astropy.units as u
 from astropy.table import Column
-import fortranformat
+
 import plasmapy
 
 from fiasco.io.generic import GenericParser

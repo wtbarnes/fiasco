@@ -58,3 +58,14 @@ repos:
     hooks:
     - id: absolufy-imports
       exclude: docs/plasmapy_sphinx
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.10.1
+    hooks:
+    - id: isort
+      name: isort
+      entry: isort
+      require_serial: true
+      language: python
+      types:
+      - python

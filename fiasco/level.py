@@ -1,9 +1,9 @@
 """
 Energy level and transitions classes
 """
-import numpy as np
-import astropy.units as u
 import astropy.constants as const
+import astropy.units as u
+import numpy as np
 
 from fiasco.util import vectorize_where
 

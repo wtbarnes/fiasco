@@ -1,11 +1,12 @@
 """
 Basic utilities
 """
+import configparser
 import os
 import sys
-import configparser
 
 import plasmapy.particles
+
 from plasmapy.utils import roman
 
 FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')

@@ -1,13 +1,13 @@
 """
 Classes and functions for element-level operations
 """
+import astropy.units as u
+import numpy as np
+
 from functools import cached_property
 
-import numpy as np
-import astropy.units as u
-import plasmapy
-
 import fiasco
+import plasmapy
 
 __all__ = ['Element']
 

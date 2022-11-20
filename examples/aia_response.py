@@ -7,14 +7,16 @@ the Fe XVIII contribution function with the instrument response
 function to understand the temperature sensitivity of the 94
 angstrom channel.
 """
+import astropy.constants as const
+import astropy.units as u
+import matplotlib.pyplot as plt
 # sphinx_gallery_thumbnail_number = 2
 import numpy as np
-from scipy.interpolate import interp1d
-import matplotlib.pyplot as plt
-import astropy.units as u
-import astropy.constants as const
+
 from aiapy.response import Channel
 from astropy.visualization import quantity_support
+from scipy.interpolate import interp1d
+
 quantity_support()
 
 import fiasco

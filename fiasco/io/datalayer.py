@@ -1,11 +1,11 @@
 """
 Access layer for interfacing with CHIANTI stored in HDF5
 """
+import astropy.units as u
+import h5py
+import numpy as np
 import os
 
-import numpy as np
-import h5py
-import astropy.units as u
 from astropy.table import QTable
 
 from fiasco.util.exceptions import MissingDatabaseError

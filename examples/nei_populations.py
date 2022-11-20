@@ -7,12 +7,14 @@ fractions of iron in the case where the the timescale of the
 temperature change is shorter than the ionization timescale.
 This is often referred to as *non-equilibrium ionization*.
 """
+import astropy.units as u
+import matplotlib.pyplot as plt
 # sphinx_gallery_thumbnail_number = 3
 import numpy as np
-from scipy.interpolate import interp1d
-import matplotlib.pyplot as plt
-import astropy.units as u
+
 from astropy.visualization import quantity_support
+from scipy.interpolate import interp1d
+
 quantity_support()
 
 from fiasco import Element

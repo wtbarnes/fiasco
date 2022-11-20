@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from astropy.visualization import quantity_support
+
 quantity_support()
 
 from fiasco import Ion
