@@ -47,7 +47,7 @@ repos:
       args: [--keep-runtime-typing, --py38-plus]
       files: ^fiasco/
 
-- repo: https://github.com/codespell-project/codespell
+  - repo: https://github.com/codespell-project/codespell
     rev: v2.2.2
     hooks:
       - id: codespell
@@ -57,7 +57,6 @@ repos:
     rev: v0.3.1
     hooks:
     - id: absolufy-imports
-      exclude: docs/plasmapy_sphinx
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.10.1
