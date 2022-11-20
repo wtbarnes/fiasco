@@ -19,14 +19,14 @@ repos:
   # E902 - IOError
   # F822: undefined name in __all__
   # F823: local variable name referenced before assignment
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.7.9
+  - repo: https://github.com/pycqa/flake8
+    rev: 5.0.4
     hooks:
       - id: flake8
         args: ['--count', '--select', 'E101,W191,W291,W292,W293,W391,E111,E112,E113,E303,E304,E306,E502,E722,E901,E902,F822,F823']
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.4.0
+    rev: v4.3.0
     hooks:
       - id: check-ast
       - id: check-case-conflict
