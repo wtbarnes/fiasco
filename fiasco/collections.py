@@ -13,7 +13,7 @@ from fiasco.util.exceptions import MissingDatasetException
 __all__ = ['IonCollection']
 
 
-class IonCollection(object):
+class IonCollection:
     """
     Container for holding multiple ions. Instantiate with ions, elements, or another
     ion collection.

@@ -14,7 +14,7 @@ from .util.exceptions import MissingIonError
 __all__ = ['IonBase', 'ContinuumBase']
 
 
-class Base(object):
+class Base:
     """
     Base class for setting up ion metadata and building database if necessary.
 

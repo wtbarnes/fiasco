@@ -39,3 +39,10 @@ repos:
         exclude: ".*(.fits|.fts|.fit|.txt|tca.*)$"
       - id: mixed-line-ending
         exclude: ".*(.fits|.fts|.fit|.txt|tca.*)$"
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.2.2
+    hooks:
+    - id: pyupgrade
+      args: [--keep-runtime-typing, --py38-plus]
+      files: ^fiasco/

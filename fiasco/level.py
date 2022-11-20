@@ -10,7 +10,7 @@ from fiasco.util import vectorize_where
 __all__ = ['Level', 'Transitions']
 
 
-class Level(object):
+class Level:
 
     def __init__(self, index, elvlc):
         self._index = index
@@ -49,7 +49,7 @@ Energy: {self.energy.to(u.eV)}"""
         return self._elvlc[key][self._index]*const.h*const.c
 
 
-class Transitions(object):
+class Transitions:
 
     def __init__(self, elvlc, wgfa):
         self._elvlc = elvlc

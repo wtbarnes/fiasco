@@ -4,7 +4,6 @@ Basic utilities
 import os
 import sys
 import configparser
-from builtins import input
 
 import plasmapy.particles
 from plasmapy.utils import roman

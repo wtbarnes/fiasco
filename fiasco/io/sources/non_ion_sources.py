@@ -124,7 +124,7 @@ class IpParser(GenericParser):
         for row in df:
             el = plasmapy.particles.atomic_symbol(int(row['Z'])).lower()
             ion = int(row['ion'])
-            grp_name = '/'.join([el, '{}_{}'.format(el, ion), 'ip'])
+            grp_name = '/'.join([el, f'{el}_{ion}', 'ip'])
             if grp_name not in hf:
                 grp = hf.create_group(grp_name)
                 grp.attrs['footer'] = ''

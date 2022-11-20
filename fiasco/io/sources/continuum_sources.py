@@ -62,7 +62,7 @@ class GffguParser(GenericParser):
                 data = col.data
             if '<U' in data.dtype.str:
                 numchar = data.dtype.str[2:]
-                data = data.astype('|S{}'.format(numchar))
+                data = data.astype(f'|S{numchar}')
             if name in grp:
                 ds = grp[name]
             else:
@@ -143,7 +143,7 @@ From Karzas, W. J. and Latter, R., 1961, ApJS, 6, 167"""
                 data = col.data
             if '<U' in data.dtype.str:
                 numchar = data.dtype.str[2:]
-                data = data.astype('|S{}'.format(numchar))
+                data = data.astype(f'|S{numchar}')
             if name in grp:
                 ds = grp[name]
             else:

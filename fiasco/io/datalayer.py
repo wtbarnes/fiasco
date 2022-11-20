@@ -13,7 +13,7 @@ from fiasco.util.exceptions import MissingDatabaseError
 __all__ = ['DataIndexer']
 
 
-class DataIndexer(object):
+class DataIndexer:
     """
     Data access layer for each distinct CHIANTI dataset
 
@@ -32,7 +32,7 @@ class DataIndexer(object):
         return DataIndexerHDF5.create_indexer(*args)
 
 
-class DataIndexerHDF5(object):
+class DataIndexerHDF5:
     """
     Interface layer for CHIANTI data stored in HDF5 format.
 
