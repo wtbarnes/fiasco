@@ -49,7 +49,7 @@ class DataIndexerHDF5:
     @property
     def hdf5_dbase_root(self):
         dbase_root = self._hdf5_dbase_root
-        if not os.path.isfile(dbase_root):
+        if not dbase_root.is_file():
             raise MissingDatabaseError(f'No HDF5 database found at {dbase_root}')
         return dbase_root
 
@@ -60,7 +60,7 @@ class DataIndexerHDF5:
         exists so that None can be returned if the dataset specified by
         `top_level_path` does not exist.
         """
-        if not os.path.isfile(hdf5_path):
+        if not hdf5_path.is_file():
             raise MissingDatabaseError(f'No HDF5 database found at {hdf5_path}')
         with h5py.File(hdf5_path, 'r') as hf:
             path_is_valid = top_level_path in hf
