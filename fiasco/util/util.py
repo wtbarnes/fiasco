@@ -3,12 +3,13 @@ Basic utilities
 """
 import configparser
 import os
+import pathlib
 import plasmapy.particles
 import sys
 
 from plasmapy.utils import roman
 
-FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
+FIASCO_HOME = pathlib.Path.home() / '.fiasco'
 
 __all__ = ['setup_paths', 'get_masterlist', 'parse_ion_name']
 
@@ -53,16 +54,16 @@ def setup_paths():
     Parse .rc file and set ASCII and HDF5 database paths.
     """
     paths = {}
-    if os.path.isfile(os.path.join(FIASCO_HOME, 'fiascorc')):
+    if not (FIASCO_HOME / 'fiascorc').is_file():
         config = configparser.ConfigParser()
-        config.read(os.path.join(FIASCO_HOME, 'fiascorc'))
+        config.read(FIASCO_HOME / 'fiascorc')
         if 'database' in config:
             paths = dict(config['database'])
 
     if 'ascii_dbase_root' not in paths:
-        paths['ascii_dbase_root'] = os.path.join(FIASCO_HOME, 'chianti_dbase')
+        paths['ascii_dbase_root'] = FIASCO_HOME / 'chianti_dbase'
     if 'hdf5_dbase_root' not in paths:
-        paths['hdf5_dbase_root'] = os.path.join(FIASCO_HOME, 'chianti_dbase.h5')
+        paths['hdf5_dbase_root'] = FIASCO_HOME / 'chianti_dbase.h5'
 
     return paths
 
