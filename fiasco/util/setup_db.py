@@ -49,6 +49,7 @@ def check_database(hdf5_dbase_root, **kwargs):
                                   fiasco.defaults['ascii_dbase_root'])
 
     hdf5_dbase_root = pathlib.Path(hdf5_dbase_root)
+    ascii_dbase_root = pathlib.Path(ascii_dbase_root)
 
     # Useful for building, downloading non-interactively
     ask_before = kwargs.get('ask_before', True)
@@ -62,7 +63,7 @@ def check_database(hdf5_dbase_root, **kwargs):
             return None
     # VERSION file as a proxy for whether whole dbase exists
     # TODO: version checking, download newest version if installed version is out of date
-    if not os.path.isfile(os.path.join(ascii_dbase_root, 'VERSION')):
+    if not (ascii_dbase_root / "VERSION").is_file():
         ascii_dbase_url = kwargs.get('ascii_dbase_url', CHIANTI_URL.format(version=LATEST_VERSION))
         if ask_before:
             question = f"No CHIANTI database found at {ascii_dbase_root}. Download it from {ascii_dbase_url}?"
@@ -89,7 +90,8 @@ def download_dbase(ascii_dbase_url, ascii_dbase_root):
 
 
 def md5hash(path):
-    with open(path, 'rb') as f:
+    path = pathlib.Path(path)
+    with path.open('rb') as f:
         return hashlib.md5(f.read()).hexdigest()
 
 
@@ -107,7 +109,7 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
         A list of files to update in the HDF5 database. By default,
         this is all of the files in `ascii_dbase_root`. If a `dict`, the
         dictionary keys must contain filenames and the items corresponding
-        expected md5 hash of the file. Builind the database will fail if any
+        expected md5 hash of the file. Building the database will fail if any
         of the md5 hashes is not as expected.
     """
     # Import the logger here to avoid circular imports
