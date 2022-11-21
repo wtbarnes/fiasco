@@ -30,17 +30,17 @@ class GenericParser:
         if standalone:
             self.chianti_version = ''
         else:
-            with open(os.path.join(self.ascii_dbase_root, 'VERSION')) as f:
+            with open(self.ascii_dbase_root / 'VERSION') as f:
                 lines = f.readlines()
                 self.chianti_version = lines[0].strip()
-        self.full_path = filename if standalone else os.path.join(self.ascii_dbase_root, self.filename)
+        self.full_path = filename if standalone else self.ascii_dbase_root / self.filename
 
     def parse(self):
         """
         Generate Astropy QTable from a CHIANTI ion file
         """
         # NOTE: put this here and not in __init__ as __init__ may be overwritten in a subclass
-        if not os.path.isfile(self.full_path):
+        if not self.full_path.is_file():
             raise MissingASCIIFileError(f'Could not find file {self.full_path}')
         with open(self.full_path) as f:
             lines = f.readlines()
@@ -107,7 +107,7 @@ class GenericIonParser(GenericParser):
     def __init__(self, ion_filename, **kwargs):
         super().__init__(ion_filename, **kwargs)
         self.dielectronic = False
-        self.ion_name, _ = os.path.splitext(os.path.basename(self.filename))
+        self.ion_name = self.filename.stem
         if self.ion_name and self.ion_name[-1] == 'd':
             self.dielectronic = True
             self.ion_name = self.ion_name[:-1]
@@ -115,10 +115,7 @@ class GenericIonParser(GenericParser):
         if kwargs.get('standalone', False):
             self.full_path = self.filename
         else:
-            self.full_path = os.path.join(self.ascii_dbase_root,
-                                          self.element,
-                                          os.path.splitext(self.filename)[0],
-                                          self.filename)
+            self.full_path = self.ascii_dbase_root / self.element / self.filename.stem / self.filename
 
     def postprocessor(self, df):
         df = super().postprocessor(df)
