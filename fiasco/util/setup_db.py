@@ -86,7 +86,7 @@ def download_dbase(ascii_dbase_url, ascii_dbase_root):
 
 
 def md5hash(path):
-    with open(path, 'rb') as f:
+    with path.open('rb') as f:
         return hashlib.md5(f.read()).hexdigest()
 
 
