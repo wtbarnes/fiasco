@@ -4,6 +4,7 @@
 #
 import configparser
 import os
+import pathlib
 
 # This file does only contain a selection of the most common options. For a
 # full list see the documentation:
@@ -131,11 +132,11 @@ if ON_RTD or ON_GHA:
     from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
     if ON_RTD:
         os.environ['HOME'] = '/home/docs'  # RTD does not set HOME?
-    FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
-    if not os.path.exists(FIASCO_HOME):
-        os.makedirs(FIASCO_HOME)
-    ascii_dbase_root = os.path.join(FIASCO_HOME, 'chianti_dbase')
-    hdf5_dbase_root = os.path.join(FIASCO_HOME, 'chianti_dbase.h5')
+    fiasco_home = pathlib.Path.home() / '.fiasco'
+    if not fiasco_home.exists():
+        fiasco_home.mkdir()
+    ascii_dbase_root = fiasco_home / 'chianti_dbase'
+    hdf5_dbase_root = fiasco_home / 'chianti_dbase.h5'
     download_dbase(CHIANTI_URL.format(version=LATEST_VERSION), ascii_dbase_root)
     build_hdf5_dbase(
         ascii_dbase_root,
@@ -178,7 +179,7 @@ if ON_RTD or ON_GHA:
             'o_6.wgfa',
         ]
     )
-    with open(os.path.join(FIASCO_HOME, 'fiascorc'), 'w') as f:
+    with open(fiasco_home / 'fiascorc', 'w') as f:
         c = configparser.ConfigParser()
         c.add_section('database')
         c.set('database', 'ascii_dbase_root', ascii_dbase_root)
