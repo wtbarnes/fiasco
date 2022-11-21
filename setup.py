@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
-import os
+import pathlib
 
 from itertools import chain
 from setuptools import setup
@@ -38,7 +38,7 @@ except Exception:
 
 setup(
     extras_require=extras,
-    use_scm_version={'write_to': os.path.join('fiasco', 'version.py'),
+    use_scm_version={'write_to': pathlib.Path('fiasco') / 'version.py',
                      'write_to_template': VERSION_TEMPLATE},
 
 )
