@@ -1,7 +1,7 @@
 """
 Factory and interface for file parser
 """
-import os
+import pathlib
 
 from fiasco.io.generic import GenericParser
 from fiasco.io.sources import *
