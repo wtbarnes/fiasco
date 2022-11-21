@@ -42,11 +42,11 @@ jobs:
           toxenv: py311
         # Docs
         - os: ubuntu-latest
-          python-version: 3.9
+          python-version: '3.11'
           toxenv: build_docs
         # Code style checks
         - os: ubuntu-latest
-          python-version: 3.9
+          python-version: '3.11'
           toxenv: codestyle
 
     steps:
