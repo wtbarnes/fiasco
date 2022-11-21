@@ -179,8 +179,8 @@ if ON_RTD or ON_GHA:
     with open(fiasco_home / 'fiascorc', 'w') as f:
         c = configparser.ConfigParser()
         c.add_section('database')
-        c.set('database', 'ascii_dbase_root', ascii_dbase_root)
-        c.set('database', 'hdf5_dbase_root', hdf5_dbase_root)
+        c.set('database', 'ascii_dbase_root', str(ascii_dbase_root))
+        c.set('database', 'hdf5_dbase_root', str(hdf5_dbase_root))
         c.write(f)
 
 # -- Sphinx gallery -----------------------------------------------------------
