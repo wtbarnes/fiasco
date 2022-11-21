@@ -35,8 +35,8 @@ def check_database(hdf5_dbase_root, **kwargs):
 
     Parameters
     ----------
-    hdf5_dbase_root : `str`
-    ascii_dbase_root : str, optional
+    hdf5_dbase_root : `str` or `~pathlib.Path`
+    ascii_dbase_root : `str` or `~pathlib.Path`, optional
     ask_befre : bool, optional
     ascii_dbase_url : str, optional
 
@@ -101,9 +101,9 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
 
     Parameters
     ----------
-    ascii_dbase_root : `str`
+    ascii_dbase_root : `str` or `pathlib.Path`
         Path to top of CHIANTI database tree
-    hdf5_dbase_root : `str`
+    hdf5_dbase_root : `str` or `pathlib.
         Path to HDF5 file
     files : `list` or `dict`, optional
         A list of files to update in the HDF5 database. By default,
