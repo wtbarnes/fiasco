@@ -16,8 +16,10 @@ class ParserFactory(type):
         # Import here to avoid circular imports
         from fiasco import log
 
+        path = pathlib.Path(args[0])
+
         # Allow for standalone files
-        if os.path.exists(args[0]):
+        if path.exists():
             kwargs['standalone'] = True
         # Use custom parser if desired
         custom_parser = None
@@ -27,8 +29,8 @@ class ParserFactory(type):
         if custom_parser is not None:
             return custom_parser(*args, **kwargs)
         # Create parser based on file extension or name
-        filetype_name, filetype_ext = os.path.splitext(os.path.basename(args[0]))
-        filetype_ext = filetype_ext[1:]
+        filetype_name = path.stem
+        filetype_ext = path.suffix[1:]
         subclass_dict = {c.filetype: c for c in all_subclasses(GenericParser)
                          if hasattr(c, 'filetype')}
         if filetype_ext in subclass_dict:
