@@ -3,9 +3,8 @@ Basic utilities
 """
 import configparser
 import os
-import sys
-
 import plasmapy.particles
+import sys
 
 from plasmapy.utils import roman
 

@@ -3,11 +3,11 @@ Classes and functions for element-level operations
 """
 import astropy.units as u
 import numpy as np
+import plasmapy
 
 from functools import cached_property
 
 import fiasco
-import plasmapy
 
 __all__ = ['Element']
 

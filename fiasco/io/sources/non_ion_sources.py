@@ -5,10 +5,9 @@ import astropy.units as u
 import fortranformat
 import numpy as np
 import os
+import plasmapy
 
 from astropy.table import Column
-
-import plasmapy
 
 from fiasco.io.generic import GenericParser
 
