@@ -30,7 +30,7 @@ class GenericParser:
         if standalone:
             self.chianti_version = ''
         else:
-            with open(self.ascii_dbase_root / 'VERSION') as f:
+            with (self.ascii_dbase_root / 'VERSION').open() as f:
                 lines = f.readlines()
                 self.chianti_version = lines[0].strip()
         self.full_path = filename if standalone else self.ascii_dbase_root / self.filename
@@ -42,7 +42,7 @@ class GenericParser:
         # NOTE: put this here and not in __init__ as __init__ may be overwritten in a subclass
         if not self.full_path.is_file():
             raise MissingASCIIFileError(f'Could not find file {self.full_path}')
-        with open(self.full_path) as f:
+        with self.full_path.open() as f:
             lines = f.readlines()
         table = []
         for i, line in enumerate(lines):
