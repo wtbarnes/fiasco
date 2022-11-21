@@ -68,7 +68,7 @@ def setup_paths():
     return paths
 
 
-def get_masterlist(ascii_dbase_root):
+def get_masterlist(ascii_dbase_root: pathlib.Path):
     """
     Parse CHIANTI filetree and return list of all files, separated by category. This will be only
     be useful when dealing with the raw ASCII data.
@@ -84,7 +84,7 @@ def get_masterlist(ascii_dbase_root):
     # List all of the non-ion files, excluding any "dot"/hidden files
     def walk_sub_dir(subdir):
         subdir_files = []
-        subdir_root = os.path.join(ascii_dbase_root, subdir)
+        subdir_root = ascii_dbase_root / subdir
         for root, _, files in os.walk(subdir_root):
             subdir_files += [os.path.relpath(os.path.join(root, f), subdir_root) for f in files
                              if f[0] != '.']
