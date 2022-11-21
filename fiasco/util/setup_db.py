@@ -5,7 +5,6 @@ import h5py
 import hashlib
 import numpy as np
 import os
-import pathlib
 import tarfile
 
 from astropy.config import set_temp_cache
@@ -17,7 +16,7 @@ import fiasco.io
 from fiasco.util.exceptions import MissingASCIIFileError
 from fiasco.util.util import get_masterlist, query_yes_no
 
-FIASCO_HOME = pathlib.Path.home() / '.fiasco'
+FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
 CHIANTI_URL = 'http://download.chiantidatabase.org/CHIANTI_v{version}_database.tar.gz'
 LATEST_VERSION = '8.0.7'
 
@@ -45,11 +44,11 @@ def check_database(hdf5_dbase_root, **kwargs):
     download_dbase
     build_hdf5_dbase
     """
-    ascii_dbase_root = pathlib.Path(kwargs.get('ascii_dbase_root',
-                                  fiasco.defaults['ascii_dbase_root']))
+    ascii_dbase_root = kwargs.get('ascii_dbase_root',
+                                  fiasco.defaults['ascii_dbase_root'])
     # Useful for building, downloading non-interactively
     ask_before = kwargs.get('ask_before', True)
-    if hdf5_dbase_root.isfile():
+    if os.path.isfile(hdf5_dbase_root):
         return None
     if ask_before:
         question = f"No HDF5 database found at {hdf5_dbase_root}. Build it now?"
@@ -59,7 +58,7 @@ def check_database(hdf5_dbase_root, **kwargs):
             return None
     # VERSION file as a proxy for whether whole dbase exists
     # TODO: version checking, download newest version if installed version is out of date
-    if not (ascii_dbase_root / 'VERSION').isfile():
+    if not os.path.isfile(os.path.join(ascii_dbase_root, 'VERSION')):
         ascii_dbase_url = kwargs.get('ascii_dbase_url', CHIANTI_URL.format(version=LATEST_VERSION))
         if ask_before:
             question = f"No CHIANTI database found at {ascii_dbase_root}. Download it from {ascii_dbase_url}?"
@@ -76,9 +75,9 @@ def download_dbase(ascii_dbase_url, ascii_dbase_root):
     """
     Download the CHIANTI database in ASCII format
     """
-    tar_tmp_dir = FIASCO_HOME / 'tmp'
-    if not tar_tmp_dir.exists():
-        tar_tmp_dir.mkdir()
+    tar_tmp_dir = os.path.join(FIASCO_HOME, 'tmp')
+    if not os.path.exists(tar_tmp_dir):
+        os.makedirs(tar_tmp_dir)
     with set_temp_cache(path=tar_tmp_dir, delete=True):
         tmp_tar = download_file(ascii_dbase_url, cache=True, show_progress=True)
         with tarfile.open(tmp_tar) as tar:
@@ -86,7 +85,7 @@ def download_dbase(ascii_dbase_url, ascii_dbase_root):
 
 
 def md5hash(path):
-    with path.open('rb') as f:
+    with open(path, 'rb') as f:
         return hashlib.md5(f.read()).hexdigest()
 
 
