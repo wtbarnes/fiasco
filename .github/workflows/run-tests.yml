@@ -28,7 +28,7 @@ jobs:
           python-version: 3.8
           toxenv: py38
           cache_cmd: -- --dbase-download-dir ~/.chianti
-        - os: windows-latest
+        - os: ubuntu-latest
           python-version: 3.9
           toxenv: py39
           cache_cmd: -- --dbase-download-dir ~/.chianti
