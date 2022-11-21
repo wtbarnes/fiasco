@@ -5,7 +5,6 @@ import astropy.units as u
 import h5py
 import numpy as np
 import os
-import pathlib
 
 from astropy.table import QTable
 
@@ -44,13 +43,13 @@ class DataIndexerHDF5:
     """
 
     def __init__(self, hdf5_path, top_level_path):
-        self.top_level_path = pathlib.Path(top_level_path)
-        self._hdf5_dbase_root = pathlib.Path(hdf5_path)
+        self.top_level_path = top_level_path
+        self._hdf5_dbase_root = hdf5_path
 
     @property
     def hdf5_dbase_root(self):
         dbase_root = self._hdf5_dbase_root
-        if not dbase_root.is_file():
+        if not os.path.isfile(dbase_root):
             raise MissingDatabaseError(f'No HDF5 database found at {dbase_root}')
         return dbase_root
 
@@ -61,8 +60,7 @@ class DataIndexerHDF5:
         exists so that None can be returned if the dataset specified by
         `top_level_path` does not exist.
         """
-        hdf5_path = pathlib.Path(hdf5_path)
-        if not hdf5_path.is_file():
+        if not os.path.isfile(hdf5_path):
             raise MissingDatabaseError(f'No HDF5 database found at {hdf5_path}')
         with h5py.File(hdf5_path, 'r') as hf:
             path_is_valid = top_level_path in hf

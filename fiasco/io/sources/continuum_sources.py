@@ -25,7 +25,8 @@ class GffguParser(GenericParser):
 
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
-        self.full_path = kwargs.get('full_path', self.ascii_dbase_root / 'continuum' / filename)
+        self.full_path = kwargs.get('full_path',
+                                    os.path.join(self.ascii_dbase_root, 'continuum', filename))
         self.body_index = 5
 
     def preprocessor(self, table, line, index):
@@ -107,7 +108,8 @@ class KlgfbParser(GenericParser):
 
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
-        self.full_path = kwargs.get('full_path', self.ascii_dbase_root / 'continuum' / filename)
+        self.full_path = kwargs.get('full_path',
+                                    os.path.join(self.ascii_dbase_root, 'continuum', filename))
 
     def preprocessor(self, table, line, index):
         if index == 0:
@@ -179,7 +181,8 @@ class VernerParser(GenericParser):
 
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
-        self.full_path = kwargs.get('full_path', self.ascii_dbase_root / 'continuum' / filename)
+        self.full_path = kwargs.get('full_path',
+                                    os.path.join(self.ascii_dbase_root, 'continuum', filename))
 
     def extract_footer(self, *args):
         return """Fit parameters for calculating partial photoionization cross-sections for individual ions
@@ -223,7 +226,8 @@ class ItohParser(GenericParser):
 
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
-        self.full_path = kwargs.get('full_path', self.ascii_dbase_root / 'continuum', filename)
+        self.full_path = kwargs.get('full_path',
+                                    os.path.join(self.ascii_dbase_root, 'continuum', filename))
 
     def preprocessor(self, table, line, index):
         a_matrix = np.array(line.strip().split()).reshape((11, 11))
@@ -268,7 +272,8 @@ class HSeqParser(GenericParser):
 
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
-        self.full_path = kwargs.get('full_path', self.ascii_dbase_root /'continuum' / filename)
+        self.full_path = kwargs.get('full_path',
+                                    os.path.join(self.ascii_dbase_root, 'continuum', filename))
 
     def preprocessor(self, table, line, index):
         if index == 0:
@@ -318,7 +323,8 @@ class HeSeqParser(GenericParser):
 
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
-        self.full_path = kwargs.get('full_path', self.ascii_dbase_root / 'continuum' / filename)
+        self.full_path = kwargs.get('full_path',
+                                    os.path.join(self.ascii_dbase_root, 'continuum', filename))
 
     def preprocessor(self, table, line, index):
         if index == 0:

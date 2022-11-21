@@ -3,13 +3,12 @@ Basic utilities
 """
 import configparser
 import os
-import pathlib
 import plasmapy.particles
 import sys
 
 from plasmapy.utils import roman
 
-FIASCO_HOME = pathlib.Path.home() / '.fiasco'
+FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
 
 __all__ = ['setup_paths', 'get_masterlist', 'parse_ion_name']
 
@@ -54,21 +53,21 @@ def setup_paths():
     Parse .rc file and set ASCII and HDF5 database paths.
     """
     paths = {}
-    if not (FIASCO_HOME / 'fiascorc').is_file():
+    if os.path.isfile(os.path.join(FIASCO_HOME, 'fiascorc')):
         config = configparser.ConfigParser()
-        config.read(FIASCO_HOME / 'fiascorc')
+        config.read(os.path.join(FIASCO_HOME, 'fiascorc'))
         if 'database' in config:
             paths = dict(config['database'])
 
     if 'ascii_dbase_root' not in paths:
-        paths['ascii_dbase_root'] = FIASCO_HOME / 'chianti_dbase'
+        paths['ascii_dbase_root'] = os.path.join(FIASCO_HOME, 'chianti_dbase')
     if 'hdf5_dbase_root' not in paths:
-        paths['hdf5_dbase_root'] = FIASCO_HOME / 'chianti_dbase.h5'
+        paths['hdf5_dbase_root'] = os.path.join(FIASCO_HOME, 'chianti_dbase.h5')
 
     return paths
 
 
-def get_masterlist(ascii_dbase_root: pathlib.Path):
+def get_masterlist(ascii_dbase_root):
     """
     Parse CHIANTI filetree and return list of all files, separated by category. This will be only
     be useful when dealing with the raw ASCII data.
@@ -84,7 +83,7 @@ def get_masterlist(ascii_dbase_root: pathlib.Path):
     # List all of the non-ion files, excluding any "dot"/hidden files
     def walk_sub_dir(subdir):
         subdir_files = []
-        subdir_root = ascii_dbase_root / subdir
+        subdir_root = os.path.join(ascii_dbase_root, subdir)
         for root, _, files in os.walk(subdir_root):
             subdir_files += [os.path.relpath(os.path.join(root, f), subdir_root) for f in files
                              if f[0] != '.']
