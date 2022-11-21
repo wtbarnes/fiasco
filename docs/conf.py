@@ -176,7 +176,7 @@ if ON_RTD or ON_GHA:
             'o_6.wgfa',
         ]
     )
-    with open(fiasco_home / 'fiascorc', 'w') as f:
+    with (fiasco_home / 'fiascorc').open('w') as f:
         c = configparser.ConfigParser()
         c.add_section('database')
         c.set('database', 'ascii_dbase_root', str(ascii_dbase_root))
