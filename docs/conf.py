@@ -130,8 +130,6 @@ ON_GHA = os.environ.get('CI') == 'true'
 if ON_RTD or ON_GHA:
     from fiasco.util import build_hdf5_dbase, download_dbase
     from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
-    if ON_RTD:
-        os.environ['HOME'] = '/home/docs'  # RTD does not set HOME?
     fiasco_home = pathlib.Path.home() / '.fiasco'
     if not fiasco_home.exists():
         fiasco_home.mkdir()
