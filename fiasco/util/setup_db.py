@@ -4,7 +4,6 @@ Various functions for downloading and setting up the database
 import h5py
 import hashlib
 import numpy as np
-import os
 import pathlib
 import tarfile
 
@@ -101,9 +100,9 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
 
     Parameters
     ----------
-    ascii_dbase_root : `str` or `pathlib.Path`
+    ascii_dbase_root : `str` or `~pathlib.Path`
         Path to top of CHIANTI database tree
-    hdf5_dbase_root : `str` or `pathlib.
+    hdf5_dbase_root : `str` or `~pathlib.Path`
         Path to HDF5 file
     files : `list` or `dict`, optional
         A list of files to update in the HDF5 database. By default,
