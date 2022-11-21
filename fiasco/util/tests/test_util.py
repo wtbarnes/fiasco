@@ -5,6 +5,7 @@ import pytest
 
 from fiasco.util import parse_ion_name
 
+
 @pytest.mark.parametrize('ion_name', [
     "fe 21",
     "Fe 21",

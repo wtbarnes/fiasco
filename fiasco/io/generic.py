@@ -1,18 +1,19 @@
 """
 Base class for file parser
 """
-import os
-
+import astropy.units as u
 import h5py
 import numpy as np
+import os
+
 from astropy.table import QTable
-import astropy.units as u
 
 import fiasco
+
 from fiasco.util.exceptions import MissingASCIIFileError
 
 
-class GenericParser(object):
+class GenericParser:
     """
     Base class for CHIANTI file parsers
     """
@@ -29,7 +30,7 @@ class GenericParser(object):
         if standalone:
             self.chianti_version = ''
         else:
-            with open(os.path.join(self.ascii_dbase_root, 'VERSION'), 'r') as f:
+            with open(os.path.join(self.ascii_dbase_root, 'VERSION')) as f:
                 lines = f.readlines()
                 self.chianti_version = lines[0].strip()
         self.full_path = filename if standalone else os.path.join(self.ascii_dbase_root, self.filename)
@@ -40,8 +41,8 @@ class GenericParser(object):
         """
         # NOTE: put this here and not in __init__ as __init__ may be overwritten in a subclass
         if not os.path.isfile(self.full_path):
-            raise MissingASCIIFileError('Could not find file {}'.format(self.full_path))
-        with open(self.full_path, 'r') as f:
+            raise MissingASCIIFileError(f'Could not find file {self.full_path}')
+        with open(self.full_path) as f:
             lines = f.readlines()
         table = []
         for i, line in enumerate(lines):
@@ -150,7 +151,7 @@ class GenericIonParser(GenericParser):
                 data = col.data
             if '<U' in data.dtype.str:
                 numchar = data.dtype.str[2:]
-                data = data.astype('|S{}'.format(numchar))
+                data = data.astype(f'|S{numchar}')
             if name in grp:
                 ds = grp[name]
             else:

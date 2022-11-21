@@ -4,6 +4,7 @@ Test base ion functionality
 import pytest
 
 import fiasco
+
 from fiasco.util.exceptions import MissingIonError
 
 

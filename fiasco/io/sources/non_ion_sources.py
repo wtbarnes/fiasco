@@ -1,15 +1,15 @@
 """
 Source classes for CHIANTI filetypes not attached to ions
 """
-import os
-
-import numpy as np
 import astropy.units as u
-from astropy.table import Column
 import fortranformat
+import numpy as np
+import os
 import plasmapy
 
-from ..generic import GenericParser
+from astropy.table import Column
+
+from fiasco.io.generic import GenericParser
 
 __all__ = ['AbundParser', 'IoneqParser', 'IpParser']
 
@@ -124,7 +124,7 @@ class IpParser(GenericParser):
         for row in df:
             el = plasmapy.particles.atomic_symbol(int(row['Z'])).lower()
             ion = int(row['ion'])
-            grp_name = '/'.join([el, '{}_{}'.format(el, ion), 'ip'])
+            grp_name = '/'.join([el, f'{el}_{ion}', 'ip'])
             if grp_name not in hf:
                 grp = hf.create_group(grp_name)
                 grp.attrs['footer'] = ''

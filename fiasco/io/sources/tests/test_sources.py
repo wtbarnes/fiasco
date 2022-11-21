@@ -1,8 +1,9 @@
 """
 Test parsers for all files attached to specific ions
 """
-from astropy.table import QTable
 import pytest
+
+from astropy.table import QTable
 
 import fiasco.io
 

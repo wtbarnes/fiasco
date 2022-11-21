@@ -1,10 +1,11 @@
 """
 Numerical tools
 """
-from functools import partial
-import numpy as np
-from scipy.interpolate import splrep, splev
 import astropy.units as u
+import numpy as np
+
+from functools import partial
+from scipy.interpolate import splev, splrep
 
 __all__ = ['vectorize_where', 'vectorize_where_sum', 'burgess_tully_descale']
 

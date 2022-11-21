@@ -2,8 +2,8 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 import os
-from itertools import chain
 
+from itertools import chain
 from setuptools import setup
 from setuptools.config import read_configuration
 

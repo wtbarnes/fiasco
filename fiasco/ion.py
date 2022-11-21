@@ -1,20 +1,24 @@
 """
 Ion object. Holds all methods and properties of a CHIANTI ion.
 """
-from functools import cached_property
-
-import numpy as np
-from scipy.interpolate import splrep, splev, interp1d
-from scipy.ndimage import map_coordinates
-import astropy.units as u
 import astropy.constants as const
+import astropy.units as u
+import numpy as np
 
-from .base import IonBase, ContinuumBase
-from .collections import IonCollection
-from .level import Level, Transitions
+from functools import cached_property
+from scipy.interpolate import interp1d, splev, splrep
+from scipy.ndimage import map_coordinates
+
 from fiasco import proton_electron_ratio
-from fiasco.util import (needs_dataset, vectorize_where, vectorize_where_sum,
-                         burgess_tully_descale)
+from fiasco.base import ContinuumBase, IonBase
+from fiasco.collections import IonCollection
+from fiasco.level import Level, Transitions
+from fiasco.util import (
+    burgess_tully_descale,
+    needs_dataset,
+    vectorize_where,
+    vectorize_where_sum,
+)
 from fiasco.util.exceptions import MissingDatasetException
 
 __all__ = ['Ion']

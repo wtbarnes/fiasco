@@ -1,11 +1,11 @@
 """
 Access layer for interfacing with CHIANTI stored in HDF5
 """
+import astropy.units as u
+import h5py
+import numpy as np
 import os
 
-import numpy as np
-import h5py
-import astropy.units as u
 from astropy.table import QTable
 
 from fiasco.util.exceptions import MissingDatabaseError
@@ -13,7 +13,7 @@ from fiasco.util.exceptions import MissingDatabaseError
 __all__ = ['DataIndexer']
 
 
-class DataIndexer(object):
+class DataIndexer:
     """
     Data access layer for each distinct CHIANTI dataset
 
@@ -32,7 +32,7 @@ class DataIndexer(object):
         return DataIndexerHDF5.create_indexer(*args)
 
 
-class DataIndexerHDF5(object):
+class DataIndexerHDF5:
     """
     Interface layer for CHIANTI data stored in HDF5 format.
 

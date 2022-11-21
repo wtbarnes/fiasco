@@ -3,8 +3,8 @@ Factory and interface for file parser
 """
 import os
 
-from .sources import *
-from .generic import GenericParser
+from fiasco.io.generic import GenericParser
+from fiasco.io.sources import *
 
 
 class ParserFactory(type):
@@ -15,6 +15,7 @@ class ParserFactory(type):
     def __call__(cls, *args, **kwargs):
         # Import here to avoid circular imports
         from fiasco import log
+
         # Allow for standalone files
         if os.path.exists(args[0]):
             kwargs['standalone'] = True
@@ -35,7 +36,7 @@ class ParserFactory(type):
         elif filetype_name in subclass_dict:
             return subclass_dict[filetype_name](*args, **kwargs)
         else:
-            log.warning('Unrecognized filename and extension {}'.format(args[0]), stacklevel=2)
+            log.warning(f'Unrecognized filename and extension {args[0]}', stacklevel=2)
             return type.__call__(cls, *args, **kwargs)
 
 

@@ -1,11 +1,11 @@
 """
 Source classes for CHIANTI filetypes attached to ions
 """
-import numpy as np
 import astropy.units as u
 import fortranformat
+import numpy as np
 
-from ..generic import GenericIonParser
+from fiasco.io.generic import GenericIonParser
 
 __all__ = ['ElvlcParser', 'FblvlParser', 'ScupsParser',
            'PsplupsParser', 'EasplomParser', 'EasplupsParser',
@@ -166,7 +166,7 @@ class PsplupsParser(ScupsParser):
         tmp = line.strip().split()
         # 5-point fit for type 6, 9-point fit for type 2
         n_spline = 5 if int(tmp[2]) == 6 else 9
-        fformat = fortranformat.FortranRecordReader('(3I3,{}E10.3)'.format(3+n_spline))
+        fformat = fortranformat.FortranRecordReader(f'(3I3,{3+n_spline}E10.3)')
         line = fformat.read(line)
         row = line[:6] + [np.array(line[6:])]
         table.append(row)
@@ -319,7 +319,7 @@ class RrparamsParser(GenericIonParser):
                 self.headings = ['fit_type', 'A_fit', 'eta_fit']
                 self.descriptions = ['fit type', 'A rad fit parameter', 'eta fit parameter']
             else:
-                raise ValueError('Unrecognized .rrparams filetype {}'.format(filetype))
+                raise ValueError(f'Unrecognized .rrparams filetype {filetype}')
         else:
             if table[0][0] == 1 or table[0][0] == 2:
                 table[0] += line[3:]

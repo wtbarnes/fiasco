@@ -149,3 +149,7 @@ docs/api
 docs/whatsnew/latest_changelog.txt
 fiasco/version.py
 htmlcov/
+
+# IDEs
+
+.idea

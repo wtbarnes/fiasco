@@ -1,11 +1,12 @@
 """
 Test ion functionality
 """
-import numpy as np
 import astropy.units as u
+import numpy as np
 import pytest
 
 import fiasco
+
 from fiasco.level import Level
 from fiasco.util.exceptions import MissingDatasetException
 

@@ -1,14 +1,13 @@
 """
 Source classes for continuum files
 """
-import os
-
-import numpy as np
 import astropy.units as u
 import h5py
+import numpy as np
+import os
 import plasmapy
 
-from ..generic import GenericParser
+from fiasco.io.generic import GenericParser
 
 __all__ = ['GffguParser', 'GffintParser', 'KlgfbParser', 'VernerParser', 'ItohParser',
            'HSeqParser', 'HeSeqParser']
@@ -62,7 +61,7 @@ class GffguParser(GenericParser):
                 data = col.data
             if '<U' in data.dtype.str:
                 numchar = data.dtype.str[2:]
-                data = data.astype('|S{}'.format(numchar))
+                data = data.astype(f'|S{numchar}')
             if name in grp:
                 ds = grp[name]
             else:
@@ -143,7 +142,7 @@ From Karzas, W. J. and Latter, R., 1961, ApJS, 6, 167"""
                 data = col.data
             if '<U' in data.dtype.str:
                 numchar = data.dtype.str[2:]
-                data = data.astype('|S{}'.format(numchar))
+                data = data.astype(f'|S{numchar}')
             if name in grp:
                 ds = grp[name]
             else:

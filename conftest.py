@@ -1,7 +1,7 @@
 import os
-from urllib.request import urlopen
-
 import pytest
+
+from urllib.request import urlopen
 
 from fiasco.util import build_hdf5_dbase, download_dbase
 from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION

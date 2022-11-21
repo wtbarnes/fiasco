@@ -1,19 +1,20 @@
 """
 Various functions for downloading and setting up the database
 """
+import h5py
 import hashlib
+import numpy as np
 import os
 import tarfile
 
-import numpy as np
-import h5py
 from astropy.config import set_temp_cache
-from astropy.utils.data import download_file
 from astropy.utils.console import ProgressBar
+from astropy.utils.data import download_file
 
 import fiasco.io
-from .util import get_masterlist, query_yes_no
-from .exceptions import MissingASCIIFileError
+
+from fiasco.util.exceptions import MissingASCIIFileError
+from fiasco.util.util import get_masterlist, query_yes_no
 
 FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
 CHIANTI_URL = 'http://download.chiantidatabase.org/CHIANTI_v{version}_database.tar.gz'
@@ -131,6 +132,7 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
                 progress.update()
             # Build an index for quick lookup of all ions in database
             from fiasco import list_ions  # import here to avoid circular imports
+
             # Delete it if it already exists to ensure the index is rebuilt
             if 'ion_index' in hf:
                 del hf['ion_index']

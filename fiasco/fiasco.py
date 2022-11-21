@@ -1,13 +1,15 @@
 """
 Package-level functions
 """
-import numpy as np
-from scipy.interpolate import interp1d
 import astropy.units as u
+import numpy as np
 import plasmapy.particles
+
 from plasmapy.particles.exceptions import InvalidParticleError
+from scipy.interpolate import interp1d
 
 import fiasco
+
 from fiasco.io import DataIndexer
 
 __all__ = ['list_elements', 'list_ions', 'proton_electron_ratio']
