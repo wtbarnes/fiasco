@@ -122,7 +122,6 @@ graphviz_dot_args = [
 # Set path for BibTeX file for all of our references
 bibtex_bibfiles = ['references.bib']
 
-
 ON_RTD = os.environ.get('READTHEDOCS') == 'True'
 ON_GHA = os.environ.get('CI') == 'true'
 
