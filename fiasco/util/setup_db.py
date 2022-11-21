@@ -47,9 +47,12 @@ def check_database(hdf5_dbase_root, **kwargs):
     """
     ascii_dbase_root = kwargs.get('ascii_dbase_root',
                                   fiasco.defaults['ascii_dbase_root'])
+
+    hdf5_dbase_root = pathlib.Path(hdf5_dbase_root)
+
     # Useful for building, downloading non-interactively
     ask_before = kwargs.get('ask_before', True)
-    if os.path.isfile(hdf5_dbase_root):
+    if hdf5_dbase_root.is_file():
         return None
     if ask_before:
         question = f"No HDF5 database found at {hdf5_dbase_root}. Build it now?"
