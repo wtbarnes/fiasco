@@ -1,6 +1,7 @@
 """
 Base classes for access to CHIANTI ion data
 """
+import pathlib
 import plasmapy.particles
 
 from plasmapy.utils import roman
@@ -32,9 +33,9 @@ class Base:
         # base rep is a tuple of integers (atomic_number, ionization_stage)
         self._base_rep = parse_ion_name(ion_name)
         if hdf5_dbase_root is None:
-            self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
+            self.hdf5_dbase_root = pathlib.Path(fiasco.defaults['hdf5_dbase_root'])
         else:
-            self.hdf5_dbase_root = hdf5_dbase_root
+            self.hdf5_dbase_root = pathlib.Path(hdf5_dbase_root)
         check_database(self.hdf5_dbase_root, **kwargs)
         if self.ion_name not in fiasco.list_ions(self.hdf5_dbase_root, sort=False):
             raise MissingIonError(f'{self.ion_name} not found in {self.hdf5_dbase_root}')
