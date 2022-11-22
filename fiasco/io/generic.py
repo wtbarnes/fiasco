@@ -42,9 +42,9 @@ class GenericParser:
         Generate Astropy QTable from a CHIANTI ion file
         """
         # NOTE: put this here and not in __init__ as __init__ may be overwritten in a subclass
-        if not os.path.isfile(self.full_path):
+        if not self.full_path.is_file():
             raise MissingASCIIFileError(f'Could not find file {self.full_path}')
-        with open(self.full_path) as f:
+        with self.full_path.open() as f:
             lines = f.readlines()
         table = []
         for i, line in enumerate(lines):
@@ -109,18 +109,18 @@ class GenericIonParser(GenericParser):
     def __init__(self, ion_filename, **kwargs):
         super().__init__(ion_filename, **kwargs)
         self.dielectronic = False
-        self.ion_name, _ = os.path.splitext(os.path.basename(self.filename))
+        self.ion_name = pathlib.Path(self.filename).stem
         if self.ion_name and self.ion_name[-1] == 'd':
             self.dielectronic = True
             self.ion_name = self.ion_name[:-1]
         self.element = self.ion_name.split('_')[0]
         if kwargs.get('standalone', False):
-            self.full_path = self.filename
+            self.full_path = pathlib.Path(self.filename)
         else:
-            self.full_path = os.path.join(self.ascii_dbase_root,
+            self.full_path = pathlib.Path(os.path.join(self.ascii_dbase_root,
                                           self.element,
-                                          os.path.splitext(self.filename)[0],
-                                          self.filename)
+                                          pathlib.Path(self.filename).stem,
+                                          self.filename))
 
     def postprocessor(self, df):
         df = super().postprocessor(df)
