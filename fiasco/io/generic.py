@@ -117,10 +117,7 @@ class GenericIonParser(GenericParser):
         if kwargs.get('standalone', False):
             self.full_path = pathlib.Path(self.filename)
         else:
-            self.full_path = pathlib.Path(os.path.join(self.ascii_dbase_root,
-                                          self.element,
-                                          pathlib.Path(self.filename).stem,
-                                          self.filename))
+            self.full_path = self.ascii_dbase_root / self.element / pathlib.Path(self.filename).stem / self.filename
 
     def postprocessor(self, df):
         df = super().postprocessor(df)
