@@ -5,6 +5,7 @@ import astropy.units as u
 import fortranformat
 import numpy as np
 import os
+import pathlib
 import plasmapy
 
 from astropy.table import Column
@@ -24,8 +25,8 @@ class AbundParser(GenericParser):
 
     def __init__(self, abundance_filename, **kwargs):
         super().__init__(abundance_filename, **kwargs)
-        self.full_path = kwargs.get('full_path',
-                                    os.path.join(self.ascii_dbase_root, 'abundance', self.filename))
+        self.full_path = pathlib.Path(kwargs.get('full_path',
+                                    os.path.join(self.ascii_dbase_root, 'abundance', self.filename)))
 
     def postprocessor(self, df):
         df['abundance'] = 10.**(df['abundance'] - df['abundance'][df['Z'] == 1])
@@ -67,8 +68,8 @@ class IoneqParser(GenericParser):
 
     def __init__(self, ioneq_filename, **kwargs):
         super().__init__(ioneq_filename, **kwargs)
-        self.full_path = kwargs.get('full_path',
-                                    os.path.join(self.ascii_dbase_root, 'ioneq', self.filename))
+        self.full_path = pathlib.Path(kwargs.get('full_path',
+                                    os.path.join(self.ascii_dbase_root, 'ioneq', self.filename)))
 
     def preprocessor(self, table, line, index):
         if index == 0:
@@ -113,8 +114,8 @@ class IpParser(GenericParser):
 
     def __init__(self, ip_filename, **kwargs):
         super().__init__(ip_filename, **kwargs)
-        self.full_path = kwargs.get('full_path',
-                                    os.path.join(self.ascii_dbase_root, 'ip', self.filename))
+        self.full_path = pathlib.Path(kwargs.get('full_path',
+                                    os.path.join(self.ascii_dbase_root, 'ip', self.filename)))
 
     def to_hdf5(self, hf, df):
         dataset_name = os.path.splitext(os.path.basename(self.filename))[0]
