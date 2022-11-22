@@ -9,7 +9,7 @@ import sys
 
 from plasmapy.utils import roman
 
-FIASCO_HOME = pathlib.path.home() / '.fiasco'
+FIASCO_HOME = pathlib.Path.home() / '.fiasco'
 FIASCO_RC = FIASCO_HOME / 'fiascorc'
 
 __all__ = ['setup_paths', 'get_masterlist', 'parse_ion_name']
@@ -75,14 +75,15 @@ def get_masterlist(ascii_dbase_root):
     be useful when dealing with the raw ASCII data.
     """
 
-    ascii_dbase_root = pathlib.Path(ascii_dbase_root)
+    # TODO: Replace usage with pathlib, noting that pathlib does not
+    # have a direct equivalent to os.walk
 
     skip_dirs = ['version_3', 'deprecated', 'masterlist', 'ioneq', 'dem', 'ancillary_data', 'ip',
                  'abundance', 'continuum', 'instrument_responses']
     # List of all files associated with ions
     ion_files = []
     for root, sub, files in os.walk(ascii_dbase_root):
-        if not any([sd in root for sd in skip_dirs]) and not any([sd in sub for sd in skip_dirs]):
+        if all(sd not in root for sd in skip_dirs) and all(sd not in sub for sd in skip_dirs):
             ion_files += [f for f in files if f[0] != '.']
 
     # List all of the non-ion files, excluding any "dot"/hidden files
