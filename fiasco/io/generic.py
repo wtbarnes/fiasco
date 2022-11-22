@@ -35,7 +35,7 @@ class GenericParser:
             with version_file.open() as f:
                 lines = f.readlines()
                 self.chianti_version = lines[0].strip()
-        self.full_path = filename if standalone else self.ascii_dbase_root / self.filename
+        self.full_path = pathlib.Path(filename) if standalone else self.ascii_dbase_root / self.filename
 
     def parse(self):
         """
