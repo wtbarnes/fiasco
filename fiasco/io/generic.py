@@ -5,6 +5,7 @@ import astropy.units as u
 import h5py
 import numpy as np
 import os
+import pathlib
 
 from astropy.table import QTable
 
@@ -24,16 +25,17 @@ class GenericParser:
 
     def __init__(self, filename, **kwargs):
         self.filename = filename
-        self.ascii_dbase_root = kwargs.get('ascii_dbase_root', fiasco.defaults['ascii_dbase_root'])
+        self.ascii_dbase_root = pathlib.Path(kwargs.get('ascii_dbase_root', fiasco.defaults['ascii_dbase_root']))
         standalone = kwargs.get('standalone', False)
         # Cannot supply a version number if this is a standalone file
         if standalone:
             self.chianti_version = ''
         else:
-            with open(os.path.join(self.ascii_dbase_root, 'VERSION')) as f:
+            version_file = self.ascii_dbase_root / 'VERSION'
+            with version_file.open() as f:
                 lines = f.readlines()
                 self.chianti_version = lines[0].strip()
-        self.full_path = filename if standalone else os.path.join(self.ascii_dbase_root, self.filename)
+        self.full_path = filename if standalone else self.ascii_dbase_root / self.filename
 
     def parse(self):
         """
