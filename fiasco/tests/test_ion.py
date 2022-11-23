@@ -202,7 +202,7 @@ def test_free_free(ion):
     emission = ion.free_free(200 * u.Angstrom)
     assert emission.shape == ion.temperature.shape + (1, )
     # This value has not been tested for correctness
-    assert u.allclose(emission[0], 6.81123745e-28 * u.cm**3 * u.erg / u.Angstrom / u.s)
+    assert u.allclose(emission[0], 1.72804216e-29 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
 
 def test_free_bound(ion):
