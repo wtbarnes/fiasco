@@ -4,6 +4,7 @@ import pytest
 
 from urllib.request import urlopen
 
+from fiasco import list_ions
 from fiasco.util import build_hdf5_dbase, download_dbase
 from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
 
@@ -88,6 +89,7 @@ TEST_FILES = {
 
 def pytest_addoption(parser):
     parser.addoption('--ascii-dbase-root', action='store', default=None)
+    parser.addoption('--hdf5-dbase-root', action='store', default=None)
     parser.addoption('--disable-file-hash', action='store_true', default=False,
                      help='Disable MD5 hash checks on test files')
     parser.addoption('--dbase-download-dir', action='store', default=None,
@@ -122,6 +124,12 @@ def ascii_dbase_root(tmpdir_factory, request):
 
 @pytest.fixture(scope='session')
 def hdf5_dbase_root(ascii_dbase_root, tmpdir_factory, request):
+    # If specifying the HDF5 database explicitly, do not do any setup
+    # as it is assumed that this database has already been built
+    path = request.config.getoption('--hdf5-dbase-root')
+    if path is not None:
+        return path
+    # Otherwise, set it up here
     path = tmpdir_factory.mktemp('fiasco').join('chianti_dbase.h5')
     if request.config.getoption('--include-all-files'):
         test_files = None
