@@ -915,8 +915,17 @@ Using Datasets:
 
     @u.quantity_input
     def free_free(self, wavelength: u.angstrom) -> u.erg * u.cm**3 / u.s / u.angstrom:
-        """
-        Free-free continuum emission or bremsstrahlung.
+        r"""
+        Free-free continuum emission as a function of temperature and wavelength.
+
+        According to Eq. 4.114 of :cite:t:`phillips_ultraviolet_2008` The free-free
+        continuum emission (or bremsstrahlung) is given by,
+
+        .. math::
+
+            P_{ff}(\lambda,T_e) = \frac{c}{3m_e}\left(\frac{\alpha h}{\pi}\right)^3\sqrt{\frac{2\pi}{3m_ek_B}}\frac{z^2}{\lambda^2T_e^{1/2}}\exp{\left(-\frac{hc}{\lambda k_BT_e}\right)}\langle g_{ff}\rangle,
+
+        where :math:`\langle g_{ff}\rangle` is the velocity-averaged free-free Gaunt factor.
 
         Parameters
         ----------
@@ -925,15 +934,19 @@ Using Datasets:
         Notes
         -----
         Does not include ionization equilibrium or abundance.
+
+        See Also
+        --------
+        gaunt_factor_free_free
+        fiasco.IonCollection.free_free: Includes abundance and ionization equilibrium
         """
-        prefactor = (const.c / 3. / const.m_e
-                     * (const.alpha * const.h / np.pi)**3
+        prefactor = (const.c / 3. / const.m_e * (const.alpha * const.h / np.pi)**3
                      * np.sqrt(2. * np.pi / 3. / const.m_e / const.k_B))
         tmp = np.outer(self.temperature, wavelength)
         exp_factor = np.exp(-const.h * const.c / const.k_B / tmp) / (wavelength**2)
         gf = self.gaunt_factor_free_free(wavelength)
 
-        return (prefactor * self.atomic_number**2 * exp_factor * gf
+        return (prefactor * self.charge_state**2 * exp_factor * gf
                 / np.sqrt(self.temperature)[:, np.newaxis])
 
     @needs_dataset('fblvl', 'ip')
@@ -992,26 +1005,6 @@ Using Datasets:
 
         return (prefactor * energy_temperature_factor * sum_factor)
 
-    def free_free_loss(self):
-        """
-        Wavelength-integrated radiative losses due to free-free emission.
-
-        Raises
-        ------
-        NotImplementedError
-        """
-        raise NotImplementedError
-
-    def free_bound_loss(self):
-        """
-        Wavelength-integrated radiative losses due to free-bound emission.
-
-        Raises
-        ------
-        NotImplementedError
-        """
-        raise NotImplementedError
-
     @u.quantity_input
     def gaunt_factor_free_free(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
         r"""
@@ -1068,19 +1061,24 @@ Using Datasets:
         Ry = const.h * const.c * const.Ryd
         tmp = np.outer(self.temperature, wavelength)
         lower_u = const.h * const.c / const.k_B / tmp
-        gamma_squared = ((self.atomic_number**2) * Ry / const.k_B / self.temperature[:, np.newaxis]
+        gamma_squared = ((self.charge_state**2) * Ry / const.k_B / self.temperature[:, np.newaxis]
                          * np.ones(lower_u.shape))
+        # NOTE: This escape hatch avoids a divide-by-zero warning as we cannot take log10
+        # of 0. This does not matter as the free-free continuum will be 0 for zero charge
+        # state anyway.
+        if self.charge_state == 0:
+            return u.Quantity(np.zeros(lower_u.shape))
         # convert to index coordinates
         i_lower_u = (np.log10(lower_u) + 4.) * 10.
         i_gamma_squared = (np.log10(gamma_squared) + 4.) * 5.
+        indices = [i_gamma_squared.flatten(), i_lower_u.flatten()]
         # interpolate data to scaled quantities
         # FIXME: interpolate without reshaping?
         gf_data = self._gffgu['gaunt_factor'].reshape(
             np.unique(self._gffgu['u']).shape[0],
             np.unique(self._gffgu['gamma_squared']).shape[0],
         )
-        gf = map_coordinates(
-            gf_data, [i_gamma_squared.flatten(), i_lower_u.flatten()]).reshape(lower_u.shape)
+        gf = map_coordinates(gf_data, indices, order=1, mode='nearest').reshape(lower_u.shape)
 
         return u.Quantity(np.where(gf < 0., 0., gf))
 
