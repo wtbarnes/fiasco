@@ -80,8 +80,7 @@ def download_dbase(ascii_dbase_url, ascii_dbase_root):
     Download the CHIANTI database in ASCII format
     """
     tar_tmp_dir = FIASCO_HOME / 'tmp'
-    if not tar_tmp_dir.exists():
-        tar_tmp_dir.mkdir()
+    tar_tmp_dir.mkdir(exist_ok=True, parents=True)
     with set_temp_cache(path=tar_tmp_dir, delete=True):
         tmp_tar = download_file(ascii_dbase_url, cache=True, show_progress=True)
         with tarfile.open(tmp_tar) as tar:
