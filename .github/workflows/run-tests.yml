@@ -52,7 +52,7 @@ jobs:
         # Code style checks
         - os: ubuntu-latest
           python-version: 3.9
-          toxenv: codestyle
+          toxenv: pre-commit
 
     steps:
     - uses: actions/checkout@v2
