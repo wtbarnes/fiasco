@@ -83,6 +83,7 @@ intersphinx_mapping = {
     'astropy': ('https://docs.astropy.org/en/stable', None),
     'sunpy': ('https://docs.sunpy.org/en/stable/', None),
     'aiapy': ('https://aiapy.readthedocs.io/en/stable/', None),
+    'plasmapy': ('https://docs.plasmapy.org/en/stable', None),
 }
 
 # -- Options for HTML output -------------------------------------------------
