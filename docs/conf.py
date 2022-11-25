@@ -129,11 +129,10 @@ ON_GHA = os.environ.get('CI') == 'true'
 if ON_RTD or ON_GHA:
     from fiasco.util import build_hdf5_dbase, download_dbase
     from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
-    fiasco_home = pathlib.Path.home() / '.fiasco'
-    if not fiasco_home.exists():
-        fiasco_home.mkdir()
-    ascii_dbase_root = fiasco_home / 'chianti_dbase'
-    hdf5_dbase_root = fiasco_home / 'chianti_dbase.h5'
+    FIASCO_HOME = pathlib.Path.home() / '.fiasco'
+    FIASCO_HOME.mkdir(exist_ok=True, parents=True)
+    ascii_dbase_root = FIASCO_HOME / 'chianti_dbase'
+    hdf5_dbase_root = FIASCO_HOME / 'chianti_dbase.h5'
     download_dbase(CHIANTI_URL.format(version=LATEST_VERSION), ascii_dbase_root)
     build_hdf5_dbase(
         ascii_dbase_root,
@@ -176,7 +175,7 @@ if ON_RTD or ON_GHA:
             'o_6.wgfa',
         ]
     )
-    with (fiasco_home / 'fiascorc').open('w') as f:
+    with (FIASCO_HOME / 'fiascorc').open('w') as f:
         c = configparser.ConfigParser()
         c.add_section('database')
         c.set('database', 'ascii_dbase_root', str(ascii_dbase_root))
