@@ -1,4 +1,4 @@
-import pathlib
+import os
 import pytest
 
 from urllib.request import urlopen
