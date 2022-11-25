@@ -918,14 +918,19 @@ Using Datasets:
         r"""
         Free-free continuum emission as a function of temperature and wavelength.
 
-        According to Eq. 4.114 of :cite:t:`phillips_ultraviolet_2008` The free-free
-        continuum emission (or bremsstrahlung) is given by,
+        Free-free emission, also known as *bremsstrahlung* (or “braking radiation”),
+        is produced when an ion interacts with a free electron, reduces the momentum
+        of the free electron, and, by conservation of energy and momentum, produces
+        a photon. According to Eq. 4.114 of :cite:t:`phillips_ultraviolet_2008` the
+        free-free emission produced by a thermal distribution of electrons as a function
+        of temperature and wavelength is given by,
 
         .. math::
 
             P_{ff}(\lambda,T_e) = \frac{c}{3m_e}\left(\frac{\alpha h}{\pi}\right)^3\sqrt{\frac{2\pi}{3m_ek_B}}\frac{z^2}{\lambda^2T_e^{1/2}}\exp{\left(-\frac{hc}{\lambda k_BT_e}\right)}\langle g_{ff}\rangle,
 
-        where :math:`\langle g_{ff}\rangle` is the velocity-averaged free-free Gaunt factor.
+        where :math:`\alpha` is the fine-structure constant, :math:`z` is the charge of the ion, and
+        :math:`\langle g_{ff}\rangle` is the velocity-averaged free-free Gaunt factor.
 
         Parameters
         ----------
@@ -933,7 +938,7 @@ Using Datasets:
 
         Notes
         -----
-        Does not include ionization equilibrium or abundance.
+        The result does not include ionization equilibrium or abundance factors.
 
         See Also
         --------
@@ -1022,7 +1027,7 @@ Using Datasets:
 
         .. math::
 
-            g_{ff} = \sum_{ij}^10 a_{ij}t^iU^j
+            g_{ff} = \sum_{i,j=0}^{10} a_{ij}t^iU^j,
 
         where :math:`t=(\log{T} - 7.25)/1.25` and :math:`U=(\log{u} + 1.5)/2.5`.
         """
