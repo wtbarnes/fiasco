@@ -6,9 +6,10 @@ import os
 import plasmapy.particles
 import sys
 
+from pathlib import Path
 from plasmapy.utils import roman
 
-FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
+FIASCO_HOME = Path.home() / '.fiasco'
 
 __all__ = ['setup_paths', 'get_masterlist', 'parse_ion_name']
 

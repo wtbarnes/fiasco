@@ -10,13 +10,14 @@ import tarfile
 from astropy.config import set_temp_cache
 from astropy.utils.console import ProgressBar
 from astropy.utils.data import download_file
+from pathlib import Path
 
 import fiasco.io
 
 from fiasco.util.exceptions import MissingASCIIFileError
 from fiasco.util.util import get_masterlist, query_yes_no
 
-FIASCO_HOME = os.path.join(os.environ['HOME'], '.fiasco')
+FIASCO_HOME = Path.home() / '.fiasco'
 CHIANTI_URL = 'http://download.chiantidatabase.org/CHIANTI_v{version}_database.tar.gz'
 LATEST_VERSION = '8.0.7'
 
