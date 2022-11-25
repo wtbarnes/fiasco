@@ -1,7 +1,7 @@
 import os
+import pytest
 
 from astropy.utils.data import get_pkg_data_path
-import pytest
 
 
 @pytest.fixture(scope="session")
