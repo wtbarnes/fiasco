@@ -101,7 +101,7 @@ def ascii_dbase_root(tmpdir_factory, request):
     try:
         _ = urlopen(path)
     except ValueError:
-        if not pathlib.Path(path).exists():
+        if not os.path.exists(path):
             raise ValueError(f'{path} is not a valid URL or file path')
     else:
         _path = request.config.getoption('--dbase-download-dir')
