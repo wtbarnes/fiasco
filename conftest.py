@@ -1,4 +1,5 @@
 import os
+import pathlib
 import pytest
 
 from urllib.request import urlopen
@@ -101,7 +102,7 @@ def ascii_dbase_root(tmpdir_factory, request):
     try:
         _ = urlopen(path)
     except ValueError:
-        if not os.path.exists(path):
+        if not pathlib.Path(path).exists():
             raise ValueError(f'{path} is not a valid URL or file path')
     else:
         _path = request.config.getoption('--dbase-download-dir')
@@ -109,7 +110,7 @@ def ascii_dbase_root(tmpdir_factory, request):
             _path = tmpdir_factory.mktemp('chianti_dbase')
         download_dbase(path, _path)
         path = _path
-    return path
+    return pathlib.Path(path)
 
 
 @pytest.fixture(scope='session')
