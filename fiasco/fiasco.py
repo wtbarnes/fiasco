@@ -63,7 +63,7 @@ def list_ions(hdf5_dbase_root, sort=True):
 def proton_electron_ratio(temperature: u.K, **kwargs):
     """
     Calculate ratio between proton and electron densities as a function of temperature
-    according to Eq. 7 of [1]_.
+    according to Eq. 7 of :cite:t:`young_chianti-atomic_2003`.
 
     Parameters
     ----------
@@ -72,10 +72,6 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
     See Also
     --------
     fiasco.Ion : Accepts same keyword arguments for setting database and dataset names
-
-    References
-    ----------
-    .. [1] Young, P. et al., 2003, ApJS, `144 135 <http://adsabs.harvard.edu/abs/2003ApJS..144..135Y>`_
     """
     # Import here to avoid circular imports
     from fiasco import log

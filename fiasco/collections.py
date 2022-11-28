@@ -78,6 +78,10 @@ class IonCollection:
         Parameters
         ----------
         wavelength : `~astropy.units.Quantity`
+
+        See Also
+        --------
+        fiasco.Ion.free_free
         """
         free_free = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape),
                                'erg cm^3 s^-1 Angstrom^-1')
