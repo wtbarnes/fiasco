@@ -2,10 +2,10 @@
 A Python interface to the CHIANTI atomic database
 """
 from fiasco.collections import *
-from fiasco.element import *
+from fiasco.elements import *
 from fiasco.fiasco import *
-from fiasco.ion import *
-from fiasco.level import *
+from fiasco.ions import *
+from fiasco.levels import *
 from fiasco.util.util import setup_paths
 
 try:

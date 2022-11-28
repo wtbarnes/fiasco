@@ -12,7 +12,7 @@ from scipy.ndimage import map_coordinates
 from fiasco import proton_electron_ratio
 from fiasco.base import ContinuumBase, IonBase
 from fiasco.collections import IonCollection
-from fiasco.level import Level, Transitions
+from fiasco.levels import Level, Transitions
 from fiasco.util import (
     burgess_tully_descale,
     needs_dataset,

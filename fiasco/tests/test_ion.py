@@ -7,7 +7,6 @@ import pytest
 
 import fiasco
 
-from fiasco.level import Level
 from fiasco.util.exceptions import MissingDatasetException
 
 temperature = np.logspace(5, 8, 100)*u.K
@@ -43,25 +42,25 @@ def test_new_instance(ion):
 
 def test_level_indexing(ion):
     # Integer
-    assert isinstance(ion[0], Level)
-    assert ion[0].__repr__() == Level(0, ion._elvlc).__repr__()
+    assert isinstance(ion[0], fiasco.Level)
+    assert ion[0].__repr__() == fiasco.Level(0, ion._elvlc).__repr__()
     # Slice
     levels = ion[:5]
     assert len(levels) == 5
     assert isinstance(levels, list)
-    assert isinstance(levels[0], Level)
-    assert levels[2].__repr__() == Level(2, ion._elvlc).__repr__()
+    assert isinstance(levels[0], fiasco.Level)
+    assert levels[2].__repr__() == fiasco.Level(2, ion._elvlc).__repr__()
     # Fancy indexing
     levels = ion[[1, 5, 10]]
     assert len(levels) == 3
     assert isinstance(levels, list)
-    assert isinstance(levels[0], Level)
-    assert levels[2].__repr__() == Level(10, ion._elvlc).__repr__()
+    assert isinstance(levels[0], fiasco.Level)
+    assert levels[2].__repr__() == fiasco.Level(10, ion._elvlc).__repr__()
 
 
 def test_level(ion):
     level = ion[0]
-    assert isinstance(level, fiasco.ion.Level)
+    assert isinstance(level, fiasco.Level)
     assert level.multiplicity == 5
     assert level.total_angular_momentum == 0
     assert level.orbital_angular_momentum_label == 'D'
