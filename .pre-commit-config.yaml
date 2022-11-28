@@ -37,9 +37,9 @@ repos:
       - id: debug-statements
       - id: check-added-large-files
       - id: end-of-file-fixer
-        exclude: ".*(.fits|.fts|.fit|.txt|tca.*)$"
+        exclude: ".*(.fits|.fts|.fit|.txt|.bib|tca.*)$"
       - id: mixed-line-ending
-        exclude: ".*(.fits|.fts|.fit|.txt|tca.*)$"
+        exclude: ".*(.fits|.fts|.fit|.txt|.bib|tca.*)$"
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.2.2

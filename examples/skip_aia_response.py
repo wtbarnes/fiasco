@@ -37,8 +37,7 @@ plt.show()
 
 ############################################################
 # Next, we construct for the `~fiasco.Ion` object for Fe 18. Note
-# that we choose to use the coronal abundances of
-# `Feldman et al. (1992) <https://ui.adsabs.harvard.edu/abs/2012SoPh..275...41B/>`_.
+# that we choose to use the coronal abundances of :cite:t:`feldman_potential_1992`.
 temperature = 10.**(np.arange(4.5, 8, 0.05)) * u.K
 fe18 = fiasco.Ion('Fe 18', temperature,
                   abundance_filename='sun_coronal_1992_feldman')
@@ -76,7 +75,7 @@ response_transitions = f(transitions) * response.unit
 # temperature responses computed by
 # `aia_get_response.pro <https://hesperia.gsfc.nasa.gov/ssw/sdo/aia/idl/response/aia_get_response.pro>`_.
 # For more more information on the AIA wavelength response calculation,
-# see `Boerner et al. (2012) <https://ui.adsabs.harvard.edu/abs/2012SoPh..275...41B/>`_.
+# see :cite:t:`boerner_initial_2012`_.
 K = (g / energy * response_transitions).sum(axis=2) / (4*np.pi*u.steradian) / 0.83
 K = K.squeeze().to('cm5 ct pix-1 s-1')
 

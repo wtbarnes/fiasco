@@ -61,11 +61,7 @@ class FblvlParser(GenericIonParser):
 class ScupsParser(GenericIonParser):
     """
     Scaled collisions strengths (denoted by upsilon) between energy levels as described
-    in [burgess]_.
-
-    References
-    ----------
-    .. [burgess] Burgess, A. and Tully, J. A., 1992, A&A, `254, 436 <http://adsabs.harvard.edu/abs/1992A%26A...254..436B>`_
+    in :cite:t:`burgess_analysis_1992`.
     """
     filetype = 'scups'
     dtypes = [int, int, float, float, float, int, int, float, 'object', 'object']
@@ -127,7 +123,8 @@ class ScupsParser(GenericIonParser):
 class PsplupsParser(ScupsParser):
     """
     Spline fits to scaled collision rates for protons. These files are discussed in
-    section 2.2 of [young]_ and the details of how these quantities are scaled are given in [burgess]_.
+    section 2.2 of :cite:t:`young_chianti-atomic_2003` and the details of how these
+    quantities are scaled are given in :cite:t:`burgess_analysis_1992`.
 
     Notes
     -----
@@ -135,10 +132,6 @@ class PsplupsParser(ScupsParser):
       (upsilons), these files contain the scaled *rates*.
     * The number of spline points for the rates depends on the fit type, 5 points for type 6
       fits and 9 points for type 2.
-
-    References
-    ----------
-    .. [young] Young, P. et al., 2003, A&AS, `135, 339 <http://adsabs.harvard.edu/abs/2003ApJS..144..135Y>`_
     """
     filetype = 'psplups'
     dtypes = [int, int, int, float, float, float, 'object']
@@ -174,12 +167,9 @@ class PsplupsParser(ScupsParser):
 
 class EasplomParser(GenericIonParser):
     """
-    Spline fits to the excitation-autoionization scaled cross-sections. See [burgess]_ and [dere]_
+    Spline fits to the excitation-autoionization scaled cross-sections.
+    See :cite:t:`burgess_analysis_1992` and :cite:t:`dere_ionization_2007`
     for more details.
-
-    References
-    ----------
-    .. [dere] Dere, K. P., 2007, A&A, `466, 771 <http://adsabs.harvard.edu/abs/2007A%26A...466..771D>`_
     """
     filetype = 'easplom'
     dtypes = [int, int, int, float, float, float, float]
@@ -275,12 +265,8 @@ class ReclvlParser(CilvlParser):
 class RrparamsParser(GenericIonParser):
     """
     Fit parameters for calculating radiative recombination rates. The first two fit types are
-    given in Eqs. 1 and 2 of [badnell]_ and the third fit type is given by Eq. 4 of [shull]_.
-
-    References
-    ----------
-    .. [badnell] Badnell, N. R., 2006, ApJS, `167 334 <https://ui.adsabs.harvard.edu/#abs/2006ApJS..167..334B/abstract>`_
-    .. [shull] Shull, J. M. and M. van Steenberg, 1982, ApJS, `48 95 <http://adsabs.harvard.edu/abs/1982ApJS...48...95S>`_
+    given in Eqs. 1 and 2 of :cite:t:`badnell_radiative_2006` and the third fit type is given
+    by Eq. 4 of :cite:t:`shull_ionization_1982`.
     """
     filetype = 'rrparams'
 
@@ -342,11 +328,8 @@ class TrparamsParser(GenericIonParser):
 class DrparamsParser(GenericIonParser):
     """
     Fit parameters for calculating dielectronic recombination. The first fit type is given by Eq. 3
-    of [zatsarinny]_ and the second fit type is given by Eq. 5 of [shull]_.
-
-    References
-    ----------
-    .. [zatsarinny] Zatsarinny, O. et al., 2003, A&A, `412 587 <http://cdsads.u-strasbg.fr/abs/2003A%26A...412..587Z>`_
+    of :cite:t:`zatsarinny_dielectronic_2003` and the second fit type is given by Eq. 5 of
+    :cite:t:`shull_ionization_1982`.
     """
     filetype = 'drparams'
 
@@ -391,7 +374,7 @@ class DrparamsParser(GenericIonParser):
 class DiparamsParser(GenericIonParser):
     """
     Scaled cross-sections for calculating the ionization rate due to direct ionization.
-    See [burgess]_ and [dere]_ for more details.
+    See :cite:t:`burgess_analysis_1992` and :cite:t:`dere_ionization_2007` for more details.
 
     Notes
     -----

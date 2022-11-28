@@ -63,7 +63,7 @@ def _xnew(energy_ratio, c, scaling_type):
 
 def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     r"""
-    Convert scaled Burgess-Tully [burgess]_ parameters to physical quantities.
+    Convert scaled Burgess-Tully :cite:p:`burgess_analysis_1992` parameters to physical quantities.
 
     For a scaled temperature, :math:`x` and scaled effective collision strength
     :math:`y`, the effective collision strength can be calculated as a function
@@ -71,59 +71,59 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     energy and the energy of the transition :math:`ij`.
 
     There are 6 different scaling types, depending on the type of transition. This scaling
-    is explained in detail in section 5 of [burgess]_. For types 1 and 4, the scaled temperatures
-    and collision strengths are related to :math:`U` and :math:`\\Upsilon` by,
+    is explained in detail in section 5 of :cite:t:`burgess_analysis_1992`. For types 1 and 4,
+    the scaled temperatures and collision strengths are related to :math:`U` and :math:`\Upsilon` by,
 
     * type 1
 
       .. math::
 
-            x = 1 - \\frac{\ln C}{\ln{(U + C)}},\quad
-            y = \\frac{\\Upsilon}{\log(U + e)}
+            x = 1 - \frac{\ln C}{\ln{(U + C)}},\quad
+            y = \frac{\Upsilon}{\log(U + e)}
 
     * type 2
 
       .. math::
 
-            x = \\frac{U}{U + C},\quad
-            y = \\Upsilon
+            x = \frac{U}{U + C},\quad
+            y = \Upsilon
 
     * type 3
 
       .. math::
 
-            x = \\frac{U}{U + C},\quad
+            x = \frac{U}{U + C},\quad
             y = (U + 1)\\Upsilon
 
     * type 4
 
       .. math::
 
-            x = 1 - \\frac{\ln C}{\ln{(U + C)}},\quad
-            y = \\frac{\\Upsilon}{\log(U + C)}
+            x = 1 - \frac{\ln C}{\ln{(U + C)}},\quad
+            y = \frac{\Upsilon}{\log(U + C)}
 
     * type 5
 
       .. math::
 
-            x = \\frac{U}{U + C},\quad
-            y = \\Upsilon U
+            x = \frac{U}{U + C},\quad
+            y = \Upsilon U
 
     * type 6
 
       .. math::
 
-            x = \\frac{U}{U + C},\quad
-            y = \log_{10}\\Upsilon
+            x = \frac{U}{U + C},\quad
+            y = \log_{10}\Upsilon
 
-    where :math:`C` is a scaling constant that is different for each transition. Note that [burgess]_
+    where :math:`C` is a scaling constant that is different for each transition. Note that :cite:t:`burgess_analysis_1992`
     only considered scaling types 1 through 4. Types 5 and 6 correspond to dielectron and proton
     transitions, respectively.
 
     To "descale" the scaled effective collision strengths that are stored in the database,
     a spline fit is computed to the new :math:`x` as computed from :math:`U` and then
-    the relationship between :math:`\\Upsilon` and :math:`y` is inverted to get
-    :math:`\\Upsilon` as a function of :math:`U`.
+    the relationship between :math:`\Upsilon` and :math:`y` is inverted to get
+    :math:`\Upsilon` as a function of :math:`U`.
 
     Parameters
     ----------

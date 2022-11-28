@@ -17,7 +17,7 @@ def needs_dataset(*names):
 
     def decorator(func):
         """
-        func is a method of `fiasco.ion.Ion`.
+        func is a method of `fiasco.Ion`.
         """
         @wraps(func)
         def func_wrapper(*args, **kwargs):
