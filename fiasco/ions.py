@@ -954,62 +954,6 @@ Using Datasets:
         return (prefactor * self.charge_state**2 * exp_factor * gf
                 / np.sqrt(self.temperature)[:, np.newaxis])
 
-    @needs_dataset('fblvl', 'ip')
-    @u.quantity_input
-    def free_bound(self,
-                   wavelength: u.angstrom,
-                   use_verner=True) -> u.erg * u.cm**3 / u.s / u.angstrom:
-        """
-        Free-bound continuum emission of the recombined ion.
-
-        Parameters
-        ----------
-        wavelength : `~astropy.units.Quantity`
-        use_verner : `bool`, optional
-            If True, evaluate ground-state cross-sections using method of Verner and Yakovlev.
-
-        Notes
-        -----
-        Does not include ionization equilibrium or abundance.
-        """
-        # See also: _verner_cross_section
-        wavelength = np.atleast_1d(wavelength)
-        prefactor = (2/np.sqrt(2*np.pi)/(4*np.pi)/(
-            const.h*(const.c**3) * (const.m_e * const.k_B)**(3/2)))
-        recombining = Ion(f'{self.element_name} {self.ionization_stage + 1}',
-                          self.temperature,
-                          hdf5_dbase_root=self.hdf5_dbase_root,
-                          **self._dset_names)
-        try:
-            omega_0 = recombining._fblvl['multiplicity'][0]
-        except MissingDatasetException:
-            omega_0 = 1.0
-        E_photon = const.h * const.c / wavelength
-        energy_temperature_factor = np.outer(self.temperature**(-3/2), E_photon**5)
-        # Sum over levels of recombined ion
-        sum_factor = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape), 'cm^2')
-        for omega, E, n, L, level in zip(self._fblvl['multiplicity'],
-                                         self._fblvl['E_obs']*const.h*const.c,
-                                         self._fblvl['n'],
-                                         self._fblvl['L'],
-                                         self._fblvl['level']):
-            # Energy required to ionize ion from level i
-            E_ionize = self.ip - E
-            # Check if ionization potential and photon energy sufficient
-            if (E_ionize < 0*u.erg) or (E_photon.max() < E):
-                continue
-            # Only use Verner cross-section for ground state
-            if level == 1 and use_verner:
-                cross_section = self._verner_cross_section(E_photon)
-            else:
-                cross_section = self._karzas_cross_section(E_photon, E_ionize, n, L)
-            E_scaled = np.outer(1/(const.k_B*self.temperature), E_photon - E_ionize)
-            # Scaled energy can blow up at low temperatures; not an issue when cross-section is 0
-            E_scaled[:, np.where(cross_section == 0*cross_section.unit)] = 0.0
-            sum_factor += omega / omega_0 * np.exp(-E_scaled) * cross_section
-
-        return (prefactor * energy_temperature_factor * sum_factor)
-
     @u.quantity_input
     def gaunt_factor_free_free(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
         r"""
@@ -1086,6 +1030,66 @@ Using Datasets:
         gf = map_coordinates(gf_data, indices, order=1, mode='nearest').reshape(lower_u.shape)
 
         return u.Quantity(np.where(gf < 0., 0., gf))
+
+    @needs_dataset('fblvl', 'ip')
+    @u.quantity_input
+    def free_bound(self,
+                   wavelength: u.angstrom,
+                   use_verner=True) -> u.erg * u.cm**3 / u.s / u.angstrom:
+        """
+        Free-bound continuum emission of the recombined ion.
+
+        Parameters
+        ----------
+        wavelength : `~astropy.units.Quantity`
+        use_verner : `bool`, optional
+            If True, evaluate ground-state cross-sections using method of
+            :cite:t:`verner_analytic_1995`.
+
+        Notes
+        -----
+        Does not include ionization equilibrium or abundance.
+        """
+        # See also: _verner_cross_section
+        wavelength = np.atleast_1d(wavelength)
+        prefactor = (2/np.sqrt(2*np.pi)/(4*np.pi)/(
+            const.h*(const.c**3) * (const.m_e * const.k_B)**(3/2)))
+        recombining = Ion(f'{self.element_name} {self.ionization_stage + 1}',
+                          self.temperature,
+                          hdf5_dbase_root=self.hdf5_dbase_root,
+                          **self._dset_names)
+        try:
+            # NOTE: This checks whether the fblvl data is available for the
+            # recombining ion
+            needs_dataset('fblvl')(lambda _: None)(recombining)
+            omega_0 = recombining._fblvl['multiplicity'][0]
+        except MissingDatasetException:
+            omega_0 = 1.0
+        E_photon = const.h * const.c / wavelength
+        energy_temperature_factor = np.outer(self.temperature**(-3/2), E_photon**5)
+        # Sum over levels of recombined ion
+        sum_factor = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape), 'cm^2')
+        for omega, E, n, L, level in zip(self._fblvl['multiplicity'],
+                                         self._fblvl['E_obs']*const.h*const.c,
+                                         self._fblvl['n'],
+                                         self._fblvl['L'],
+                                         self._fblvl['level']):
+            # Energy required to ionize ion from level i
+            E_ionize = self.ip - E
+            # Check if ionization potential and photon energy sufficient
+            if (E_ionize < 0*u.erg) or (E_photon.max() < E):
+                continue
+            # Only use Verner cross-section for ground state
+            if level == 1 and use_verner:
+                cross_section = self._verner_cross_section(E_photon)
+            else:
+                cross_section = self._karzas_cross_section(E_photon, E_ionize, n, L)
+            E_scaled = np.outer(1/(const.k_B*self.temperature), E_photon - E_ionize)
+            # Scaled energy can blow up at low temperatures; not an issue when cross-section is 0
+            E_scaled[:, np.where(cross_section == 0*cross_section.unit)] = 0.0
+            sum_factor += omega / omega_0 * np.exp(-E_scaled) * cross_section
+
+        return (prefactor * energy_temperature_factor * sum_factor)
 
     @needs_dataset('verner')
     @u.quantity_input

@@ -91,7 +91,7 @@ class IonCollection:
                 abundance = ion.abundance
                 ioneq = ion.ioneq
             except MissingDatasetException as e:
-                self.log.warning(f'{ion.name} not included in free-free emission. {e}')
+                self.log.warning(f'{ion.ion_name} not included in free-free emission. {e}')
                 continue
             else:
                 free_free += ff * abundance * ioneq[:, np.newaxis]
@@ -107,6 +107,10 @@ class IonCollection:
         Parameters
         ----------
         wavelength : `~astropy.units.Quantity`
+
+        See Also
+        --------
+        fiasco.Ion.free_bound
         """
         free_bound = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape),
                                 'erg cm^3 s^-1 Angstrom^-1')
@@ -116,7 +120,7 @@ class IonCollection:
                 abundance = ion.abundance
                 ioneq = ion.ioneq
             except MissingDatasetException as e:
-                self.log.warning(f'{ion.name} not included in free-bound emission. {e}')
+                self.log.warning(f'{ion.ion_name} not included in free-bound emission. {e}')
                 continue
             else:
                 free_bound += fb * abundance * ioneq[:, np.newaxis]
