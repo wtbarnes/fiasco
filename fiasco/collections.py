@@ -70,10 +70,22 @@ class IonCollection:
 
     @u.quantity_input
     def free_free(self, wavelength: u.angstrom):
-        """
+        r"""
         Compute combined free-free continuum emission (bremsstrahlung).
 
         .. note:: Both abundance and ionization equilibrium are included here
+
+        The combined free-free continuum is given by,
+
+        .. math::
+
+            P_{ff}(\lambda,T) = \sum_{X,k}\mathrm{Ab}(X)f(X_{k})C_{ff, X_k}(\lambda,T)
+
+        where :math:`\mathrm{Ab}(X)` is the abundance of element :math:`X`,
+        :math:`f(X_{k})` is the ionization equilibrium of the ion,
+        and :math:`C_{ff, X_k}(\lambda,T)` is the free-free emission of the ion
+        as computed by `fiasco.Ion.free_free`.
+        The sum is taken over all ions in the collection.
 
         Parameters
         ----------
@@ -91,7 +103,7 @@ class IonCollection:
                 abundance = ion.abundance
                 ioneq = ion.ioneq
             except MissingDatasetException as e:
-                self.log.warning(f'{ion.name} not included in free-free emission. {e}')
+                self.log.warning(f'{ion.ion_name} not included in free-free emission. {e}')
                 continue
             else:
                 free_free += ff * abundance * ioneq[:, np.newaxis]
@@ -99,14 +111,31 @@ class IonCollection:
 
     @u.quantity_input
     def free_bound(self, wavelength: u.angstrom, **kwargs):
-        """
+        r"""
         Compute combined free-bound continuum emission.
 
-        .. note:: Both abundance and ionization equilibrium are included here
+        .. note:: Both abundance and ionization equilibrium are included here.
+
+        The combined free-bound continuum is given by,
+
+        .. math::
+
+            P_{fb}(\lambda,T) = \sum_{X,k}\mathrm{Ab}(X)f(X_{k+1})C_{fb, X_k}(\lambda,T)
+
+        where :math:`\mathrm{Ab}(X)` is the abundance of element :math:`X`,
+        :math:`f(X_{k+1})` is the ionization equilibrium of the recombining ion
+        :math:`X_{k+1}`,
+        and :math:`C_{fb, X_k}(\lambda,T)` is the free-bound emission of the recombined
+        ion :math:`X_k` as computed by `fiasco.Ion.free_bound`.
+        The sum is taken over all ions in the collection.
 
         Parameters
         ----------
         wavelength : `~astropy.units.Quantity`
+
+        See Also
+        --------
+        fiasco.Ion.free_bound
         """
         free_bound = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape),
                                 'erg cm^3 s^-1 Angstrom^-1')
@@ -114,9 +143,12 @@ class IonCollection:
             try:
                 fb = ion.free_bound(wavelength, **kwargs)
                 abundance = ion.abundance
-                ioneq = ion.ioneq
+                # NOTE: the free-bound emissivity gets multiplied by the population
+                # fraction of the recombining ion, that is, the ion with one higher
+                # charge state.
+                ioneq = ion.next_ion().ioneq
             except MissingDatasetException as e:
-                self.log.warning(f'{ion.name} not included in free-bound emission. {e}')
+                self.log.warning(f'{ion.ion_name} not included in free-bound emission. {e}')
                 continue
             else:
                 free_bound += fb * abundance * ioneq[:, np.newaxis]

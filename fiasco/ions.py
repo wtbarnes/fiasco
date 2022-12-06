@@ -138,6 +138,17 @@ Using Datasets:
         }
         return kwargs
 
+    def next_ion(self):
+        """
+        Return an `~fiasco.Ion` instance with the next highest ionization stage.
+
+        For example, if the current instance is Fe XII (+11), this method returns
+        an instance of Fe XIII. All other input arguments remain the same.
+        """
+        return type(self)((self.atomic_number, self.ionization_stage+1),
+                           self.temperature,
+                           **self._instance_kwargs)
+
     @property
     @needs_dataset('elvlc', 'wgfa')
     def transitions(self):
@@ -927,7 +938,7 @@ Using Datasets:
 
         .. math::
 
-            P_{ff}(\lambda,T_e) = \frac{c}{3m_e}\left(\frac{\alpha h}{\pi}\right)^3\sqrt{\frac{2\pi}{3m_ek_B}}\frac{z^2}{\lambda^2T_e^{1/2}}\exp{\left(-\frac{hc}{\lambda k_BT_e}\right)}\langle g_{ff}\rangle,
+            C_{ff}(\lambda,T_e) = \frac{c}{3m_e}\left(\frac{\alpha h}{\pi}\right)^3\sqrt{\frac{2\pi}{3m_ek_B}}\frac{z^2}{\lambda^2T_e^{1/2}}\exp{\left(-\frac{hc}{\lambda k_BT_e}\right)}\langle g_{ff}\rangle,
 
         where :math:`\alpha` is the fine-structure constant, :math:`z` is the charge of the ion, and
         :math:`\langle g_{ff}\rangle` is the velocity-averaged free-free Gaunt factor.
@@ -953,62 +964,6 @@ Using Datasets:
 
         return (prefactor * self.charge_state**2 * exp_factor * gf
                 / np.sqrt(self.temperature)[:, np.newaxis])
-
-    @needs_dataset('fblvl', 'ip')
-    @u.quantity_input
-    def free_bound(self,
-                   wavelength: u.angstrom,
-                   use_verner=True) -> u.erg * u.cm**3 / u.s / u.angstrom:
-        """
-        Free-bound continuum emission of the recombined ion.
-
-        Parameters
-        ----------
-        wavelength : `~astropy.units.Quantity`
-        use_verner : `bool`, optional
-            If True, evaluate ground-state cross-sections using method of Verner and Yakovlev.
-
-        Notes
-        -----
-        Does not include ionization equilibrium or abundance.
-        """
-        # See also: _verner_cross_section
-        wavelength = np.atleast_1d(wavelength)
-        prefactor = (2/np.sqrt(2*np.pi)/(4*np.pi)/(
-            const.h*(const.c**3) * (const.m_e * const.k_B)**(3/2)))
-        recombining = Ion(f'{self.element_name} {self.ionization_stage + 1}',
-                          self.temperature,
-                          hdf5_dbase_root=self.hdf5_dbase_root,
-                          **self._dset_names)
-        try:
-            omega_0 = recombining._fblvl['multiplicity'][0]
-        except MissingDatasetException:
-            omega_0 = 1.0
-        E_photon = const.h * const.c / wavelength
-        energy_temperature_factor = np.outer(self.temperature**(-3/2), E_photon**5)
-        # Sum over levels of recombined ion
-        sum_factor = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape), 'cm^2')
-        for omega, E, n, L, level in zip(self._fblvl['multiplicity'],
-                                         self._fblvl['E_obs']*const.h*const.c,
-                                         self._fblvl['n'],
-                                         self._fblvl['L'],
-                                         self._fblvl['level']):
-            # Energy required to ionize ion from level i
-            E_ionize = self.ip - E
-            # Check if ionization potential and photon energy sufficient
-            if (E_ionize < 0*u.erg) or (E_photon.max() < E):
-                continue
-            # Only use Verner cross-section for ground state
-            if level == 1 and use_verner:
-                cross_section = self._verner_cross_section(E_photon)
-            else:
-                cross_section = self._karzas_cross_section(E_photon, E_ionize, n, L)
-            E_scaled = np.outer(1/(const.k_B*self.temperature), E_photon - E_ionize)
-            # Scaled energy can blow up at low temperatures; not an issue when cross-section is 0
-            E_scaled[:, np.where(cross_section == 0*cross_section.unit)] = 0.0
-            sum_factor += omega / omega_0 * np.exp(-E_scaled) * cross_section
-
-        return (prefactor * energy_temperature_factor * sum_factor)
 
     @u.quantity_input
     def gaunt_factor_free_free(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
@@ -1087,11 +1042,96 @@ Using Datasets:
 
         return u.Quantity(np.where(gf < 0., 0., gf))
 
+    @needs_dataset('fblvl', 'ip')
+    @u.quantity_input
+    def free_bound(self,
+                   wavelength: u.angstrom,
+                   use_verner=True) -> u.Unit('erg cm3 s-1 Angstrom-1'):
+        r"""
+        Free-bound continuum emission of the recombined ion.
+
+        .. note:: Does not include ionization equilibrium or abundance.
+                  Unlike the equivalent IDL routine, the output here is not
+                  expressed per steradian and as such the factor of
+                  :math:`1/4\pi` is not included.
+
+        When an electron is captured by an ion of charge :math:`z+1`
+        (the recombining ion), it creates a an ion of charge :math:`z`
+        (the recombined ion) and produces a continuum of emission
+        called the free-bound continuum. The emission of the
+        recombined ion is given by,
+
+        .. math::
+
+            C_{fb}(\lambda, T) = \frac{2}{hc^3(k_B m_e)^{3/2}\sqrt{2\pi}}\frac{E^5}{T^{3/2}}\sum_i\frac{\omega_i}{\omega_0}\sigma_i^{\mathrm{bf}}\exp{\left(-\frac{E-I_i}{k_BT}\right)}
+
+        where :math:`E` is the energy of the outgoing photon,
+        :math:`\omega_i,\omega_0` are the statastical weights of the
+        :math:`i`-th level of the recombined ion and the ground level of the recombining ion, respectively,
+        :math:`\sigma_i^{\mathrm{bf}}` is the free-bound cross-section,
+        and :math:`I_i` is the energy required to ionize the recombined ion from level :math:`i`.
+        A detailed derivation of this formula can be found in
+        `CHIANTI Technical Report No. 12 <http://www.chiantidatabase.org/tech_reports/12_freebound/chianti_report_12.pdf>`_.
+
+        For ground state transitions, the photoionization cross-section :math:`\sigma_i^{\mathrm{bf}}` is evaluated
+        using Eq. 1 of :cite:t:`verner_analytic_1995` if ``use_verner`` is set to True.
+        For all other transitions, and in all cases if ``use_verner`` is set to False, :math:`\sigma_i^{\mathrm{bf}}`
+        is evaluated using the method of :cite:t:`karzas_electron_1961`.
+
+        Parameters
+        ----------
+        wavelength : `~astropy.units.Quantity`
+        use_verner : `bool`, optional
+            If True, evaluate ground-state cross-sections using method of
+            :cite:t:`verner_analytic_1995`.
+        """
+        wavelength = np.atleast_1d(wavelength)
+        prefactor = (2/np.sqrt(2*np.pi)/(const.h*(const.c**3) * (const.m_e * const.k_B)**(3/2)))
+        recombining = self.next_ion()
+        try:
+            # NOTE: This checks whether the fblvl data is available for the
+            # recombining ion
+            needs_dataset('fblvl')(lambda _: None)(recombining)
+            omega_0 = recombining._fblvl['multiplicity'][0]
+        except MissingDatasetException:
+            omega_0 = 1.0
+        E_photon = const.h * const.c / wavelength
+        energy_temperature_factor = np.outer(self.temperature**(-3/2), E_photon**5)
+        # Fill in observed energies with theoretical energies
+        E_obs = self._fblvl['E_obs']*const.h*const.c
+        E_th = self._fblvl['E_th']*const.h*const.c
+        level_fb = self._fblvl['level']
+        use_theoretical = np.logical_and(E_obs==0*u.erg, level_fb!=1)
+        E_fb = np.where(use_theoretical, E_th, E_obs)
+        # Sum over levels of recombined ion
+        sum_factor = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape), 'cm^2')
+        for omega, E, n, L, level in zip(self._fblvl['multiplicity'],
+                                         E_fb,
+                                         self._fblvl['n'],
+                                         self._fblvl['L'],
+                                         level_fb):
+            # Energy required to ionize ion from level i
+            E_ionize = self.ip - E
+            # Check if ionization potential and photon energy sufficient
+            if (E_ionize < 0*u.erg) or (E_photon.max() < E):
+                continue
+            # Only use Verner cross-section for ground state
+            if level == 1 and use_verner:
+                cross_section = self._verner_cross_section(E_photon)
+            else:
+                cross_section = self._karzas_cross_section(E_photon, E_ionize, n, L)
+            E_scaled = np.outer(1/(const.k_B*self.temperature), E_photon - E_ionize)
+            # Scaled energy can blow up at low temperatures; not an issue when cross-section is 0
+            E_scaled[:, np.where(cross_section == 0*cross_section.unit)] = 0.0
+            sum_factor += omega / omega_0 * np.exp(-E_scaled) * cross_section
+
+        return (prefactor * energy_temperature_factor * sum_factor)
+
     @needs_dataset('verner')
     @u.quantity_input
     def _verner_cross_section(self, energy: u.erg) -> u.cm**2:
         """
-        Ground state photoionization cross-section using the method of [1]_.
+        Ground state photoionization cross-section using the method of :cite:t:`verner_analytic_1995`.
 
         Parameters
         ----------
@@ -1115,23 +1155,18 @@ Using Datasets:
     @u.quantity_input
     def _karzas_cross_section(self, photon_energy: u.erg, ionization_energy: u.erg, n, l) -> u.cm**2:
         """
-        Photoionization cross-section using the method of [1]_.
+        Photoionization cross-section using the method of :cite:t:`karzas_electron_1961`.
 
         Parameters
         ----------
         photon_energy : `~astropy.units.Quantity`
             Energy of emitted photon
         ionization_energy : `~astropy.units.Quantity`
-            Ionization potential of recombined ion for level `n`
+            Ionization potential of recombined ion for level ``n``
         n : `int`
             Principal quantum number
         l : `int`
             Orbital angular momentum number
-
-        References
-        ----------
-        .. [1] Karzas and Latter, 1961, ApJSS, `6, 167
-            <http://adsabs.harvard.edu/abs/1961ApJS....6..167K>`_
         """
         prefactor = (2**4)*const.h*(const.e.gauss**2)/(3*np.sqrt(3)*const.m_e*const.c)
         index_nl = np.where(np.logical_and(self._klgfb['n'] == n, self._klgfb['l'] == l))[0]
