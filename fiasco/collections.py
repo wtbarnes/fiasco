@@ -118,7 +118,10 @@ class IonCollection:
             try:
                 fb = ion.free_bound(wavelength, **kwargs)
                 abundance = ion.abundance
-                ioneq = ion.ioneq
+                # NOTE: the free-bound emissivity gets multiplied by the population
+                # fraction of the recombining ion, that is, the ion with one higher
+                # charge state.
+                ioneq = ion.next_ion().ioneq
             except MissingDatasetException as e:
                 self.log.warning(f'{ion.ion_name} not included in free-bound emission. {e}')
                 continue
