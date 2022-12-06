@@ -938,7 +938,7 @@ Using Datasets:
 
         .. math::
 
-            P_{ff}(\lambda,T_e) = \frac{c}{3m_e}\left(\frac{\alpha h}{\pi}\right)^3\sqrt{\frac{2\pi}{3m_ek_B}}\frac{z^2}{\lambda^2T_e^{1/2}}\exp{\left(-\frac{hc}{\lambda k_BT_e}\right)}\langle g_{ff}\rangle,
+            C_{ff}(\lambda,T_e) = \frac{c}{3m_e}\left(\frac{\alpha h}{\pi}\right)^3\sqrt{\frac{2\pi}{3m_ek_B}}\frac{z^2}{\lambda^2T_e^{1/2}}\exp{\left(-\frac{hc}{\lambda k_BT_e}\right)}\langle g_{ff}\rangle,
 
         where :math:`\alpha` is the fine-structure constant, :math:`z` is the charge of the ion, and
         :math:`\langle g_{ff}\rangle` is the velocity-averaged free-free Gaunt factor.
@@ -1046,9 +1046,37 @@ Using Datasets:
     @u.quantity_input
     def free_bound(self,
                    wavelength: u.angstrom,
-                   use_verner=True) -> u.erg * u.cm**3 / u.s / u.angstrom:
-        """
+                   use_verner=True) -> u.Unit('erg cm3 s-1 Angstrom-1'):
+        r"""
         Free-bound continuum emission of the recombined ion.
+
+        .. note:: Does not include ionization equilibrium or abundance.
+                  Unlike the equivalent IDL routine, the output here is not
+                  expressed per steradian and as such the factor of
+                  :math:`1/4\pi` is not included.
+
+        When an electron is captured by an ion of charge :math:`z+1`
+        (the recombining ion), it creates a an ion of charge :math:`z`
+        (the recombined ion) and produces a continuum of emission
+        called the free-bound continuum. The emission of the
+        recombined ion is given by,
+
+        .. math::
+
+            C_{fb}(\lambda, T) = \frac{2}{hc^3(k_B m_e)^{3/2}\sqrt{2\pi}}\frac{E^5}{T^{3/2}}\sum_i\frac{\omega_i}{\omega_0}\sigma_i^{\mathrm{bf}}\exp{\left(-\frac{E-I_i}{k_BT}\right)}
+
+        where :math:`E` is the energy of the outgoing photon,
+        :math:`\omega_i,\omega_0` are the statastical weights of the
+        :math:`i`-th level of the recombined ion and the ground level of the recombining ion, respectively,
+        :math:`\sigma_i^{\mathrm{bf}}` is the free-bound cross-section,
+        and :math:`I_i` is the energy required to ionize the recombined ion from level :math:`i`.
+        A detailed derivation of this formula can be found in
+        `CHIANTI Technical Report No. 12 <http://www.chiantidatabase.org/tech_reports/12_freebound/chianti_report_12.pdf>`_.
+
+        For ground state transitions, the photoionization cross-section :math:`\sigma_i^{\mathrm{bf}}` is evaluated
+        using Eq. 1 of :cite:t:`verner_analytic_1995` if ``use_verner`` is set to True.
+        For all other transitions, and in all cases if ``use_verner`` is set to False, :math:`\sigma_i^{\mathrm{bf}}`
+        is evaluated using the method of :cite:t:`karzas_electron_1961`.
 
         Parameters
         ----------
@@ -1056,14 +1084,9 @@ Using Datasets:
         use_verner : `bool`, optional
             If True, evaluate ground-state cross-sections using method of
             :cite:t:`verner_analytic_1995`.
-
-        Notes
-        -----
-        Does not include ionization equilibrium or abundance.
         """
         wavelength = np.atleast_1d(wavelength)
-        prefactor = (2/np.sqrt(2*np.pi)/(4*np.pi)/(
-            const.h*(const.c**3) * (const.m_e * const.k_B)**(3/2)))
+        prefactor = (2/np.sqrt(2*np.pi)/(const.h*(const.c**3) * (const.m_e * const.k_B)**(3/2)))
         recombining = self.next_ion()
         try:
             # NOTE: This checks whether the fblvl data is available for the
@@ -1108,7 +1131,7 @@ Using Datasets:
     @u.quantity_input
     def _verner_cross_section(self, energy: u.erg) -> u.cm**2:
         """
-        Ground state photoionization cross-section using the method of [1]_.
+        Ground state photoionization cross-section using the method of :cite:t:`verner_analytic_1995`.
 
         Parameters
         ----------
@@ -1132,23 +1155,18 @@ Using Datasets:
     @u.quantity_input
     def _karzas_cross_section(self, photon_energy: u.erg, ionization_energy: u.erg, n, l) -> u.cm**2:
         """
-        Photoionization cross-section using the method of [1]_.
+        Photoionization cross-section using the method of :cite:t:`karzas_electron_1961`.
 
         Parameters
         ----------
         photon_energy : `~astropy.units.Quantity`
             Energy of emitted photon
         ionization_energy : `~astropy.units.Quantity`
-            Ionization potential of recombined ion for level `n`
+            Ionization potential of recombined ion for level ``n``
         n : `int`
             Principal quantum number
         l : `int`
             Orbital angular momentum number
-
-        References
-        ----------
-        .. [1] Karzas and Latter, 1961, ApJSS, `6, 167
-            <http://adsabs.harvard.edu/abs/1961ApJS....6..167K>`_
         """
         prefactor = (2**4)*const.h*(const.e.gauss**2)/(3*np.sqrt(3)*const.m_e*const.c)
         index_nl = np.where(np.logical_and(self._klgfb['n'] == n, self._klgfb['l'] == l))[0]

@@ -70,10 +70,22 @@ class IonCollection:
 
     @u.quantity_input
     def free_free(self, wavelength: u.angstrom):
-        """
+        r"""
         Compute combined free-free continuum emission (bremsstrahlung).
 
         .. note:: Both abundance and ionization equilibrium are included here
+
+        The combined free-free continuum is given by,
+
+        .. math::
+
+            P_{ff}(\lambda,T) = \sum_{X,k}\mathrm{Ab}(X)f(X_{k})C_{ff, X_k}(\lambda,T)
+
+        where :math:`\mathrm{Ab}(X)` is the abundance of element :math:`X`,
+        :math:`f(X_{k})` is the ionization equilibrium of the ion,
+        and :math:`C_{ff, X_k}(\lambda,T)` is the free-free emission of the ion
+        as computed by `fiasco.Ion.free_free`.
+        The sum is taken over all ions in the collection.
 
         Parameters
         ----------
@@ -99,10 +111,23 @@ class IonCollection:
 
     @u.quantity_input
     def free_bound(self, wavelength: u.angstrom, **kwargs):
-        """
+        r"""
         Compute combined free-bound continuum emission.
 
-        .. note:: Both abundance and ionization equilibrium are included here
+        .. note:: Both abundance and ionization equilibrium are included here.
+
+        The combined free-bound continuum is given by,
+
+        .. math::
+
+            P_{fb}(\lambda,T) = \sum_{X,k}\mathrm{Ab}(X)f(X_{k+1})C_{fb, X_k}(\lambda,T)
+
+        where :math:`\mathrm{Ab}(X)` is the abundance of element :math:`X`,
+        :math:`f(X_{k+1})` is the ionization equilibrium of the recombining ion
+        :math:`X_{k+1}`,
+        and :math:`C_{fb, X_k}(\lambda,T)` is the free-bound emission of the recombined
+        ion :math:`X_k` as computed by `fiasco.Ion.free_bound`.
+        The sum is taken over all ions in the collection.
 
         Parameters
         ----------
