@@ -4,7 +4,7 @@ The CHIANTI Atomic Database
 Analyzing astrophysical observations requires detailed knowledge of the underlying physics responsible for the formation of the
 observed spectra. The CHIANTI atomic database provides a comprehensive set of atomic data for relevant elements, ions, and
 transitions in astrophysical plasmas. CHIANTI includes energy levels, transition wavelengths, as well as collision strength
-and cross-section data for computing ionization and recombination rates. The papers :ref:`list below <additional-resources>`
+and cross-section data for computing ionization and recombination rates. The papers :ref:`listed below <additional-resources>`
 give an extensive description of each version of the database.
 
 Acquiring the Atomic Data
@@ -57,7 +57,7 @@ CHIANTI IDL software.
 The purpose of these tests is to provide a systematic way to assess any deviations from the original IDL software.
 To run these tests,
 
-.. code-block::shell
+.. code-block:: shell
 
    $ pytest --idl-executable=/path/to/idl \
             --idl-codebase-root=/path/to/chianti/idl \

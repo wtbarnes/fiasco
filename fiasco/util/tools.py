@@ -71,8 +71,8 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     energy and the energy of the transition :math:`ij`.
 
     There are 6 different scaling types, depending on the type of transition. This scaling
-    is explained in detail in section 5 of :cite:t:`burgess_analysis_1992`. For types 1 and 4,
-    the scaled temperatures and collision strengths are related to :math:`U` and :math:`\Upsilon` by,
+    is explained in detail in section 5 of :cite:t:`burgess_analysis_1992`.
+    The scaled temperatures and collision strengths are related to :math:`U` and :math:`\Upsilon` by,
 
     * type 1
 
@@ -93,7 +93,7 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
       .. math::
 
             x = \frac{U}{U + C},\quad
-            y = (U + 1)\\Upsilon
+            y = (U + 1)\Upsilon
 
     * type 4
 
