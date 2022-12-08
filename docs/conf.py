@@ -14,7 +14,7 @@ import pathlib
 # -- Project information -----------------------------------------------------
 
 project = 'fiasco'
-copyright = '2020, Will Barnes'
+copyright = '2022, Will Barnes'
 author = 'Will Barnes'
 
 # The full version, including alpha/beta/rc tags
@@ -141,7 +141,7 @@ if ON_RTD or ON_GHA:
         files=[
             'chianti.ip',
             'chianti.ioneq',
-            'sun_photospheric_1998_grevesse.abund',
+            'sun_coronal_1992_feldman_ext.abund',
             'sun_coronal_1992_feldman.abund',
             'c_1.diparams',
             'c_2.diparams',
