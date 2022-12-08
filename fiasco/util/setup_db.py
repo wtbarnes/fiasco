@@ -13,12 +13,17 @@ from astropy.utils.data import download_file
 
 import fiasco.io
 
-from fiasco.util.exceptions import MissingASCIIFileError
+from fiasco.io import DataIndexer
+from fiasco.util.exceptions import MissingASCIIFileError, UnsupportedVersionError
 from fiasco.util.util import get_masterlist, query_yes_no
 
 FIASCO_HOME = pathlib.Path.home() / '.fiasco'
 CHIANTI_URL = 'http://download.chiantidatabase.org/CHIANTI_v{version}_database.tar.gz'
-LATEST_VERSION = '8.0.7'
+# List in order (oldest to newest) the supported versions of the database
+SUPPORTED_VERSIONS = [
+    '8.0.7',
+]
+LATEST_VERSION = SUPPORTED_VERSIONS[-1]
 
 __all__ = ['check_database', 'download_dbase', 'build_hdf5_dbase']
 
@@ -73,6 +78,18 @@ def check_database(hdf5_dbase_root, **kwargs):
         download_dbase(ascii_dbase_url, ascii_dbase_root)
     # If we made it this far, build the HDF5 database
     build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root)
+    # Ensure that an unsupported version is not being passed to fiasco
+    # NOTE: this check is only meant to be bypassed when testing new
+    # versions. Hence, this kwarg is not documented
+    if kwargs.get('check_chianti_version', True):
+        check_database_version(hdf5_dbase_root)
+
+
+def check_database_version(hdf5_dbase_root):
+    dl = DataIndexer.create_indexer(hdf5_dbase_root, '/')
+    if dl.version not in SUPPORTED_VERSIONS:
+        raise UnsupportedVersionError(
+            f'CHIANTI {dl.version} is not in the list of supported versions {SUPPORTED_VERSIONS}.')
 
 
 def download_dbase(ascii_dbase_url, ascii_dbase_root):

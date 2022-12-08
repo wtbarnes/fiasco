@@ -27,3 +27,10 @@ class MissingDatasetException(Exception):
     """
     An error to raise when a dataset file is missing.
     """
+
+
+class UnsupportedVersionError(Exception):
+    """
+    An error to raise when an unsupported version of the CHIANTI database
+    is passed to fiasco
+    """

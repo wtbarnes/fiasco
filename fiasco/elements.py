@@ -17,7 +17,7 @@ class Element(fiasco.IonCollection):
     Collection of all ions for a particular element.
 
     The `Element` object provides a way to logically group together ions of the same
-    element. This provides an easy way to compute element-level derived quantities such
+    element. This makes it easy to compute element-level derived quantities such
     as the ionization fraction as a function of temperature.
 
     Parameters
@@ -81,13 +81,17 @@ class Element(fiasco.IonCollection):
         Calculate the ionization fraction, in equilibrium, for all ions of the element.
 
         Calculate the population fractions for every ion of this element as a function of
-        temperature, assuming ionization equilibrium.
+        temperature, assuming ionization equilibrium. This returns a matrix with dimensions
+        ``(n,Z+1)``, where ``n`` corresponds to the temperature dimension and ``Z+1``
+        corresponds to the number of ionization stages of the element.
 
-        Parameters
-        ----------
-        rate_matrix : `~astropy.units.Quantity`, optional
-            :math:`Z+1` by :math:`Z+1` matrix of ionization and recombination rates. If not
-            given, this will be computed automatically.
+        Examples
+        --------
+        >>> temperature = 10**np.arange(3.9, 6.5, 0.01) * u.K
+        >>> carbon = Element('C', temperature)
+        >>> carbon_ioneq = carbon.equilibrium_ionization
+        >>> carbon_ioneq[:, 4].max()  # max populuation fraction of C V as a function of temperature
+        <Quantity 0.99776769>
 
         See Also
         --------
