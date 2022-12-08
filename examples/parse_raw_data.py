@@ -5,7 +5,6 @@ Parsing Raw CHIANTI Data
 This example shows how to directly parse the raw CHIANTI database
 files.
 """
-
 from fiasco.io import Parser
 
 ##################################################################
