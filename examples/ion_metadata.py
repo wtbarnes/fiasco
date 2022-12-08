@@ -5,7 +5,6 @@ Creating an `Ion`
 This example shows how to create a `~fiasco.Ion` object and
 access various pieces of metadata.
 """
-
 import astropy.units as u
 import numpy as np
 

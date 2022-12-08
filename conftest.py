@@ -20,7 +20,7 @@ else:
 # Minimal set of CHIANTI files needed to run the tests
 # NOTE: need some way for this to be flexible depending on the supplied database version
 TEST_FILES = {
-    'sun_photospheric_1998_grevesse.abund': '9b175ee91f80fbe01967321a0fb051a8',
+    'sun_coronal_1992_feldman_ext.abund':   '8b18d62e03528e3b3800806a1fc9391e',
     'sun_coronal_1992_feldman.abund':       '75fde4f73bae8fdce136f65b736bc0c8',
     'chianti.ip':                           'a5a5071535f14590210957f8783f2843',
     'chianti.ioneq':                        '81d8d24bb09cb2da63befd30e6c8767c',

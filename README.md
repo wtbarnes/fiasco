@@ -1,4 +1,5 @@
 # fiasco
+
 [![Powered by SunPy Badge]( http://img.shields.io/badge/powered%20by-SunPy-orange.svg?style=flat)](http://www.sunpy.org)
 ![fiasco CI status](https://github.com/wtbarnes/fiasco/workflows/Run%20tests/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/fiasco/badge/?version=latest)](http://fiasco.readthedocs.io/en/latest/?badge=latest)
@@ -9,18 +10,17 @@ A Python interface to the [CHIANTI atomic database](http://www.chiantidatabase.o
 overview of the package, have a look at my talk ([slides](https://zenodo.org/record/1249002), [video](https://youtu.be/7_Nr700kBME)) from
 the [2018 Python in Astronomy](http://openastronomy.org/pyastro/2018/) conference.
 
-**DISCLAIMER: fiasco is still in the very early stages of development. As such, the API is changing very frequently and drastically.**
-
 ## Install
+
 ```shell
-$ git clone https://github.com/wtbarnes/fiasco.git
-$ cd fiasco
-$ pip install -e .
+$ pip install fiasco
 ```
 
 The [CHIANTI atomic database](http://www.chiantidatabase.org/chianti_download.html) is also required.
+See [the docs](https://fiasco.readthedocs.io/en/latest/chianti.html#acquiring-the-atomic-data) for more details.
 
 ## Example
+
 ```python
 >>> import astropy.units as u
 >>> import fiasco
@@ -43,10 +43,5 @@ The [CHIANTI atomic database](http://www.chiantidatabase.org/chianti_download.ht
 ```
 
 ## Why *fiasco*?
+
 A *fiasco*, or flask, is [the typical style of bottle](https://en.wikipedia.org/wiki/Fiasco_(bottle)) used to serve the *Chianti Classico* wine. It is typically larger and rounder at the bottom and is covered by a straw basket. In the same way, the `fiasco` package serves up the CHIANTI atomic database.
-
-## Develop
-See the [wiki](https://github.com/wtbarnes/fiasco/wiki) for notes on the development of this package.
-
-## License
-This project is Copyright (c) Will Barnes and licensed under the terms of the BSD 3-Clause license. See the licenses folder for more information.

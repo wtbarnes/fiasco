@@ -12,9 +12,9 @@ import numpy as np
 
 from astropy.visualization import quantity_support
 
-quantity_support()
-
 from fiasco import Element
+
+quantity_support()
 
 ################################################
 # First, create the `~fiasco.Element` object for carbon.

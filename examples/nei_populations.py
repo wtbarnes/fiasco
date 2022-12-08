@@ -9,15 +9,16 @@ This is often referred to as *non-equilibrium ionization*.
 """
 import astropy.units as u
 import matplotlib.pyplot as plt
-# sphinx_gallery_thumbnail_number = 3
 import numpy as np
 
 from astropy.visualization import quantity_support
 from scipy.interpolate import interp1d
 
-quantity_support()
-
 from fiasco import Element
+
+# sphinx_gallery_thumbnail_number = 3
+
+quantity_support()
 
 ###############################################################
 # The time evolution of an ion fraction :math:`f_k` for some

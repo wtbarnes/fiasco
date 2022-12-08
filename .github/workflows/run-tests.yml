@@ -70,7 +70,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: python -m pip install --upgrade tox codecov
+      run: python -m pip install --upgrade "tox<4" tox-pypi-filter codecov
     - name: Run tox
       run: python -m tox -e  ${{ matrix.toxenv }} ${{ matrix.cache_cmd }}
     - name: Report coverage

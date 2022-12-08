@@ -5,7 +5,7 @@ import pathlib
 
 from itertools import chain
 from setuptools import setup
-from setuptools.config import read_configuration
+from setuptools.config.setupcfg import read_configuration
 
 ################################################################################
 # Programmatically generate some extras combos.

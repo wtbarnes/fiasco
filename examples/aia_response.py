@@ -10,16 +10,17 @@ angstrom channel.
 import astropy.constants as const
 import astropy.units as u
 import matplotlib.pyplot as plt
-# sphinx_gallery_thumbnail_number = 2
 import numpy as np
 
 from aiapy.response import Channel
 from astropy.visualization import quantity_support
 from scipy.interpolate import interp1d
 
-quantity_support()
-
 import fiasco
+
+# sphinx_gallery_thumbnail_number = 2
+
+quantity_support()
 
 #############################################################
 # First, create the `~aiapy.response.Channel` object for the

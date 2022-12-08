@@ -127,7 +127,7 @@ def test_formation_temeprature(ion):
 def test_abundance(ion):
     assert ion.abundance.dtype == np.dtype('float64')
     # This value has not been tested for correctness
-    np.testing.assert_allclose(ion.abundance, 3.1622776601683795e-05)
+    np.testing.assert_allclose(ion.abundance, 0.0001258925411794166)
 
 
 def test_proton_collision(fe10):
@@ -163,14 +163,14 @@ def test_contribution_function(ion):
     cont_func = ion.contribution_function(1e7 * u.cm**-3)
     assert cont_func.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape
     # This value has not been tested for correctness
-    assert u.allclose(cont_func[0, 0, 0], 5.24152109e-31 * u.cm**3 * u.erg / u.s)
+    assert u.allclose(cont_func[0, 0, 0], 2.08668713e-30 * u.cm**3 * u.erg / u.s)
 
 
 def test_emissivity(ion):
     emm = ion.emissivity(1e7 * u.cm**-3)
     assert emm.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape
     # This value has not been tested for correctness
-    assert u.allclose(emm[0, 0, 0], 5.24152109e-17 * u.erg / u.cm**3 / u.s)
+    assert u.allclose(emm[0, 0, 0], 2.08668713e-16 * u.erg / u.cm**3 / u.s)
 
 
 @pytest.mark.parametrize('em', [

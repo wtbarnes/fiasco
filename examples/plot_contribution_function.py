@@ -5,16 +5,15 @@ Calculating a contribution function
 This example shows how to calculate the contribution function of a particular
 transition of a particular ion, at given temperatures and densities.
 """
-
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
 
 from astropy.visualization import quantity_support
 
-quantity_support()
-
 from fiasco import Ion
+
+quantity_support()
 
 ###############################################################################
 # Specify the plasma properties; note that an `Ion` has to be created with a

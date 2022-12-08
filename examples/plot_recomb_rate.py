@@ -6,16 +6,15 @@ This example shows how to compute the recombination rate as a function of
 temperature for Fe 16, including the radiative and dielectronic
 components.
 """
-
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
 
 from astropy.visualization import quantity_support
 
-quantity_support()
-
 from fiasco import Ion
+
+quantity_support()
 
 #################################################
 # First, instantiate the Fe XVI ion object. This can be done in a number of
