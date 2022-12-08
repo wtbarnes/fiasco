@@ -65,9 +65,9 @@ To run these tests,
             --include-all-files \
             fiasco/tests/idl/
 
-where ``/path/to/idl/`` is the path to the directory containing ``bin/idl`` (where ``idl`` is the IDL executable),
-``/path/to/chianti/idl`` is the path to the directory containing all of the CHIANTI IDL routines,
-and ``/path/to/chianti/dbase`` is the path to the top directory of the CHIANTI atomic database (what you would usually
+where :file:`/path/to/idl/` is the path to the directory containing :file:`bin/idl` (where ``idl`` is the IDL executable),
+:file:`/path/to/chianti/idl` is the path to the directory containing all of the CHIANTI IDL routines,
+and :file:`/path/to/chianti/dbase` is the path to the top directory of the CHIANTI atomic database (what you would usually
 set as ``!XUVTOP`` in CHIANTI IDL).
 Note that the IDL and database files should be from the same version.
 This command will run the equivalent IDL commands inside of an isolated IDL environment using only those CHIANTI files.
