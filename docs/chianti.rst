@@ -1,10 +1,15 @@
 The CHIANTI Atomic Database
 ===========================
 
-Some high level description of CHIANTI goes here.
+Analyzing astrophysical observations requires detailed knowledge of the underlying physics responsible for the formation of the
+observed spectra. The CHIANTI atomic database provides a comprehensive set of atomic data for relevant elements, ions, and
+transitions in astrophysical plasmas. CHIANTI includes energy levels, transition wavelengths, as well as collision strength
+and cross-section data for computing ionization and recombination rates. The papers :ref:`list below <additional-resources>`
+give an extensive description of each version of the database.
 
 Acquiring the Atomic Data
 -------------------------
+
 The CHIANTI data is distributed by the CHIANTI team as a collection of ASCII text files in a series of subdirectories. Rather than interact with these raw text files directly, fiasco first builds the entire CHIANTI database into a single `HDF5`_ file to allow for easier and faster access to the data.
 
 There are two ways of downloading and setting up the database to be used by fiasco,
@@ -43,6 +48,37 @@ should show the paths set in the configuration file.
 .. _conda forge: https://conda-forge.org/
 .. _SSW: http://www.lmsal.com/solarsoft/
 .. _HDF5: https://en.wikipedia.org/wiki/Hierarchical_Data_Format
+
+Testing Against IDL Routines
+----------------------------
+
+The `fiasco` test suite includes a set of tests that automatically compare against the equivalent routines in the
+CHIANTI IDL software.
+The purpose of these tests is to provide a systematic way to assess any deviations from the original IDL software.
+To run these tests,
+
+.. code-block::shell
+
+   $ pytest --idl-executable=/path/to/idl \
+            --idl-codebase-root=/path/to/chianti/idl \
+            --ascii-dbase-root=/path/to/chianti/dbase \
+            --include-all-files \
+            fiasco/tests/idl/
+
+where ``/path/to/idl/`` is the path to the directory containing ``bin/idl`` (where ``idl`` is the IDL executable),
+``/path/to/chianti/idl`` is the path to the directory containing all of the CHIANTI IDL routines,
+and ``/path/to/chianti/dbase`` is the path to the top directory of the CHIANTI atomic database (what you would usually
+set as ``!XUVTOP`` in CHIANTI IDL).
+Note that the IDL and database files should be from the same version.
+This command will run the equivalent IDL commands inside of an isolated IDL environment using only those CHIANTI files.
+Installing SSW is not required.
+Note also that the `hissw <https://wtbarnes.github.io/hissw/>`_ package is required to run the IDL comparison tests.
+
+It is not currently possible to run these tests in a continuous integration environment because of the licensing
+restrictions imposed by IDL. However, this test suite will be run periodically, particularly as new versions of
+CHIANTI are supported, to ensure that any differences between fiasco and the IDL software are well understood.
+
+.. _additional-resources:
 
 Additional Resources
 --------------------
