@@ -26,7 +26,7 @@ __all__ = ['Ion']
 
 class Ion(IonBase, ContinuumBase):
     """
-    Ion class
+    Class for representing a CHIANTI ion.
 
     The ion object is the fundamental unit of `fiasco`. This object contains
     all of the properties and methods needed to access important information about each ion
@@ -34,20 +34,18 @@ class Ion(IonBase, ContinuumBase):
 
     Parameters
     ----------
-    ion_name : `str`
+    ion_name : `str` or `tuple`
+        Name of the ion. This can be either a string denoting the name or a tuple containing the
+        atomic number and ionization stage. See `~fiasco.util.parse_ion` for a list of all possible
+        input formats.
     temperature : `~astropy.units.Quantity`
-
-    Other Parameters
-    ----------------
+        Temperature array over which to evaluate temperature dependent quantities.
     ioneq_filename : `str`, optional
         Ionization equilibrium dataset
     abundance_filename : `str`, optional
         Abundance dataset
     ip_filename : `str`, optional
         Ionization potential dataset
-
-    Examples
-    --------
     """
 
     @u.quantity_input
@@ -59,7 +57,7 @@ class Ion(IonBase, ContinuumBase):
         self._dset_names = {}
         self._dset_names['ioneq_filename'] = kwargs.get('ioneq_filename', 'chianti')
         self._dset_names['abundance_filename'] = kwargs.get('abundance_filename',
-                                                            'sun_photospheric_1998_grevesse')
+                                                            'sun_coronal_1992_feldman_ext')
         self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
 
     def _new_instance(self, temperature=None, **kwargs):
@@ -143,7 +141,7 @@ Using Datasets:
         Return an `~fiasco.Ion` instance with the next highest ionization stage.
 
         For example, if the current instance is Fe XII (+11), this method returns
-        an instance of Fe XIII. All other input arguments remain the same.
+        an instance of Fe XIII (+12). All other input arguments remain the same.
         """
         return type(self)((self.atomic_number, self.ionization_stage+1),
                            self.temperature,
