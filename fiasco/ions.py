@@ -458,12 +458,17 @@ Using Datasets:
                 c_matrix[:, upper_level_p-1, lower_level_p-1] += d_p * ex_rate_p
 
             # Invert matrix
-            os.environ['OMP_NUM_THREADS'] = "1"
-            with mp.Pool() as p:
-                val_vecs = p.map(np.linalg.eig, c_matrix.value)
+            if c_matrix.shape[0] > 12:
+                # Overheads of multiprocessing mean this is only worth
+                # parallelising for many matrices to solve
+                os.environ['OMP_NUM_THREADS'] = "1"
+                with mp.Pool() as p:
+                    val_vecs = p.map(np.linalg.eig, c_matrix.value)
 
-            val = np.stack([v[0] for v in val_vecs])
-            vec = np.stack([v[1] for v in val_vecs])
+                val = np.stack([v[0] for v in val_vecs])
+                vec = np.stack([v[1] for v in val_vecs])
+            else:
+                val, vec = np.linalg.eig(c_matrix.value)
 
             # Eigenvectors with eigenvalues closest to zero are the solutions to the homogeneous
             # system of linear equations
