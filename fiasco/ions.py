@@ -3,7 +3,9 @@ Ion object. Holds all methods and properties of a CHIANTI ion.
 """
 import astropy.constants as const
 import astropy.units as u
+import multiprocessing as mp
 import numpy as np
+import os
 
 from functools import cached_property
 from scipy.interpolate import interp1d, splev, splrep
@@ -454,8 +456,15 @@ Using Datasets:
                 c_matrix[:, level-1, level-1] -= d_p*(ex_diagonal_p + dex_diagonal_p)
                 c_matrix[:, lower_level_p-1, upper_level_p-1] += d_p * dex_rate_p
                 c_matrix[:, upper_level_p-1, lower_level_p-1] += d_p * ex_rate_p
+
             # Invert matrix
-            val, vec = np.linalg.eig(c_matrix.value)
+            os.environ['OMP_NUM_THREADS'] = "1"
+            with mp.Pool() as p:
+                val_vecs = p.map(np.linalg.eig, c_matrix.value)
+
+            val = np.stack([v[0] for v in val_vecs])
+            vec = np.stack([v[1] for v in val_vecs])
+
             # Eigenvectors with eigenvalues closest to zero are the solutions to the homogeneous
             # system of linear equations
             # NOTE: Sometimes eigenvalues may have complex component due to numerical stability.
