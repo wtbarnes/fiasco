@@ -15,12 +15,15 @@ import fiasco.io
 
 from fiasco.io import DataIndexer
 from fiasco.util.exceptions import MissingASCIIFileError, UnsupportedVersionError
-from fiasco.util.util import get_masterlist, query_yes_no
+from fiasco.util.util import get_chianti_catalog, query_yes_no
 
 FIASCO_HOME = pathlib.Path.home() / '.fiasco'
 CHIANTI_URL = 'http://download.chiantidatabase.org/CHIANTI_v{version}_database.tar.gz'
 # List in order (oldest to newest) the supported versions of the database
 SUPPORTED_VERSIONS = [
+    '8.0',
+    '8.0.2',
+    '8.0.6',
     '8.0.7',
 ]
 LATEST_VERSION = SUPPORTED_VERSIONS[-1]
@@ -132,7 +135,7 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
 
     if files is None:
         files = []
-        tmp = get_masterlist(ascii_dbase_root)
+        tmp = get_chianti_catalog(ascii_dbase_root)
         for k in tmp:
             files += tmp[k]
     with ProgressBar(len(files)) as progress:

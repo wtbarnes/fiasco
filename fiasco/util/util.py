@@ -12,7 +12,7 @@ from plasmapy.utils import roman
 FIASCO_HOME = pathlib.Path.home() / '.fiasco'
 FIASCO_RC = FIASCO_HOME / 'fiascorc'
 
-__all__ = ['setup_paths', 'get_masterlist', 'parse_ion_name']
+__all__ = ['setup_paths', 'get_chianti_catalog', 'parse_ion_name']
 
 
 def parse_ion_name(ion_name):
@@ -69,12 +69,26 @@ def setup_paths():
     return paths
 
 
-def get_masterlist(ascii_dbase_root):
+def get_chianti_catalog(ascii_dbase_root):
     """
+    Return a dictionary of all CHIANTI data files, separated by category.
+
     Parse CHIANTI filetree and return list of all files, separated by category. This will be only
     be useful when dealing with the raw ASCII data.
-    """
 
+    Parameters
+    ----------
+    ascii_dbase_root: path-like
+        Path to the top of the CHIANTI filetree
+
+    Returns
+    -------
+    : `dict`
+        All CHIANTI files, separated by category. The resulting dictionary should have the
+        following keys: 'abundance_files', 'ioneq_files', 'ip_files', 'continuum_files',
+        'ion_files'.
+    """
+    ascii_dbase_root = pathlib.Path(ascii_dbase_root)
     # TODO: Replace usage with pathlib, noting that pathlib does not
     # have a direct equivalent to os.walk
 
