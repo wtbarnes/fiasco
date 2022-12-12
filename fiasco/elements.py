@@ -9,6 +9,8 @@ from functools import cached_property
 
 import fiasco
 
+from fiasco.util import parse_ion_name
+
 __all__ = ['Element']
 
 
@@ -38,7 +40,7 @@ class Element(fiasco.IonCollection):
         Z = plasmapy.particles.atomic_number(element_name)
         ion_list = []
         for i in range(Z + 1):
-            ion = fiasco.Ion(f'{Z} {i+1}', temperature, **kwargs)
+            ion = fiasco.Ion((Z, i+1), temperature, **kwargs)
             ion_list.append(ion)
 
         super().__init__(*ion_list)
@@ -109,12 +111,9 @@ class Element(fiasco.IonCollection):
         return u.Quantity(ioneq)
 
     def __getitem__(self, value):
-        if type(value) is str:
-            el, ion = value.split()
-            if '+' in ion:
-                value = int(ion.strip('+'))
-            else:
-                value = int(ion) - 1
+        if isinstance(value, (str, tuple)):
+            _, value = parse_ion_name(value)
+            value -= 1
         return super().__getitem__(value)
 
     def __repr__(self):
