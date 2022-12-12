@@ -437,9 +437,7 @@ Using Datasets:
         if include_protons:
             lower_level_p = self._psplups['lower_level']
             upper_level_p = self._psplups['upper_level']
-            pe_ratio = proton_electron_ratio(self.temperature,
-                                             **self._dset_names,
-                                             hdf5_dbase_root=self.hdf5_dbase_root)
+            pe_ratio = proton_electron_ratio(self.temperature, **self._instance_kwargs)
             proton_density = np.outer(pe_ratio, density)[:, :, np.newaxis]
             ex_rate_p = self.proton_collision_excitation_rate
             dex_rate_p = self.proton_collision_deexcitation_rate
