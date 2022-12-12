@@ -26,4 +26,4 @@ jobs:
         - linux: pre-commit
       coverage: 'codecov'
       cache-path: ~/.chianti
-      cache-key: ${{ env.cache-name }}-${{ matrix.toxenv }}
+      cache-key: chianti-${{ github.run_id }}
