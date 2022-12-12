@@ -23,7 +23,9 @@ jobs:
         - linux: py310
         - linux: build_docs
           posargs: ''
+          python-version: '3.10'
         - linux: pre-commit
+          posargs: ''
       coverage: 'codecov'
       cache-path: ~/.chianti
       cache-key: chianti-${{ github.run_id }}
