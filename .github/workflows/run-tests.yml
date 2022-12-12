@@ -6,72 +6,24 @@ on:
   pull_request:
     branches: [ main ]
 
+
 jobs:
-  build:
-
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-        # Test the oldest and newest configuration on Mac
-        - os: macos-latest
-          python-version: 3.8
-          toxenv: py38
-          cache_cmd: -- --dbase-download-dir ~/.chianti
-        - os: macos-latest
-          python-version: '3.10'
-          toxenv: py310
-          cache_cmd: -- --dbase-download-dir ~/.chianti
-        # Test the oldest and newest configuration on Windows
-        - os: windows-latest
-          python-version: 3.8
-          toxenv: py38
-          cache_cmd: -- --dbase-download-dir ~/.chianti
-        - os: windows-latest
-          python-version: '3.10'
-          toxenv: py310
-          cache_cmd: -- --dbase-download-dir ~/.chianti
-        # Test all configurations on Linux
-        - os: ubuntu-latest
-          python-version: 3.8
-          toxenv: py38
-          cache_cmd: -- --dbase-download-dir ~/.chianti
-        - os: ubuntu-latest
-          python-version: 3.9
-          toxenv: py39
-          cache_cmd: -- --dbase-download-dir ~/.chianti
-        - os: ubuntu-latest
-          python-version: '3.10'
-          cache_cmd: -- --dbase-download-dir ~/.chianti
-          toxenv: py310
-        # Docs
-        - os: ubuntu-latest
-          python-version: 3.9
-          toxenv: build_docs
-        # Code style checks
-        - os: ubuntu-latest
-          python-version: 3.9
-          toxenv: pre-commit
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Cache chianti database
-      uses: actions/cache@v2
-      if: matrix.toxenv != 'build_docs' && matrix.toxenv != 'codestyle'
-      env:
-        # Bump the version number when changing the chianti version to test with
-        cache-name: cache-chianti-dbase-807
-      with:
-        path: ~/.chianti
-        key: ${{ env.cache-name }}-${{ matrix.toxenv }}
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: python -m pip install --upgrade "tox<4" tox-pypi-filter codecov
-    - name: Run tox
-      run: python -m tox -e  ${{ matrix.toxenv }} ${{ matrix.cache_cmd }}
-    - name: Report coverage
-      run: codecov
+  test:
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    with:
+      posargs: '--dbase-download-dir ~/.chianti'
+      toxdeps: "'tox<4' tox-pypi-filter"
+      envs: |
+        - macos: py38
+        - macos: py310
+        - windows: py38
+        - windows: py310
+        - linux: py38
+        - linux: py39
+        - linux: py310
+        - linux: build_docs
+          posargs: ''
+        - linux: pre-commit
+      coverage: 'codecov'
+      cache-path: ~/.chianti
+      cache-key: ${{ env.cache-name }}-${{ matrix.toxenv }}
