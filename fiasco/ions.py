@@ -147,6 +147,17 @@ Using Datasets:
                            self.temperature,
                            **self._instance_kwargs)
 
+    def previous_ion(self):
+        """
+        Return an `~fiasco.Ion` instance with the next lowest ionization stage.
+
+        For example, if the current instance is Fe XII (+11), this method returns
+        an instance of Fe XI (+10). All other input arguments remain the same.
+        """
+        return type(self)((self.atomic_number, self.ionization_stage-1),
+                           self.temperature,
+                           **self._instance_kwargs)
+
     @property
     @needs_dataset('elvlc', 'wgfa')
     def transitions(self):
