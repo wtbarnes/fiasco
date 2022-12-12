@@ -152,9 +152,22 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     # dtype (denoted by 'O') appear to be 1D, but should not be cast to 2D
     # as this will actually add an extra dimension and throw off the function
     # mapping
-    x = np.asarray(x)
-    y = np.asarray(y)
-    if x.dtype != np.dtype('O'):
+    # NOTE: We need to first work out whether the array is ragged or not in order
+    # to set the dtype of the resulting array. Not doing so is now deprecated in
+    # numpy. See https://github.com/wtbarnes/fiasco/issues/120
+    is_ragged = False
+    if isinstance(x, list):
+        if not all([_x.shape[0] == x[0].shape[0] for _x in x]):
+            is_ragged = True
+    elif isinstance(x, np.ndarray):
+        if x.dtype == np.dtype('O'):
+            is_ragged = True
+    else:
+        raise TypeError(f'x has unsupported type {type(x)}')
+    if is_ragged:
+        x = np.asarray(x, dtype='O')
+        y = np.asarray(y, dtype='O')
+    else:
         x = np.atleast_2d(x)
         y = np.atleast_2d(y)
     energy_ratio = np.atleast_2d(u.Quantity(energy_ratio).to_value(u.dimensionless_unscaled))
@@ -163,9 +176,9 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     out = np.zeros(energy_ratio.shape)
     xnew = np.zeros(energy_ratio.shape)
 
-    for type in np.unique(scaling_type):
-        idxs = scaling_type == type
-        xnew[idxs, :] = _xnew(energy_ratio[idxs, :], c[idxs], type).T
+    for s_type in np.unique(scaling_type):
+        idxs = scaling_type == s_type
+        xnew[idxs, :] = _xnew(energy_ratio[idxs, :], c[idxs], s_type).T
 
     # Use list(map()) here to allow varying shaped inputs for x, y
     splrep_szero = partial(splrep, s=0)
@@ -173,17 +186,17 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     splev_derzero = partial(splev, der=0)
     out = np.array(list(map(splev_derzero, xnew, nots)), dtype=object)
 
-    for type in np.unique(scaling_type):
-        idxs = scaling_type == type
-        if type == 1:
+    for s_type in np.unique(scaling_type):
+        idxs = scaling_type == s_type
+        if s_type == 1:
             out[idxs, ...] *= np.log(energy_ratio[idxs, ...] + np.e)
-        elif type == 3:
+        elif s_type == 3:
             out[idxs, ...] /= (energy_ratio[idxs, ...] + 1.0)
-        elif type == 4:
+        elif s_type == 4:
             out[idxs, ...] *= np.log(energy_ratio[idxs, ...].T + c[idxs]).T
-        elif type == 5:
+        elif s_type == 5:
             out[idxs, ...] /= energy_ratio[idxs, ...]
-        elif type == 6:
+        elif s_type == 6:
             out[idxs, ...] = 10**out[idxs]
 
     return out
