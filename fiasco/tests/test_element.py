@@ -54,7 +54,12 @@ def test_create_element_number(symbol, hdf5_dbase_root):
 
 def test_getitem_ion_name(element):
     assert element['H 1'] == element[0]
-    assert element['H 2'] == element[-1]
+    assert element['H 1'].ionization_stage == 1
+    assert element['H 1'].atomic_number == 1
+    assert element['H 2'] == element[1]
+    assert element['H 2'].ionization_stage == 2
+    assert element['H 2'].atomic_number == 1
+    assert element['H +1'] == element[1]
 
 
 def test_create_element_without_units_raises_units_error(hdf5_dbase_root):
@@ -67,6 +72,14 @@ def test_create_element_with_wrong_units_raises_unit_conversion_error(hdf5_dbase
         fiasco.Element('H', temperature.value*u.s, hdf5_dbase_root=hdf5_dbase_root)
 
 
-def test_equilibrium_ionization(element):
-    ioneq = element.equilibrium_ionization
-    assert ioneq.shape == element.temperature.shape + (element.atomic_number + 1,)
+def test_equilibrium_ionization(hdf5_dbase_root):
+    # NOTE: Using an element with Z>1 so that we are testing the full rate matrix
+    # computation. Using C here because we are already using this for the gallery
+    carbon = fiasco.Element('C', temperature, hdf5_dbase_root=hdf5_dbase_root)
+    ioneq = carbon.equilibrium_ionization
+    assert ioneq.shape == carbon.temperature.shape + (carbon.atomic_number + 1,)
+    assert ioneq[33, 5] == u.Quantity(0.5787345345914312)
+
+
+def test_element_repr(element):
+    assert element.element_name in element.__repr__()

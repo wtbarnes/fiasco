@@ -147,6 +147,17 @@ Using Datasets:
                            self.temperature,
                            **self._instance_kwargs)
 
+    def previous_ion(self):
+        """
+        Return an `~fiasco.Ion` instance with the next lowest ionization stage.
+
+        For example, if the current instance is Fe XII (+11), this method returns
+        an instance of Fe XI (+10). All other input arguments remain the same.
+        """
+        return type(self)((self.atomic_number, self.ionization_stage-1),
+                           self.temperature,
+                           **self._instance_kwargs)
+
     @property
     @needs_dataset('elvlc', 'wgfa')
     def transitions(self):
@@ -426,9 +437,7 @@ Using Datasets:
         if include_protons:
             lower_level_p = self._psplups['lower_level']
             upper_level_p = self._psplups['upper_level']
-            pe_ratio = proton_electron_ratio(self.temperature,
-                                             **self._dset_names,
-                                             hdf5_dbase_root=self.hdf5_dbase_root)
+            pe_ratio = proton_electron_ratio(self.temperature, **self._instance_kwargs)
             proton_density = np.outer(pe_ratio, density)[:, :, np.newaxis]
             ex_rate_p = self.proton_collision_excitation_rate
             dex_rate_p = self.proton_collision_deexcitation_rate

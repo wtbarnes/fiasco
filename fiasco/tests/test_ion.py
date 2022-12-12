@@ -263,3 +263,15 @@ def test_repr_no_levels(hdf5_dbase_root):
     no energy level or transition information is available.
     """
     assert fiasco.Ion('Fe 1', temperature, hdf5_dbase_root=hdf5_dbase_root).__repr__
+
+
+def test_next_ion(ion):
+    next_ion = ion.next_ion()
+    assert next_ion.ionization_stage == ion.ionization_stage + 1
+    assert next_ion.atomic_number == ion.atomic_number
+
+
+def test_previous_ion(ion):
+    prev_ion = ion.previous_ion()
+    assert prev_ion.ionization_stage == ion.ionization_stage - 1
+    assert prev_ion.atomic_number == ion.atomic_number

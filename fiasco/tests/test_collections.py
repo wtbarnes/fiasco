@@ -7,7 +7,8 @@ import pytest
 
 import fiasco
 
-temperature = np.logspace(5, 8, 100)*u.K
+temperature = np.logspace(4, 8, 100)*u.K
+wavelength = np.arange(1, 500, 1) * u.Angstrom
 
 
 @pytest.fixture
@@ -36,6 +37,14 @@ def collection(hdf5_dbase_root):
                                 fiasco.Ion('He 2', temperature, hdf5_dbase_root=hdf5_dbase_root))
 
 
+@pytest.fixture
+def another_collection(hdf5_dbase_root):
+    # This collection is for the continuum tests because we already have the needed
+    # files.
+    fe_5 = fiasco.Ion('Fe 5', temperature, hdf5_dbase_root=hdf5_dbase_root)
+    return fe_5 + fe_5.next_ion()
+
+
 def test_create_collection_from_ions(ion, another_ion):
     assert isinstance(ion + another_ion, fiasco.IonCollection)
     assert isinstance(fiasco.IonCollection(ion, another_ion), fiasco.IonCollection)
@@ -48,6 +57,8 @@ def test_create_collection_from_elements(element, another_element):
 
 def test_create_collection_from_mixture(ion, element, collection):
     assert isinstance(ion + element + collection, fiasco.IonCollection)
+    # This tests the reflected operator
+    assert isinstance(collection + ion, fiasco.IonCollection)
     assert isinstance(fiasco.IonCollection(ion, element, collection), fiasco.IonCollection)
 
 
@@ -64,6 +75,7 @@ def test_getitem(ion, another_ion, element, another_element):
     assert isinstance(collection[:2], fiasco.IonCollection)
     for i in collection:
         assert isinstance(i, fiasco.Ion)
+    assert isinstance(collection[[1,2]], fiasco.IonCollection)
 
 
 def test_contains(collection, hdf5_dbase_root):
@@ -72,6 +84,28 @@ def test_contains(collection, hdf5_dbase_root):
     assert 'hydrogen +0' in collection
     ion = fiasco.Ion('H 1', temperature, hdf5_dbase_root=hdf5_dbase_root)
     assert ion in collection
+
+
+def test_length(collection):
+    assert len(collection) == len(collection._ion_list)
+
+
+def test_free_free(another_collection):
+    ff = another_collection.free_free(wavelength)
+    assert ff.shape == temperature.shape + wavelength.shape
+    assert u.allclose(ff[50, 50], 3.19877384e-35 * u.Unit('erg cm3 s-1 Angstrom-1'))
+
+
+def test_free_bound(another_collection):
+    fb = another_collection.free_bound(wavelength)
+    assert fb.shape == temperature.shape + wavelength.shape
+    assert u.allclose(fb[50, 50], 3.2653516e-29 * u.Unit('erg cm3 s-1 Angstrom-1'))
+
+
+def test_radiative_los(collection):
+    rl = collection.radiative_loss(1e9*u.cm**(-3))
+    # This value has not been checked for correctness
+    assert u.allclose(rl[0,0], 3.2389535764824023e-24*u.Unit('erg cm3 s-1'))
 
 
 def test_spectrum(hdf5_dbase_root):
