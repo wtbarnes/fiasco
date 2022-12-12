@@ -29,3 +29,17 @@ jobs:
       coverage: 'codecov'
       cache-path: ~/.chianti
       cache-key: chianti-${{ github.run_id }}
+  precommit:
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    with:
+      toxdeps: "'tox<4' tox-pypi-filter"
+      envs: |
+        - linux: pre-commit
+  docs:
+    needs: [test]
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    with:
+      toxdeps: "'tox<4' tox-pypi-filter"
+      envs: |
+        - linux: build_docs
+          python-version: '3.10'
