@@ -41,11 +41,11 @@ class IonCollection:
             raise ValueError('Temperatures for all ions in collection must be the same.')
 
     def __getitem__(self, value):
-        ions = self._ion_list[value]
-        if isinstance(ions, list):
-            return IonCollection(*ions)
-        else:
+        ions = np.array(self._ion_list)[value]
+        if isinstance(ions, fiasco.Ion):
             return ions
+        else:
+            return IonCollection(*ions)
 
     def __contains__(self, value):
         if isinstance(value, (str, tuple)):
@@ -252,6 +252,7 @@ class IonCollection:
         """
         Calculate radiative loss curve which includes multiple ions
         """
+        density = np.atleast_1d(density)
         rad_loss = u.Quantity(np.zeros(self.temperature.shape + density.shape), 'erg cm^3 s^-1')
         for ion in self:
             try:
