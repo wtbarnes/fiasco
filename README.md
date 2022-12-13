@@ -1,9 +1,9 @@
 # fiasco
 
 [![Powered by SunPy Badge]( http://img.shields.io/badge/powered%20by-SunPy-orange.svg?style=flat)](http://www.sunpy.org)
-![fiasco CI status](https://github.com/wtbarnes/fiasco/workflows/Run%20tests/badge.svg)
+[![fiasco CI status](https://github.com/wtbarnes/fiasco/workflows/ci.yml/badge.svg?branch=main)](https://github.com/wtbarnes/fiasco/actions)
 [![Documentation Status](https://readthedocs.org/projects/fiasco/badge/?version=latest)](http://fiasco.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/wtbarnes/fiasco/branch/master/graph/badge.svg?token=damCmTyRUN)](https://codecov.io/gh/wtbarnes/fiasco)
+[![codecov](https://codecov.io/gh/wtbarnes/fiasco/branch/main/graph/badge.svg?token=damCmTyRUN)](https://codecov.io/gh/wtbarnes/fiasco)
 [![matrix](https://img.shields.io/matrix/atomic-data:openastronomy.org.svg?colorB=%23FE7900&label=Chat&logo=matrix&server_fqdn=openastronomy.modular.im)](https://openastronomy.element.io/#/room/#atomic-data:openastronomy.org)
 
 A Python interface to the [CHIANTI atomic database](http://www.chiantidatabase.org/). For a high level
