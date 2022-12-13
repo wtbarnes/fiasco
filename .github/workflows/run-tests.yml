@@ -1,10 +1,14 @@
-name: Run tests
+name: Tests
 
 on:
   push:
-    branches: [ main ]
+    branches:
+    - 'main'
+    - '*.*'
+    tags:
+    - 'v*'
   pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 
 jobs:
@@ -24,6 +28,8 @@ jobs:
       coverage: 'codecov'
       cache-path: ~/.chianti
       cache-key: chianti-${{ github.run_id }}
+      secrets:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
   precommit:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
@@ -38,3 +44,20 @@ jobs:
       envs: |
         - linux: build_docs
           python-version: '3.10'
+  publish:
+    # Build wheels when pushing to any branch except main
+    # publish.yml will only publish if tagged ^v.*
+    if: |
+      (
+        github.event_name != 'pull_request' && (
+          github.ref_name != 'main' ||
+          github.event_name == 'workflow_dispatch'
+        )
+      ) || (
+        github.event_name == 'pull_request' &&
+        contains(github.event.pull_request.labels.*.name, 'Run publish')
+      )
+    needs: [test]
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/publish_pure_python.yml@v1
+    secrets:
+      pypi_token: ${{ secrets.PYPI_TOKEN }}
