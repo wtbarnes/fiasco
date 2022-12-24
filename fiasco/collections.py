@@ -63,6 +63,17 @@ class IonCollection:
     def __len__(self):
         return len(self._ion_list)
 
+    def __repr__(self):
+        ion_name_list = '\n'.join([i.ion_name for i in self._ion_list])
+        return f"""Ion Collection
+--------------
+Number of ions: {len(self)}
+Temperature range: [{self.temperature[0].to(u.MK):.3f}, {self.temperature[-1].to(u.MK):.3f}]
+
+Available Ions
+--------------
+{ion_name_list}"""
+
     @property
     def temperature(self,):
         # Temperatures for all ions must be the same
@@ -95,6 +106,7 @@ class IonCollection:
         --------
         fiasco.Ion.free_free
         """
+        wavelength = np.atleast_1d(wavelength)
         free_free = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape),
                                'erg cm^3 s^-1 Angstrom^-1')
         for ion in self:
@@ -137,6 +149,7 @@ class IonCollection:
         --------
         fiasco.Ion.free_bound
         """
+        wavelength = np.atleast_1d(wavelength)
         free_bound = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape),
                                 'erg cm^3 s^-1 Angstrom^-1')
         for ion in self:
@@ -159,6 +172,9 @@ class IonCollection:
                  bin_width=None, kernel=None, **kwargs):
         """
         Calculate spectrum for multiple ions
+
+        .. note:: This function is still experimental and may be removed or significantly
+                  refactored in future releases.
 
         Parameters
         ----------

@@ -89,17 +89,20 @@ def test_contains(collection, hdf5_dbase_root):
 def test_length(collection):
     assert len(collection) == len(collection._ion_list)
 
-
-def test_free_free(another_collection):
+@pytest.mark.parametrize('wavelength', [wavelength, wavelength[50]])
+def test_free_free(another_collection, wavelength):
     ff = another_collection.free_free(wavelength)
-    assert ff.shape == temperature.shape + wavelength.shape
-    assert u.allclose(ff[50, 50], 3.19877384e-35 * u.Unit('erg cm3 s-1 Angstrom-1'))
+    assert ff.shape == temperature.shape + wavelength.shape if wavelength.shape else (1,)
+    index = 50 if wavelength.shape else 0
+    assert u.allclose(ff[50, index], 3.19877384e-35 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
 
-def test_free_bound(another_collection):
+@pytest.mark.parametrize('wavelength', [wavelength, wavelength[50]])
+def test_free_bound(another_collection, wavelength):
     fb = another_collection.free_bound(wavelength)
-    assert fb.shape == temperature.shape + wavelength.shape
-    assert u.allclose(fb[50, 50], 3.2653516e-29 * u.Unit('erg cm3 s-1 Angstrom-1'))
+    assert fb.shape == temperature.shape + wavelength.shape if wavelength.shape else (1,)
+    index = 50 if wavelength.shape else 0
+    assert u.allclose(fb[50, index], 3.2653516e-29 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
 
 def test_radiative_los(collection):
