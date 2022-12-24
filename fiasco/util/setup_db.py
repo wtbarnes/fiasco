@@ -44,7 +44,7 @@ def check_database(hdf5_dbase_root, **kwargs):
     ----------
     hdf5_dbase_root : `str` or `~pathlib.Path`
     ascii_dbase_root : `str` or `~pathlib.Path`, optional
-    ask_befre : bool, optional
+    ask_before : bool, optional
     ascii_dbase_url : str, optional
 
     See Also

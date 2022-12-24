@@ -17,9 +17,14 @@ There are two ways of downloading and setting up the database to be used by fias
 1. Allow fiasco to download the latest release of the database for you **(recommended)**
 2. Use an existing install of the CHIANTI database. This may be the best option for users who have already installed the CHIANTI package from `SSW`_.
 
-**If you choose option 1, no action is required. This is the recommended option, particularly for users new to CHIANTI.** The first time that you instantiate a subclass of `~fiasco.IonBase`, you will be prompted to download the raw CHIANTI data and then build the HDF5 database from it. Both the raw data and the HDF5 data will be placed in `$HOME/.fiasco/`.
+**If you choose option 1, no action is required.
+This is the recommended option, particularly for users new to CHIANTI.**
+The first time that you create an instance of `~fiasco.Ion`, you will be prompted to download the raw CHIANTI data and then build the HDF5 database from it.
+Both the raw ASCII data and the HDF5 data will be placed in `$HOME/.fiasco/`.
+Alternatively, you can also download and set up the database using `~fiasco.util.check_database`.
 
-Option 2 requires you to tell fiasco where to find an existing version of the CHIANTI atomic data. You can do this by setting the path to the CHIANTI data in `$HOME/.fiasco/fiascorc`. For users who have installed the CHIANTI package with SSW, this file might look like,
+Option 2 requires you to tell fiasco where to find an existing version of the CHIANTI atomic data. You can do this by setting the path to the CHIANTI data in `$HOME/.fiasco/fiascorc`.
+For users who have installed the CHIANTI package with SSW, this file might look like,
 
 .. code-block:: ini
 
