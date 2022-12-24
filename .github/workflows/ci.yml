@@ -63,5 +63,6 @@ jobs:
       test_extras: 'dev'
       test_command: 'pytest -p no:warnings --doctest-rst --pyargs fiasco'
       submodules: false
+      python-version: '3.10'  # Plasmapy depends on Numba which is not compatible with 3.11
     secrets:
       pypi_token: ${{ secrets.PYPI_TOKEN }}
