@@ -27,7 +27,7 @@ jobs:
         - linux: py310
       coverage: 'codecov'
       cache-path: ~/.chianti
-      cache-key: chianti-${{ github.run_id }}
+      cache-key: chianti-${{ github.event.number }}
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
   precommit:
