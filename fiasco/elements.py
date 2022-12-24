@@ -117,11 +117,12 @@ class Element(fiasco.IonCollection):
         return super().__getitem__(value)
 
     def __repr__(self):
-        ion_list = '\n'.join([i.ion_name for i in self._ion_list])
+        ion_name_list = '\n'.join([i.ion_name for i in self._ion_list])
         return f"""Element
 -------
 {self.atomic_symbol} ({self.atomic_number}) -- {self.element_name}
+Temperature range: [{self.temperature[0].to(u.MK):.3f}, {self.temperature[-1].to(u.MK):.3f}]
 
 Available Ions
 --------------
-{ion_list}"""
+{ion_name_list}"""

@@ -89,7 +89,7 @@ Charge: +{self.charge_state}
 Number of Levels: {n_levels}
 Number of Transitions: {n_transitions}
 
-Temperature range: [{self.temperature[0].to(u.MK)}, {self.temperature[-1].to(u.MK)}]
+Temperature range: [{self.temperature[0].to(u.MK):.3f}, {self.temperature[-1].to(u.MK)}:.3f]
 
 HDF5 Database: {self.hdf5_dbase_root}
 Using Datasets:
