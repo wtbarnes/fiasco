@@ -1,12 +1,7 @@
-import os
 import pathlib
 import pytest
 
-from urllib.request import urlopen
-
-from fiasco import list_ions
-from fiasco.util import build_hdf5_dbase, download_dbase
-from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
+from fiasco.util import check_database
 
 # Force MPL to use non-gui backends for testing.
 try:
@@ -89,48 +84,39 @@ TEST_FILES = {
 
 def pytest_addoption(parser):
     parser.addoption('--ascii-dbase-root', action='store', default=None)
+    parser.addoption('--ascii-dbase-url', action='store', default=None)
     parser.addoption('--hdf5-dbase-root', action='store', default=None)
     parser.addoption('--disable-file-hash', action='store_true', default=False,
                      help='Disable MD5 hash checks on test files')
-    parser.addoption('--dbase-download-dir', action='store', default=None,
-                     help='Directory to download chianti database to')
     parser.addoption('--idl-executable', action='store', default=None)
     parser.addoption('--idl-codebase-root', action='store', default=None)
     parser.addoption('--include-all-files', action='store', default=False)
 
 
 @pytest.fixture(scope='session')
-def ascii_dbase_root(tmpdir_factory, request):
+def ascii_dbase_tree(tmpdir_factory, request):
     path = request.config.getoption('--ascii-dbase-root')
-    # This fixture accepts either a URL or a local filepath to the top
-    # of the CHIANTI database filetree.
-    # If left empty, the filetree will be downloaded from the internet
-    # using the latest supported version.
     if path is None:
-        path = CHIANTI_URL.format(version=LATEST_VERSION)
-    try:
-        _ = urlopen(path)
-    except ValueError:
-        if not pathlib.Path(path).exists():
-            raise ValueError(f'{path} is not a valid URL or file path')
-    else:
-        _path = request.config.getoption('--dbase-download-dir')
-        if not _path:
-            _path = tmpdir_factory.mktemp('chianti_dbase')
-        download_dbase(path, _path)
-        path = _path
+        path = tmpdir_factory.mktemp('chianti_dbase')
     return pathlib.Path(path)
 
 
 @pytest.fixture(scope='session')
-def hdf5_dbase_root(ascii_dbase_root, tmpdir_factory, request):
+def hdf5_dbase_root(ascii_dbase_tree, tmpdir_factory, request):
     # If specifying the HDF5 database explicitly, do not do any setup
     # as it is assumed that this database has already been built
+    # Note that this test setup explicitly does not build the test HDF5
+    # database in a custom location. It is always in a temporary directory
+    # unless you explicitly build it ahead of time.
     path = request.config.getoption('--hdf5-dbase-root')
     if path is not None:
         return path
     # Otherwise, set it up here
     path = tmpdir_factory.mktemp('fiasco').join('chianti_dbase.h5')
+    # Setup the test files. By default, only a limited number of files
+    # are included in the test database to make running the tests more
+    # efficient and a hash is checked to ensure the correct tests are
+    # being checked
     if request.config.getoption('--include-all-files'):
         test_files = None
     else:
@@ -138,5 +124,23 @@ def hdf5_dbase_root(ascii_dbase_root, tmpdir_factory, request):
             test_files = [k for k in TEST_FILES]
         else:
             test_files = TEST_FILES
-    build_hdf5_dbase(ascii_dbase_root, path, files=test_files)
+    # Optionally use a different URL for the database (e.g. for testing different versions)
+    ascii_dbase_url = request.config.getoption('--ascii-dbase-url')
+    # Finally, run the database setup
+    check_database(path,
+                   ascii_dbase_root=ascii_dbase_tree,
+                   ask_before=False,
+                   ascii_dbase_url=ascii_dbase_url,
+                   check_chianti_version=False,
+                   files=test_files)
     return path
+
+
+@pytest.fixture(scope='session')
+def ascii_dbase_root(ascii_dbase_tree, hdf5_dbase_root):
+    # The reason this exists is to ensure that the ASCII database is downloaded (if needed)
+    # which happens in the above fixture. The downloading of the database was originally
+    # in this fixture but that resulted in just recreating the check_database function
+    # but in a worse way. What this means is that the HDF5 database is always built, even
+    # when testing the ASCII parsing code, but that is not a huge price to pay.
+    return ascii_dbase_tree
