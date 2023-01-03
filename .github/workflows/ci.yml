@@ -15,7 +15,7 @@ jobs:
   test:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
-      posargs: '--ascii-dbase-root ~/.chianti'
+      posargs: '--ascii-dbase-root=~/.chianti'
       toxdeps: "'tox<4' tox-pypi-filter"
       envs: |
         - macos: py38
