@@ -8,11 +8,11 @@ Changelog
 
 This directory contains "news fragments" which are short files that contain a small **ReST**-formatted text that will be added to the next ``CHANGELOG``.
 
-The ``CHANGELOG`` will be read by users, so this description should be aimed at SunPy users instead of describing internal changes which are only relevant to the developers.
+The ``CHANGELOG`` will be read by users, so this description should be aimed at fiasco users instead of describing internal changes which are only relevant to the developers.
 
 Make sure to use full sentences with correct case and punctuation, for example::
 
-    Add support for Helioprojective coordinates in `sunpy.coordinates.frames`.
+    Add support for roman numeral designations in `fiasco.Ion`.
 
 Please try to use Sphinx intersphinx using backticks.
 
