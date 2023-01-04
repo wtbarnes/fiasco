@@ -146,3 +146,9 @@ def test_create_with_wrong_type_raise_type_error(ion, collection):
         fiasco.IonCollection(ion, 0)
     with pytest.raises(TypeError):
         collection + 0
+
+
+def test_collections_repr(collection):
+    assert isinstance(collection.__repr__(), str)
+    for ion in collection:
+        assert ion.ion_name in collection.__repr__()
