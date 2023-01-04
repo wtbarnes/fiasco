@@ -12,3 +12,5 @@ def pytest_addoption(parser):
     parser.addoption('--idl-executable', action='store', default=None)
     parser.addoption('--idl-codebase-root', action='store', default=None)
     parser.addoption('--include-all-files', action='store', default=False)
+    parser.addoption('--skip-version-check', action='store_true', default=False,
+                     help='Do not check CHIANTI version')

@@ -1,13 +1,15 @@
 """
 Base class for file parser
 """
+import astropy
 import astropy.units as u
 import h5py
 import numpy as np
-import os
 import pathlib
+import warnings
 
 from astropy.table import QTable
+from astropy.utils.exceptions import AstropyUserWarning
 
 import fiasco
 
@@ -55,9 +57,14 @@ class GenericParser:
                 self.preprocessor(table, line, i)
 
         df = QTable(data=list(map(list, zip(*table))), names=self.headings)
-        for name, unit, dtype in zip(self.headings, self.units, self.dtypes):
-            df[name].unit = unit
-            df[name] = df[name].astype(dtype)
+        # This cataches a warning thrown when we convert a staggered array into
+        # a unitful column. This happens in several of the scups files for the
+        # bt_t, bt_type, bt_upsilon columns.
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=AstropyUserWarning)
+            for name, unit, dtype in zip(self.headings, self.units, self.dtypes):
+                df[name].unit = unit
+                df[name] = df[name].astype(dtype)
 
         df.meta['footer'] = self.extract_footer(lines)
         df.meta['chianti_version'] = self.chianti_version
