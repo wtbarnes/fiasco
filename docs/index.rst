@@ -7,11 +7,7 @@ fiasco Documentation
 
 Welcome to the documentation for fiasco. fiasco provides a Python interface to the `CHIANTI atomic database`_. In addition to several high-level abstractions of the atomic data, fiasco also provides many common atomic physics calculations. fiasco takes much of its inspiration from the `ChiantiPy`_ package which provides similar functionality.
 
-.. warning:: fiasco is still in the early stages of development and as such frequent changes will be
-             made to the API. Use at your own risk.
-
-.. warning:: fiasco currently only supports v8 of the CHIANTI database. In
-             the future, older versions of the database will be supported.
+.. warning:: fiasco currently only supports version 8 of the CHIANTI database.
 
 .. toctree::
   :maxdepth: 1

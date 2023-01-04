@@ -1,7 +1,6 @@
 [run]
 source = fiasco
 omit =
-   fiasco/_sunpy_init*
    fiasco/conftest*
    fiasco/cython_version*
    fiasco/setup_package*

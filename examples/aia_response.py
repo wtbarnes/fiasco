@@ -74,9 +74,9 @@ response_transitions = f(transitions) * response.unit
 # convert from units of energy to photons. The factor of :math:`0.83` is a
 # relative scaling factor for the abundance of H and is not included in the
 # temperature responses computed by
-# `aia_get_response.pro <https://hesperia.gsfc.nasa.gov/ssw/sdo/aia/idl/response/aia_get_response.pro>`_.
+# `aia_get_response.pro <https://sohoftp.nascom.nasa.gov/solarsoft/sdo/aia/idl/response/aia_get_response.pro>`_.
 # For more more information on the AIA wavelength response calculation,
-# see :cite:t:`boerner_initial_2012`_.
+# see :cite:t:`boerner_initial_2012`.
 K = (g / energy * response_transitions).sum(axis=2) / (4*np.pi*u.steradian) / 0.83
 K = K.squeeze().to('cm5 ct pix-1 s-1')
 

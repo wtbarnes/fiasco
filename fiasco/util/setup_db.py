@@ -44,7 +44,7 @@ def check_database(hdf5_dbase_root, **kwargs):
     ----------
     hdf5_dbase_root : `str` or `~pathlib.Path`
     ascii_dbase_root : `str` or `~pathlib.Path`, optional
-    ask_befre : bool, optional
+    ask_before : bool, optional
     ascii_dbase_url : str, optional
 
     See Also
@@ -71,7 +71,9 @@ def check_database(hdf5_dbase_root, **kwargs):
     # VERSION file as a proxy for whether whole dbase exists
     # TODO: version checking, download newest version if installed version is out of date
     if not (ascii_dbase_root / "VERSION").is_file():
-        ascii_dbase_url = kwargs.get('ascii_dbase_url', CHIANTI_URL.format(version=LATEST_VERSION))
+        ascii_dbase_url = kwargs.get('ascii_dbase_url')
+        if ascii_dbase_url is None:
+            ascii_dbase_url = CHIANTI_URL.format(version=LATEST_VERSION)
         if ask_before:
             question = f"No CHIANTI database found at {ascii_dbase_root}. Download it from {ascii_dbase_url}?"
             answer = query_yes_no(question, default='no')
@@ -80,7 +82,8 @@ def check_database(hdf5_dbase_root, **kwargs):
                 return None
         download_dbase(ascii_dbase_url, ascii_dbase_root)
     # If we made it this far, build the HDF5 database
-    build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root)
+    files = kwargs.get('files')
+    build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=files)
     # Ensure that an unsupported version is not being passed to fiasco
     # NOTE: this check is only meant to be bypassed when testing new
     # versions. Hence, this kwarg is not documented
@@ -99,6 +102,9 @@ def download_dbase(ascii_dbase_url, ascii_dbase_root):
     """
     Download the CHIANTI database in ASCII format
     """
+    from fiasco import log
+    log.debug(f'Downloading database from {ascii_dbase_url}')
+    log.debug(f'Downloading database to {ascii_dbase_root}')
     tar_tmp_dir = FIASCO_HOME / 'tmp'
     tar_tmp_dir.mkdir(exist_ok=True, parents=True)
     with set_temp_cache(path=tar_tmp_dir, delete=True):
@@ -134,10 +140,12 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
     from fiasco import log
 
     if files is None:
+        log.debug('Adding all files to CHIANTI database')
         files = []
         tmp = get_chianti_catalog(ascii_dbase_root)
         for k in tmp:
             files += tmp[k]
+    log.debug(f'Building HDF5 database in {hdf5_dbase_root}')
     with ProgressBar(len(files)) as progress:
         with h5py.File(hdf5_dbase_root, 'a') as hf:
             for f in files:

@@ -15,7 +15,7 @@ jobs:
   test:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
-      posargs: '--dbase-download-dir ~/.chianti'
+      posargs: '--ascii-dbase-root ~/.chianti'
       toxdeps: "'tox<4' tox-pypi-filter"
       envs: |
         - macos: py38
@@ -27,7 +27,7 @@ jobs:
         - linux: py310
       coverage: 'codecov'
       cache-path: ~/.chianti
-      cache-key: chianti-${{ github.run_id }}
+      cache-key: chianti-${{ github.event.number }}
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
   precommit:
@@ -58,6 +58,11 @@ jobs:
         contains(github.event.pull_request.labels.*.name, 'Run publish')
       )
     needs: [test]
-    uses: OpenAstronomy/github-actions-workflows/.github/workflows/publish_pure_python.yml@v1
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/publish_pure_python.yml@main
+    with:
+      test_extras: 'dev'
+      test_command: 'pytest -p no:warnings --doctest-rst --pyargs fiasco'
+      submodules: false
+      python-version: '3.10'  # Plasmapy depends on Numba which is not compatible with 3.11
     secrets:
       pypi_token: ${{ secrets.PYPI_TOKEN }}
