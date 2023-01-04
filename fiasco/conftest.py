@@ -115,12 +115,15 @@ def hdf5_dbase_root(ascii_dbase_tree, tmpdir_factory, request):
             test_files = TEST_FILES
     # Optionally use a different URL for the database (e.g. for testing different versions)
     ascii_dbase_url = request.config.getoption('--ascii-dbase-url')
+    # Optionally disable version checking. This is useful when testing newer/older versions
+    # of CHIANTI
+    check_chianti_version = not request.config.getoption('--skip-version-check')
     # Finally, run the database setup
     check_database(path,
                    ascii_dbase_root=ascii_dbase_tree,
                    ask_before=False,
                    ascii_dbase_url=ascii_dbase_url,
-                   check_chianti_version=False,
+                   check_chianti_version=check_chianti_version,
                    files=test_files)
     return path
 
