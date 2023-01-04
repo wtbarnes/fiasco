@@ -92,7 +92,7 @@ def check_database(hdf5_dbase_root, **kwargs):
 
 
 def check_database_version(hdf5_dbase_root):
-    dl = DataIndexer.create_indexer(hdf5_dbase_root, '/')
+    dl = DataIndexer.create_indexer(hdf5_dbase_root, '/h/h_1/elvlc')
     if dl.version not in SUPPORTED_VERSIONS:
         raise UnsupportedVersionError(
             f'CHIANTI {dl.version} is not in the list of supported versions {SUPPORTED_VERSIONS}.')
