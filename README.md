@@ -2,7 +2,9 @@
 
 [![Powered by SunPy Badge]( http://img.shields.io/badge/powered%20by-SunPy-orange.svg?style=flat)](http://www.sunpy.org)
 [![fiasco CI status](https://github.com/wtbarnes/fiasco/workflows/CI/badge.svg?branch=main)](https://github.com/wtbarnes/fiasco/actions)
-[![Documentation Status](https://readthedocs.org/projects/fiasco/badge/?version=latest)](http://fiasco.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/fiasco/badge/?version=stable)](https://fiasco.readthedocs.io/en/stable/?badge=stable)
+[![PyPI](https://img.shields.io/pypi/v/fiasco.svg)](https://pypi.python.org/pypi)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7504785.svg)](https://doi.org/10.5281/zenodo.7504785)
 [![codecov](https://codecov.io/gh/wtbarnes/fiasco/branch/main/graph/badge.svg?token=damCmTyRUN)](https://codecov.io/gh/wtbarnes/fiasco)
 [![matrix](https://img.shields.io/matrix/atomic-data:openastronomy.org.svg?colorB=%23FE7900&label=Chat&logo=matrix&server_fqdn=openastronomy.modular.im)](https://openastronomy.element.io/#/room/#atomic-data:openastronomy.org)
 
