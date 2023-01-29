@@ -1188,3 +1188,10 @@ Using Datasets:
         cross_section = prefactor * ionization_energy**2 * photon_energy**(-3) * gaunt_factor / n
         cross_section[np.where(photon_energy < ionization_energy)] = 0.*cross_section.unit
         return cross_section
+
+    @u.quantity_input
+    def two_photon_continuum(self):
+        """
+        Two-photon continuum
+        """
+        ...
