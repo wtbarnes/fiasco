@@ -47,13 +47,14 @@ def test_ion_sources(ascii_dbase_root, filename,):
     'itoh.dat',
     'klgfb.dat',
     'verner_short.txt',
+    'flare.dem',
 ])
 def test_non_ion_sources(ascii_dbase_root, filename):
     parser = fiasco.io.Parser(filename, ascii_dbase_root=ascii_dbase_root)
     table = parser.parse()
     assert isinstance(table, QTable)
     assert all([k in table.meta for k in ('footer', 'filename', 'chianti_version', 'descriptions')])
-    assert table.colnames == parser.headings
+    assert all([h in table.colnames for h in parser.headings])
     for h, unit in zip(parser.headings, parser.units):
         assert table[h].unit == unit
     assert table.meta['filename'] == filename

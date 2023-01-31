@@ -137,3 +137,64 @@ class IpParser(GenericParser):
                 ds = grp.create_dataset(dataset_name, data=row['ip'])
                 ds.attrs['unit'] = df['ip'].unit.to_string()
                 ds.attrs['description'] = df.meta['descriptions']['ip']
+
+
+class DemParser(GenericParser):
+    filetype = 'dem'
+    dtypes = [float, float]
+    units = [u.K, u.cm**(-5)/u.K]
+    headings = ['temperature_bin_center', 'dem']
+    descriptions = ['center of the temperature bin', 'differential emission measure']
+
+    def __init__(self, dem_filename, **kwargs):
+        super().__init__(dem_filename, **kwargs)
+        self.full_path = pathlib.Path(kwargs.get('full_path',
+                                      self.ascii_dbase_root / 'dem' / self.filename))
+
+    def postprocessor(self, df):
+        logT_center = df['temperature_bin_center'].value
+        T_unit = df['temperature_bin_center'].unit
+        df['temperature_bin_center'] = 10**logT_center * T_unit
+        df['dem'] = 10**df['dem'].value * df['dem'].unit
+        df = super().postprocessor(df)
+        # NOTE: there are several DEM models which clearly do not have equal bin widths
+        # so this conversion to EM and calculation of the edges is not valid
+        # These are the 'flare_ext' and 'AU_mic' models.
+        # For these models, the below steps are not valid so they are skipped.
+        bins_equal = np.allclose(np.diff(logT_center), np.diff(logT_center)[0], atol=1e-15, rtol=0)
+        if bins_equal:
+            delta_logT = np.diff(logT_center)[0]
+            logT_left = logT_center - delta_logT/2
+            logT_right = logT_center + delta_logT/2
+            df['temperature_bin_edge_left'] = 10**logT_left*T_unit
+            df['temperature_bin_edge_right'] = 10**logT_right*T_unit
+            df['temperature_bin_width'] = df['temperature_bin_edge_right'] - df['temperature_bin_edge_left']
+            df['em'] = df['dem'] * df['temperature_bin_width']
+            df.meta['descriptions'].update({
+                'temperature_bin_edge_left': 'Left edge of the temperature bin',
+                'temperature_bin_edge_right': 'Right edge of the temperature bin',
+                'temperature_bin_width': 'Width of the temperature bin. Should be uniform in log10 space',
+                'em': 'Emission measure; DEM integrated over each temperature bin',
+            })
+        else:
+            from fiasco import log
+            log.debug(f'''Cannot compute additional quantities for {self.filename}.
+                          Temperature bins are not of equal width in log10 space.''')
+        return df
+
+    def to_hdf5(self, hf, df):
+        dataset_name = pathlib.Path(self.filename).stem
+        footer = f"""{dataset_name}
+------------------
+{df.meta['footer']}"""
+        grp_name = '/'.join(['dem', dataset_name])
+        if grp_name not in hf:
+            grp = hf.create_group(grp_name)
+            grp.attrs['footer'] = df.meta['footer']
+            grp.attrs['chianti_version'] = df.meta['chianti_version']
+        else:
+            grp = hf[grp_name]
+        for col in df.colnames:
+            ds = grp.create_dataset(col, data=df[col].value)
+            ds.attrs['description'] = df.meta['descriptions'][col]
+            ds.attrs['unit'] = df[col].unit.to_string()
