@@ -114,6 +114,7 @@ def download_dbase(ascii_dbase_url, ascii_dbase_root):
 
 
 def md5hash(path):
+    # Use the md5 utility to generate this
     path = pathlib.Path(path)
     with path.open('rb') as f:
         return hashlib.md5(f.read()).hexdigest()
