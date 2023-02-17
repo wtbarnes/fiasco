@@ -388,7 +388,8 @@ Using Datasets:
     @u.quantity_input
     def level_populations(self,
                           density: u.cm**(-3),
-                          include_protons=True) -> u.dimensionless_unscaled:
+                          include_protons=True,
+                          couple_density_to_temperature=False) -> u.dimensionless_unscaled:
         """
         Energy level populations as a function of temperature and density.
 
@@ -397,13 +398,22 @@ Using Datasets:
         density : `~astropy.units.Quantity`
         include_protons : `bool`, optional
             If True (default), include proton excitation and de-excitation rates.
+        couple_density_to_temperature: `bool`, optional
+            If True, the density will vary along the same axis as temperature
+            in the computed level populations. The number of densities must be the same as the number of temperatures. This is useful, for
+            example, when computing the level populations at constant
+            pressure and is also much faster than computing the level
+            populations along an independent density axis. By default, this
+            is set to False.
 
         Returns
         -------
         `~astropy.units.Quantity`
             A ``(l, m, n)`` shaped quantity, where ``l`` is the number of
             temperatures, ``m`` is the number of densities, and ``n``
-            is the number of energy levels.
+            is the number of energy levels. If
+            ``couple_density_to_temperature=True``, then ``m=1`` and ``l``
+            represents the number of temperatures and densities.
         """
         # NOTE: Cannot include protons if psplups data not available
         try:
@@ -438,7 +448,10 @@ Using Datasets:
             lower_level_p = self._psplups['lower_level']
             upper_level_p = self._psplups['upper_level']
             pe_ratio = proton_electron_ratio(self.temperature, **self._instance_kwargs)
-            proton_density = np.outer(pe_ratio, density)[:, :, np.newaxis]
+            if couple_density_to_temperature:
+                proton_density = (pe_ratio * density)[:, np.newaxis, np.newaxis]
+            else:
+                proton_density = np.outer(pe_ratio, density)[:, :, np.newaxis]
             ex_rate_p = self.proton_collision_excitation_rate
             dex_rate_p = self.proton_collision_deexcitation_rate
             ex_diagonal_p = vectorize_where_sum(
@@ -448,9 +461,20 @@ Using Datasets:
 
         # Populate density dependent terms and solve matrix equation for each density value
         density = np.atleast_1d(density)
-        populations = np.zeros(self.temperature.shape + density.shape + (level.max(),))
-        for i, d in enumerate(density):
+        if couple_density_to_temperature:
+            density = [density]
+            density_shape = (1,)
+        else:
+            density_shape = density.shape
+        populations = np.zeros(self.temperature.shape + density_shape + (level.max(),))
+        for i, _d in enumerate(density):
             c_matrix = coeff_matrix.copy()
+            # NOTE: the following manipulation is needed such that both
+            # scalar densities (in the case of no n-T coupling) and arrays
+            # (in the case of n-T coupling) can be multiplied by the multi-
+            # dimensional excitation rates, whose leading dimension
+            # corresponds to the temperature axis.
+            d = np.atleast_1d(_d)[:, np.newaxis]
             # Collisional excitation and de-excitation out of current state
             c_matrix[:, level-1, level-1] -= d*(ex_diagonal_e + dex_diagonal_e)
             # De-excitation from upper states
@@ -503,18 +527,45 @@ Using Datasets:
 
         Parameters
         ----------
-        density : `~astropy.units.Quantity`
+        density: `~astropy.units.Quantity`
             Electron number density
+        couple_density_to_temperature: `bool`, optional
+            If True, the density will vary along the same axis as temperature
+            in the computed level populations. The number of densities must be the same as the number of temperatures. This is useful, for
+            example, when computing the level populations at constant
+            pressure and is also much faster than computing the level
+            populations along an independent density axis. By default, this
+            is set to False.
+
+        Returns
+        -------
+        g: `~astropy.units.Quantity`
+            A ``(l, m, k)`` shaped quantity, where ``l`` is the number of
+            temperatures, ``m`` is the number of densities, and ``k``
+            is the number of transitions corresponding to the transition
+            wavelengths described above. If ``couple_density_to_temperature=True``,
+            then ``m=1`` and ``l`` represents the number of temperatures and densities.
+
+        See Also
+        --------
+        level_populations
         """
+        couple_density_to_temperature = kwargs.get('couple_density_to_temperature', False)
         populations = self.level_populations(density, **kwargs)
-        term = np.outer(self.ioneq, 1./density) * self.abundance * 0.83
+        if couple_density_to_temperature:
+            term = self.ioneq / density
+            term = term[:, np.newaxis, np.newaxis]
+        else:
+            term = np.outer(self.ioneq, 1./density)
+            term = term[:, :, np.newaxis]
+        term *= self.abundance * 0.83
         # Exclude two-photon transitions
         upper_level = self.transitions.upper_level[~self.transitions.is_twophoton]
         wavelength = self.transitions.wavelength[~self.transitions.is_twophoton]
         A = self.transitions.A[~self.transitions.is_twophoton]
         energy = const.h * const.c / wavelength
         i_upper = vectorize_where(self._elvlc['level'], upper_level)
-        g = term[:, :, np.newaxis] * populations[:, :, i_upper] * (A * energy)
+        g = term * populations[:, :, i_upper] * (A * energy)
         return g
 
     @u.quantity_input
@@ -539,6 +590,23 @@ Using Datasets:
         ----------
         density : `~astropy.units.Quantity`
             Electron number density
+        couple_density_to_temperature: `bool`, optional
+            If True, the density will vary along the same axis as temperature
+            in the computed level populations. The number of densities must be the same as the number of temperatures. This is useful, for
+            example, when computing the level populations at constant
+            pressure and is also much faster than computing the level
+            populations along an independent density axis. By default, this
+            is set to False.
+
+        Returns
+        -------
+        `~astropy.units.Quantity`
+            A ``(l, m, k)`` shaped quantity, where ``l`` is the number of
+            temperatures, ``m`` is the number of densities, and ``k``
+            is the number of transitions corresponding to the transition
+            wavelengths described in `contribution_function`.
+            If ``couple_density_to_temperature=True``, then ``m=1`` and
+            ``l`` represents the number of temperatures and densities.
 
         See Also
         --------
@@ -546,7 +614,13 @@ Using Datasets:
         """
         density = np.atleast_1d(density)
         g = self.contribution_function(density, **kwargs)
-        return g * (density**2)[np.newaxis, :, np.newaxis]
+        density_squared = density**2
+        couple_density_to_temperature = kwargs.get('couple_density_to_temperature', False)
+        if couple_density_to_temperature:
+            density_squared = density_squared[:, np.newaxis, np.newaxis]
+        else:
+            density_squared = density_squared[np.newaxis, :, np.newaxis]
+        return g * density_squared
 
     @u.quantity_input
     def intensity(self,
@@ -580,7 +654,24 @@ Using Datasets:
         density : `~astropy.units.Quantity`
             Electron number density
         emission_measure : `~astropy.units.Quantity`
-            Column emission measure
+            Column emission measure. Must be either a scalar, an array of length 1, or
+            an array with the same length as ``temperature``.
+        couple_density_to_temperature: `bool`, optional
+            If True, the density will vary along the same axis as temperature.
+            The number of densities must be the same as the number of temperatures.
+            This is useful, for example, when computing the intensities at constant
+            pressure and is also much faster than computing the intensity
+            along an independent density axis. By default, this is set to False.
+
+        Returns
+        -------
+        `~astropy.units.Quantity`
+            A ``(l, m, k)`` shaped quantity, where ``l`` is the number of
+            temperatures, ``m`` is the number of densities, and ``k``
+            is the number of transitions corresponding to the transition
+            wavelengths described in `contribution_function`.
+            If ``couple_density_to_temperature=True``, then ``m=1`` and
+            ``l`` represents the number of temperatures and densities.
         """
         emission_measure = np.atleast_1d(emission_measure)
         g = self.contribution_function(density, **kwargs)
