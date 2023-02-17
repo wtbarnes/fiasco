@@ -199,6 +199,11 @@ def test_emissivity_shape(c6):
     assert emiss.shape == c6.temperature.shape + (1,) + wavelength.shape
 
 
+def test_coupling_unequal_dimensions_exception(ion):
+    with pytest.raises(ValueError, match='Temperature and density must be of equal length'):
+        _ = ion.level_populations([1e7, 1e8]*u.cm**(-3), couple_density_to_temperature=True)
+
+
 def test_emissivity(ion):
     emm = ion.emissivity(1e7 * u.cm**-3)
     assert emm.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape

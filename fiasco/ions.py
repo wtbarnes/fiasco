@@ -424,6 +424,12 @@ Using Datasets:
                 'Not including proton excitation and de-excitation in level populations calculation.')
             include_protons = False
 
+        density = np.atleast_1d(density)
+        if couple_density_to_temperature:
+            if density.shape != self.temperature.shape:
+                raise ValueError('Temperature and density must be of equal length if density is '
+                                 'coupled to the temperature axis.')
+
         level = self._elvlc['level']
         lower_level = self._scups['lower_level']
         upper_level = self._scups['upper_level']
@@ -459,14 +465,16 @@ Using Datasets:
             dex_diagonal_p = vectorize_where_sum(
                 upper_level_p, level, dex_rate_p.value.T, 0).T * dex_rate_p.unit
 
-        # Populate density dependent terms and solve matrix equation for each density value
-        density = np.atleast_1d(density)
+        # NOTE: The reason for this conditional is so that the loop below only
+        # performs one iteration and the density value at that one iteration is
+        # the entire density array such that density and temperature vary together
         if couple_density_to_temperature:
             density = [density]
             density_shape = (1,)
         else:
             density_shape = density.shape
         populations = np.zeros(self.temperature.shape + density_shape + (level.max(),))
+        # Populate density dependent terms and solve matrix equation for each density value
         for i, _d in enumerate(density):
             c_matrix = coeff_matrix.copy()
             # NOTE: the following manipulation is needed such that both
