@@ -38,20 +38,22 @@ plt.show()
 
 ############################################################
 # Next, we construct for the `~fiasco.Ion` object for Fe 18. Note
-# that we choose to use the coronal abundances of :cite:t:`feldman_potential_1992`.
+# that by default we use the coronal abundances of :cite:t:`feldman_potential_1992`.
 temperature = 10.**(np.arange(4.5, 8, 0.05)) * u.K
-fe18 = fiasco.Ion('Fe 18', temperature,
-                  abundance_filename='sun_coronal_1992_feldman')
+fe18 = fiasco.Ion('Fe 18', temperature)
 
 ############################################################
-# Compute contribution function,
+# Compute the contribution function,
 #
 # .. math:: G(n,T,\lambda) = 0.83\mathrm{Ab}\frac{hc}{\lambda}N_{\lambda}A_{\lambda}f\frac{1}{n}
 #
-# for each transition of Fe 18 at a single density.
-# `~fiasco.Ion.contribution_function` also accepts an array of
-# densities, but this requires significantly more computation.
-g = fe18.contribution_function(1e9 * u.cm**(-3), include_protons=False)
+# for each transition of Fe 18 at constant pressure of :math:`10^{15}`
+# K :math:`\mathrm{cm}^{-3}`. Note that we use the ``couple_density_to_temperature``
+# keyword such that temperature and density vary along the same axis.
+constant_pressure = 1e15 * u.K * u.cm**(-3)
+density = constant_pressure / fe18.temperature
+g = fe18.contribution_function(density, include_protons=False,
+                               couple_density_to_temperature=True)
 
 ############################################################
 # Get the corresponding transition wavelengths
@@ -93,8 +95,6 @@ plt.show()
 
 ############################################################
 # Note that this represents only the contribution of Fe 18 to the 94
-# angstrom bandpass for a single density. In order to construct the full
+# angstrom bandpass. In order to construct the full
 # response functions, one would need to repeat this procedure for every
-# ion listed in the CHIANTI atomic database and for all AIA channels. The
-# assumption of constant pressure is also often used such that the density
-# varies inversely with the pressure.
+# ion listed in the CHIANTI atomic database and for all AIA channels.

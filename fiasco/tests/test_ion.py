@@ -27,6 +27,11 @@ def fe10(hdf5_dbase_root):
     return fiasco.Ion('Fe 10', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
 
+@pytest.fixture
+def c6(hdf5_dbase_root):
+    return fiasco.Ion('C VI', temperature, hdf5_dbase_root=hdf5_dbase_root)
+
+
 def test_new_instance(ion):
     abundance_filename = ion._instance_kwargs['abundance_filename']
     new_ion = ion._new_instance()
@@ -166,6 +171,39 @@ def test_contribution_function(ion):
     assert u.allclose(cont_func[0, 0, 0], 2.08668713e-30 * u.cm**3 * u.erg / u.s)
 
 
+def test_emissivity_shape(c6):
+    # NOTE: Explicitly testing C VI here because it has a psplups file
+    # and thus will compute the proton rates as well which have a specific
+    # codepath for coupled density/temperature.
+    # NOTE: Test that coupled temperature/density appropriately propagate through
+    # and that resulting quantity has the right shape.
+    # Using the emissivity quantity here because it is the highest level
+    # product that needs to manipulate the density. This will implicitly test the
+    # contribution function as well.
+    #
+    # Scalar, no coupling
+    density = 1e9 * u.cm**(-3)
+    emiss = c6.emissivity(density)
+    wavelength = c6.transitions.wavelength[~c6.transitions.is_twophoton]
+    assert emiss.shape == c6.temperature.shape + (1,) + wavelength.shape
+    # Array, no coupling
+    density = [1e8, 1e9, 1e10] * u.cm**(-3)
+    emiss = c6.emissivity(density)
+    wavelength = c6.transitions.wavelength[~c6.transitions.is_twophoton]
+    assert emiss.shape == c6.temperature.shape + density.shape + wavelength.shape
+    # Array, with coupling
+    pressure = 1e15 * u.K * u.cm**(-3)
+    density = pressure / c6.temperature
+    emiss = c6.emissivity(density, couple_density_to_temperature=True)
+    wavelength = c6.transitions.wavelength[~c6.transitions.is_twophoton]
+    assert emiss.shape == c6.temperature.shape + (1,) + wavelength.shape
+
+
+def test_coupling_unequal_dimensions_exception(ion):
+    with pytest.raises(ValueError, match='Temperature and density must be of equal length'):
+        _ = ion.level_populations([1e7, 1e8]*u.cm**(-3), couple_density_to_temperature=True)
+
+
 def test_emissivity(ion):
     emm = ion.emissivity(1e7 * u.cm**-3)
     assert emm.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape
@@ -179,8 +217,17 @@ def test_emissivity(ion):
     1e29 * np.ones(temperature.shape) * u.cm**-5,
 ])
 def test_intensity(ion, em):
+    wave_shape = ion._wgfa['wavelength'].shape
     intens = ion.intensity(1e7 * u.cm**-3, em)
-    assert intens.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape
+    assert intens.shape == ion.temperature.shape + (1, ) + wave_shape
+    # Test density varying along independent axis
+    density = [1e7, 1e9, 1e10] * u.cm**(-3)
+    intens = ion.intensity(density, em)
+    assert intens.shape == ion.temperature.shape + density.shape + wave_shape
+    # Test density varying along same axis as temperature
+    density = 1e15 * u.K * u.cm**(-3) / ion.temperature
+    intens = ion.intensity(density, em, couple_density_to_temperature=True)
+    assert intens.shape == ion.temperature.shape + (1, ) + wave_shape
 
 
 def test_excitation_autoionization_rate(ion):
