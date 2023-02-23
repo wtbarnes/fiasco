@@ -156,12 +156,19 @@ class PsplupsParser(ScupsParser):
     ]
 
     def preprocessor(self, table, line, index):
-        tmp = line.strip().split()
-        # 5-point fit for type 6, 9-point fit for type 2
-        n_spline = 5 if int(tmp[2]) == 6 else 9
+        n_spline =  9  # Max number of spline points
         fformat = fortranformat.FortranRecordReader(f'(3I3,{3+n_spline}E10.3)')
         line = fformat.read(line)
-        row = line[:6] + [np.array(line[6:])]
+        # NOTE: The first six entries are fixed. The last entry is the scaled
+        # spline fit to the rate array and can vary in length.
+        # NOTE: Some spline fits only have 5 points and the scaling type is not
+        # a reliable way to determine this so we have to filter these manually.
+        # When fortranformat has missing entries, it fills them in as None. We
+        # remove them here to avoid the undefined behavior of None in a ragged
+        # array within an astropy Table.
+        spline_fit = line[6:]
+        spline_fit = [sf for sf in spline_fit if sf is not None]
+        row = line[:6] + [np.array(spline_fit)]
         table.append(row)
 
 
