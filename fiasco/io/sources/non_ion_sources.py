@@ -184,13 +184,21 @@ class DemParser(GenericParser):
 
     def to_hdf5(self, hf, df):
         dataset_name = pathlib.Path(self.filename).stem
+        # NOTE: the following is necessary as there are sometimes subdirectories within the DEM
+        # directory and some files within these subdirectories may have names that conflict with
+        # DEM files in the top level DEM directory. Thus, we append the name of the subdirectory
+        # to the dataset name to differentiate these DEM datasets.
+        # NOTE: For relative paths, the first entry in 'parents' is always ".", the current
+        # directory so we skip this.
+        suffixes = [str(p) for p in pathlib.Path(self.filename).parents][:-1]
+        dataset_name = '_'.join([dataset_name] + suffixes)
         footer = f"""{dataset_name}
 ------------------
 {df.meta['footer']}"""
         grp_name = '/'.join(['dem', dataset_name])
         if grp_name not in hf:
             grp = hf.create_group(grp_name)
-            grp.attrs['footer'] = df.meta['footer']
+            grp.attrs['footer'] = footer
             grp.attrs['chianti_version'] = df.meta['chianti_version']
         else:
             grp = hf[grp_name]
