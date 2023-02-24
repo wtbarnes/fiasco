@@ -511,6 +511,36 @@ Using Datasets:
 
         return u.Quantity(populations)
 
+    @needs_dataset('cilvl', 'reclvl')
+    @u.quantity_input
+    def population_correction(self, population, density, rate_matrix):
+        """
+        Correct level population to account for ionization and
+        recombination processes.
+
+        Corrects the level population to account for ionization and
+        recombination processes.
+
+        Parameters
+        ----------
+        population
+        density
+        rate_matrix
+        """
+        # Interpolate rates
+        # NOTE: According to CHIANTI Technical Report No. 20, Section 5,
+        # the interpolation should be linear. For the recombination, the rates
+        # should be zero below the temperature range and above the temperature
+        # range, the last two points should be used to perform a linear
+        # extrapolation. For the ionization rates, the opposite should be done.
+        # NOTE: should construct a total denominator array and interpolate each to
+        # the appropriate temperature and insert them at the correct level.
+        # Compute numerator
+        # Compute denominator
+        # NOTE: all quantities should be on a grid that has dimensions n_temperature
+        # by n_levels, the same dimensions as the level populations
+        ...
+
     @needs_dataset('abundance', 'elvlc')
     @u.quantity_input
     def contribution_function(self, density: u.cm**(-3), **kwargs) -> u.cm**3 * u.erg / u.s:
