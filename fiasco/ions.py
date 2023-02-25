@@ -389,6 +389,7 @@ Using Datasets:
     def level_populations(self,
                           density: u.cm**(-3),
                           include_protons=True,
+                          include_level_resolved_rate_correction=True,
                           couple_density_to_temperature=False) -> u.dimensionless_unscaled:
         """
         Energy level populations as a function of temperature and density.
@@ -507,39 +508,125 @@ Using Datasets:
             # positivity
             np.fabs(pop, out=pop)
             np.divide(pop, pop.sum(axis=1)[:, np.newaxis], out=pop)
+            # Apply ionization/recombination correction
+            if include_level_resolved_rate_correction:
+                correction = self._population_correction(pop, d, c_matrix)
+                pop *= correction
+                np.divide(pop, pop.sum(axis=1)[:, np.newaxis], out=pop)
             populations[:, i, :] = pop
 
         return u.Quantity(populations)
 
-    @needs_dataset('cilvl', 'reclvl')
+    def _level_resolved_rates_interpolation(self, temperature, rate, extrapolate_above=True):
+        # NOTE: According to CHIANTI Technical Report No. 20, Section 5,
+        # the interpolation of the level resolved recombination,
+        # the rates should be zero below the temperature range and above
+        # the temperature range, the last two points should be used to perform
+        # a linear extrapolation. For the ionization rates, the rates should be
+        # zero above the temperature range and below the temperature range, the
+        # last two points should be used. Thus, we need to perform two interpolations
+        # for each level.
+        # NOTE: In the CHIANTI IDL code, the interpolation is done using a cubic spline.
+        # However, here I've used a linear spline as I found that, for some of the
+        # recombination rates, this led to oscillations in the interpolated rates over
+        # some parts of the temperature range. Using a linear spline avoids this at the
+        # cost of having a less smooth correction factor.
+        temperature_ion = self.temperature.to_value('K')
+        rates = []
+        for t, r in zip(temperature.to_value('K'), rate.to_value('cm3 s-1')):
+            f_interp = interp1d(t, r, kind='slinear', fill_value=0.0, bounds_error=False)
+            rate_interp = f_interp(temperature_ion)
+            if extrapolate_above:
+                f_extrapolate = interp1d(t[-2:], r[-2:], kind='linear', fill_value='extrapolate')
+                i_extrapolate = np.where(temperature_ion > t[-1])
+            else:
+                f_extrapolate = interp1d(t[:2], r[:2], kind='linear', fill_value='extrapolate')
+                i_extrapolate = np.where(temperature_ion < t[0])
+            rate_interp[i_extrapolate] = f_extrapolate(temperature_ion[i_extrapolate])
+            rates.append(rate_interp)
+        # NOTE: Take transpose to maintain consistent ordering of temperature in the leading
+        # dimension and levels in the last dimension
+        rates =  u.Quantity(rates, 'cm3 s-1').T
+        # NOTE: The linear extrapolation at either end may return rates < 0 so we set these
+        # to zero.
+        rates = np.where(rates<0, 0, rates)
+        return rates
+
+    @cached_property
+    @needs_dataset('cilvl')
     @u.quantity_input
-    def population_correction(self, population, density, rate_matrix):
+    def _level_resolved_ionization_rate(self):
+        ionization_rates = self._level_resolved_rates_interpolation(
+            self._cilvl['temperature'],
+            self._cilvl['ionization_rate'],
+            extrapolate_above=False,
+        )
+        return self._cilvl['upper_level'], ionization_rates
+
+    @cached_property
+    @needs_dataset('reclvl')
+    @u.quantity_input
+    def _level_resolved_recombination_rate(self):
+        recombination_rates = self._level_resolved_rates_interpolation(
+            self._reclvl['temperature'],
+            self._reclvl['recombination_rate'],
+            extrapolate_above=True,
+        )
+        return self._reclvl['upper_level'], recombination_rates
+
+    @u.quantity_input
+    def _population_correction(self, population, density, rate_matrix):
         """
         Correct level population to account for ionization and
         recombination processes.
 
-        Corrects the level population to account for ionization and
-        recombination processes.
-
         Parameters
         ----------
-        population
-        density
-        rate_matrix
+        population: `np.ndarray`
+        density: `~astropy.units.Quantity`
+        rate_matrix: `~astropy.units.Quantity`
+
+        Returns
+        -------
+        correction: `np.ndarray`
+            Correction factor to multiply populations by
         """
-        # Interpolate rates
-        # NOTE: According to CHIANTI Technical Report No. 20, Section 5,
-        # the interpolation should be linear. For the recombination, the rates
-        # should be zero below the temperature range and above the temperature
-        # range, the last two points should be used to perform a linear
-        # extrapolation. For the ionization rates, the opposite should be done.
-        # NOTE: should construct a total denominator array and interpolate each to
-        # the appropriate temperature and insert them at the correct level.
-        # Compute numerator
-        # Compute denominator
-        # NOTE: all quantities should be on a grid that has dimensions n_temperature
-        # by n_levels, the same dimensions as the level populations
-        ...
+        try:
+            upper_level_ionization, ionization_rate = self._level_resolved_ionization_rate
+            upper_level_recombination, recombination_rate = self._level_resolved_recombination_rate
+        except MissingDatasetException:
+            # The cilvl and reclvl files do not exist for this ion so there is no correction factor
+            return 1.0
+        # Ionization fraction of current and surrounding ions, normalized by current ionization fraction
+        ioneq_previous = (self.previous_ion().ioneq / self.ioneq)[:, np.newaxis]
+        ioneq_next = (self.next_ion().ioneq / self.ioneq)[:, np.newaxis]
+        # This fraction will blow up when current ion fraction is zero so we just set the ratio to zero
+        # here. This is equivalent to not applying any correction at these temperatures
+        ioneq_previous[~np.isfinite(ioneq_previous)] = 0.0
+        ioneq_next[~np.isfinite(ioneq_next)] = 0.0
+        # NOTE: Do this piecemeal because ionization and recombination rates do not necessarily have the
+        # same number of levels so we have to compute each term separately before adding.
+        # NOTE: stripping the units off and adding them at the end because of some strange astropy
+        # Quantity behavior that does not allow for adding these two compatible shapes together.
+        numerator = np.zeros(population.shape)
+        numerator[:, upper_level_ionization-1] += (ionization_rate * ioneq_previous).to_value('cm3 s-1')
+        numerator[:, upper_level_recombination-1] += (recombination_rate * ioneq_next).to_value('cm3 s-1')
+        numerator *= density.to_value('cm-3')
+
+        c = rate_matrix.to_value('s-1').copy()
+        # This excludes processes that depopulate the level
+        i_diag, j_diag = np.diag_indices(c.shape[1])
+        c[:, i_diag, j_diag] = 0.0
+        # This is the sum of the population-weighted excitations from lower levels
+        # and the cascades from the higher levels
+        denominator = np.einsum('ijk,ik->ij', c, population)
+
+        ratio = numerator / denominator
+        # Set ratio to zero where denominator is zero to avoid it blowing up.
+        ratio = np.where(denominator==0.0, 0.0, ratio)
+        # NOTE: Correction should not affect the ground state populations
+        ratio[:, 0] = 0.0
+        return 1.0 + ratio
 
     @needs_dataset('abundance', 'elvlc')
     @u.quantity_input
