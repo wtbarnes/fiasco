@@ -32,6 +32,13 @@ def c6(hdf5_dbase_root):
     return fiasco.Ion('C VI', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
 
+@pytest.fixture
+def fe20(hdf5_dbase_root):
+    # NOTE: This ion was added because it has reclvl and cilvl files which
+    # we need to test the level-resolved rate correction factor
+    return fiasco.Ion('Fe XX', temperature, hdf5_dbase_root=hdf5_dbase_root)
+
+
 def test_new_instance(ion):
     abundance_filename = ion._instance_kwargs['abundance_filename']
     new_ion = ion._new_instance()
@@ -99,15 +106,7 @@ def test_scalar_temperature(hdf5_dbase_root):
     t_data = ion._ioneq[ion._dset_names['ioneq_filename']]['temperature']
     ioneq_data = ion._ioneq[ion._dset_names['ioneq_filename']]['ionization_fraction']
     i_t = np.where(t_data == ion.temperature)
-    np.testing.assert_allclose(ioneq, ioneq_data[i_t])
-
-
-def test_scalar_density(hdf5_dbase_root):
-    ion = fiasco.Ion('H 1', temperature, hdf5_dbase_root=hdf5_dbase_root)
-    pop = ion.level_populations(1e8 * u.cm**-3)
-    assert pop.shape == ion.temperature.shape + (1,) + ion._elvlc['level'].shape
-    # This value has not been checked for correctness
-    np.testing.assert_allclose(pop[0, 0, 0], 0.9965048292729177)
+    assert u.allclose(ioneq, ioneq_data[i_t])
 
 
 def test_no_elvlc_raises_index_error(hdf5_dbase_root):
@@ -122,7 +121,7 @@ def test_ioneq(ion):
     i_t = np.where(t_data == ion.temperature[0])
     # Essentially test that we've done the interpolation to the data correctly
     # for a single value
-    np.testing.assert_allclose(ion.ioneq[0], ioneq_data[i_t])
+    assert u.allclose(ion.ioneq[0], ioneq_data[i_t])
 
 
 def test_formation_temeprature(ion):
@@ -132,7 +131,7 @@ def test_formation_temeprature(ion):
 def test_abundance(ion):
     assert ion.abundance.dtype == np.dtype('float64')
     # This value has not been tested for correctness
-    np.testing.assert_allclose(ion.abundance, 0.0001258925411794166)
+    assert u.allclose(ion.abundance, 0.0001258925411794166)
 
 
 def test_proton_collision(fe10):
@@ -162,6 +161,15 @@ def test_missing_ip(hdf5_dbase_root):
     ion = fiasco.Ion('Fe 27', temperature, hdf5_dbase_root=hdf5_dbase_root)
     with pytest.raises(MissingDatasetException):
         _ = ion.ip
+
+
+def test_level_populations(ion):
+    pop = ion.level_populations(1e8 * u.cm**-3)
+    assert pop.shape == ion.temperature.shape + (1,) + ion._elvlc['level'].shape
+    # This value has not been checked for correctness
+    assert u.allclose(pop[0, 0, 0], 0.011643747849652244)
+    # Check that the total populations are normalized to 1 for all temperatures
+    assert u.allclose(pop.squeeze().sum(axis=1), 1, atol=None, rtol=1e-15)
 
 
 def test_contribution_function(ion):
@@ -202,6 +210,39 @@ def test_emissivity_shape(c6):
 def test_coupling_unequal_dimensions_exception(ion):
     with pytest.raises(ValueError, match='Temperature and density must be of equal length'):
         _ = ion.level_populations([1e7, 1e8]*u.cm**(-3), couple_density_to_temperature=True)
+
+
+@pytest.fixture
+def pops_with_correction(fe20):
+    return fe20.level_populations(1e9*u.cm**(-3)).squeeze()
+
+
+@pytest.fixture
+def pops_no_correction(fe20):
+    return fe20.level_populations(1e9*u.cm**(-3),
+                                  include_level_resolved_rate_correction=False).squeeze()
+
+
+def test_level_populations_normalized(pops_no_correction, pops_with_correction):
+    assert u.allclose(pops_with_correction.sum(axis=1), 1, atol=None, rtol=1e-15)
+    assert u.allclose(pops_no_correction.sum(axis=1), 1, atol=None, rtol=1e-15)
+
+
+def test_level_populations_correction(fe20, pops_no_correction, pops_with_correction):
+    # Test level-resolved correction applied to correct levels
+    i_corrected = np.unique(np.concatenate([fe20._cilvl['upper_level'], fe20._reclvl['upper_level']]))
+    i_corrected -= 1
+    # This tests that, for at least some portion of the temperature axis, the populations are
+    # significantly different for each corrected level
+    pops_equal = u.isclose(pops_with_correction[:, i_corrected], pops_no_correction[:, i_corrected],
+                           atol=0.0, rtol=1e-5)
+    assert ~np.all(np.all(pops_equal, axis=0))
+    # All other levels should be unchanged (with some tolerance for renormalization)
+    is_uncorrected = np.ones(pops_no_correction.shape[-1], dtype=bool)
+    is_uncorrected[i_corrected] = False
+    i_uncorrected = np.where(is_uncorrected)
+    assert u.allclose(pops_with_correction[:, i_uncorrected], pops_no_correction[:, i_uncorrected],
+                      atol=0.0, rtol=1e-5)
 
 
 def test_emissivity(ion):
