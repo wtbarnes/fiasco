@@ -6,7 +6,7 @@ import astropy.units as u
 import numpy as np
 
 from functools import cached_property
-from scipy.interpolate import interp1d, splev, splrep
+from scipy.interpolate import interp1d, pchip_interpolate, splev, splrep
 from scipy.ndimage import map_coordinates
 
 from fiasco import proton_electron_ratio
@@ -177,12 +177,13 @@ Using Datasets:
         --------
         fiasco.Element.equilibrium_ionization
         """
-        f = interp1d(self._ioneq[self._dset_names['ioneq_filename']]['temperature'].to('MK').value,
-                     self._ioneq[self._dset_names['ioneq_filename']]['ionization_fraction'],
-                     kind='linear',
-                     bounds_error=False,
-                     fill_value=np.nan)
-        ioneq = f(self.temperature.to('MK').value)
+        # FIXME: Needs explanation of why this interpolation scheme is used...
+        temperature = self.temperature.to_value('MK')
+        temperature_data = self._ioneq[self._dset_names['ioneq_filename']]['temperature'].to_value('MK')
+        ioneq_data = self._ioneq[self._dset_names['ioneq_filename']]['ionization_fraction'].value
+        ioneq = pchip_interpolate(temperature_data, ioneq_data, temperature)
+        out_of_bounds = np.logical_and(temperature<temperature_data.min(), temperature>temperature_data.max())
+        ioneq = np.where(out_of_bounds, np.nan, ioneq)
         isfinite = np.isfinite(ioneq)
         ioneq[isfinite] = np.where(ioneq[isfinite] < 0., 0., ioneq[isfinite])
         return u.Quantity(ioneq)
@@ -517,7 +518,9 @@ Using Datasets:
 
         return u.Quantity(populations)
 
-    def _level_resolved_rates_interpolation(self, temperature, rate, extrapolate_above=True):
+    def _level_resolved_rates_interpolation(self, temperature_table, rate_table,
+                                            extrapolate_above=False,
+                                            extrapolate_below=False):
         # NOTE: According to CHIANTI Technical Report No. 20, Section 5,
         # the interpolation of the level resolved recombination,
         # the rates should be zero below the temperature range and above
@@ -531,18 +534,20 @@ Using Datasets:
         # recombination rates, this led to oscillations in the interpolated rates over
         # some parts of the temperature range. Using a linear spline avoids this at the
         # cost of having a less smooth correction factor.
-        temperature_ion = self.temperature.to_value('K')
+        temperature = self.temperature.to_value('K')
         rates = []
-        for t, r in zip(temperature.to_value('K'), rate.to_value('cm3 s-1')):
-            f_interp = interp1d(t, r, kind='slinear', fill_value=0.0, bounds_error=False)
-            rate_interp = f_interp(temperature_ion)
+        for t, r in zip(temperature_table.to_value('K'), rate_table.to_value('cm3 s-1')):
+            # FIXME: This needs explanation...is it even worth it?
+            rate_interp = pchip_interpolate(t, r, temperature)
+            rate_interp = np.where(np.logical_and(temperature<t[0], temperature>t[-1]), 0, rate_interp)
             if extrapolate_above:
                 f_extrapolate = interp1d(t[-2:], r[-2:], kind='linear', fill_value='extrapolate')
-                i_extrapolate = np.where(temperature_ion > t[-1])
-            else:
+                i_extrapolate = np.where(temperature > t[-1])
+                rate_interp[i_extrapolate] = f_extrapolate(temperature[i_extrapolate])
+            if extrapolate_below:
                 f_extrapolate = interp1d(t[:2], r[:2], kind='linear', fill_value='extrapolate')
-                i_extrapolate = np.where(temperature_ion < t[0])
-            rate_interp[i_extrapolate] = f_extrapolate(temperature_ion[i_extrapolate])
+                i_extrapolate = np.where(temperature < t[0])
+                rate_interp[i_extrapolate] = f_extrapolate(temperature[i_extrapolate])
             rates.append(rate_interp)
         # NOTE: Take transpose to maintain consistent ordering of temperature in the leading
         # dimension and levels in the last dimension
@@ -559,6 +564,7 @@ Using Datasets:
         ionization_rates = self._level_resolved_rates_interpolation(
             self._cilvl['temperature'],
             self._cilvl['ionization_rate'],
+            extrapolate_below=True,
             extrapolate_above=False,
         )
         return self._cilvl['upper_level'], ionization_rates
@@ -570,6 +576,7 @@ Using Datasets:
         recombination_rates = self._level_resolved_rates_interpolation(
             self._reclvl['temperature'],
             self._reclvl['recombination_rate'],
+            extrapolate_below=False,
             extrapolate_above=True,
         )
         return self._reclvl['upper_level'], recombination_rates
@@ -597,15 +604,10 @@ Using Datasets:
         except MissingDatasetException:
             # The cilvl and reclvl files do not exist for this ion so there is no correction factor
             return 1.0
-        # Ionization fraction of current and surrounding ions, normalized by current ionization fraction
-        ioneq_previous = (self.previous_ion().ioneq / self.ioneq)[:, np.newaxis]
-        ioneq_next = (self.next_ion().ioneq / self.ioneq)[:, np.newaxis]
-        # This fraction will blow up when current ion fraction is zero so we just set the ratio to zero
-        # here. This is equivalent to not applying any correction at these temperatures
-        ioneq_previous[~np.isfinite(ioneq_previous)] = 0.0
-        ioneq_next[~np.isfinite(ioneq_next)] = 0.0
-        # NOTE: Do this piecemeal because ionization and recombination rates do not necessarily have the
-        # same number of levels so we have to compute each term separately before adding.
+        # Ionization fraction of current and surrounding ions with appropriate shape
+        ioneq_current = self.ioneq.value[:, np.newaxis]
+        ioneq_previous = self.previous_ion().ioneq.value[:, np.newaxis]
+        ioneq_next = self.next_ion().ioneq.value[:, np.newaxis]
         # NOTE: stripping the units off and adding them at the end because of some strange astropy
         # Quantity behavior that does not allow for adding these two compatible shapes together.
         numerator = np.zeros(population.shape)
@@ -617,13 +619,17 @@ Using Datasets:
         # This excludes processes that depopulate the level
         i_diag, j_diag = np.diag_indices(c.shape[1])
         c[:, i_diag, j_diag] = 0.0
-        # This is the sum of the population-weighted excitations from lower levels
-        # and the cascades from the higher levels
+        # Sum of the population-weighted excitations from lower levels
+        # and cascades from higher levels
         denominator = np.einsum('ijk,ik->ij', c, population)
+        denominator *= ioneq_current
+        # Set any zero entries to NaN to avoid divide by zero warnings
+        denominator = np.where(denominator==0.0, np.nan, denominator)
 
         ratio = numerator / denominator
-        # Set ratio to zero where denominator is zero to avoid it blowing up.
-        ratio = np.where(denominator==0.0, 0.0, ratio)
+        # Set ratio to zero where denominator is zero. This also covers the
+        # case of out-of-bounds ionization fractions (which will be NaN)
+        ratio = np.where(np.isfinite(ratio), ratio, 0.0)
         # NOTE: Correction should not affect the ground state populations
         ratio[:, 0] = 0.0
         return 1.0 + ratio
