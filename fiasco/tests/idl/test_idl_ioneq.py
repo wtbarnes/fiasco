@@ -32,6 +32,7 @@ def ioneq_from_idl(idl_env, ascii_dbase_root):
     'C 2',
     'C 3',
     'Ca 2',
+    'Fe 20',
 ])
 def test_ioneq_from_idl(ion_name, ioneq_from_idl, hdf5_dbase_root):
     temperature = 10**ioneq_from_idl['ioneq_logt'] * u.K

@@ -115,13 +115,21 @@ def test_no_elvlc_raises_index_error(hdf5_dbase_root):
 
 
 def test_ioneq(ion):
-    assert ion.ioneq.shape == temperature.shape
     t_data = ion._ioneq[ion._dset_names['ioneq_filename']]['temperature']
     ioneq_data = ion._ioneq[ion._dset_names['ioneq_filename']]['ionization_fraction']
-    i_t = np.where(t_data == ion.temperature[0])
-    # Essentially test that we've done the interpolation to the data correctly
-    # for a single value
-    assert u.allclose(ion.ioneq[0], ioneq_data[i_t])
+    ion_at_nodes = ion._new_instance(temperature=t_data)
+    assert u.allclose(ion_at_nodes.ioneq, ioneq_data, rtol=1e-6)
+
+
+def test_ioneq_positive(ion):
+    assert np.all(ion.ioneq >= 0)
+
+
+def test_ioneq_out_bounds_is_nan(ion):
+    t_data = ion._ioneq[ion._dset_names['ioneq_filename']]['temperature']
+    t_out_of_bounds = t_data[[0,-1]] + [-100, 1e6] * u.K
+    ion_out_of_bounds = ion._new_instance(temperature=t_out_of_bounds)
+    assert np.isnan(ion_out_of_bounds.ioneq).all()
 
 
 def test_formation_temeprature(ion):
