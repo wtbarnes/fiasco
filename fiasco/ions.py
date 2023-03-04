@@ -355,6 +355,7 @@ Using Datasets:
 
         See Also
         --------
+        proton_collision_deexcitation_rate
         electron_collision_excitation_rate
         """
         # Create scaled temperature--these are not stored in the file
