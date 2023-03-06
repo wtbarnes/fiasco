@@ -84,6 +84,11 @@ TEST_FILES = {
     'fe_27.rrparams':                       '75383b0f1b167f862cfd26bbadd2a029',
     'fe_10.psplups':                        'dd34363f6daa81dbf106fbeb211b457d',
     'fe_10.elvlc':                          'f221d4c7167336556d57378ac368afc1',
+    'fe_20.elvlc':                          'bbddcf958dd41311ea24bf177c2b62de',
+    'fe_20.wgfa':                           'c991c30b98b03c9152ba5a2c71877149',
+    'fe_20.scups':                          'f0e375cad2ec8296efb2abcb8f02705e',
+    'fe_20.cilvl':                          'b71833c51a03c7073f1657ce60afcdbb',
+    'fe_20.reclvl':                         'cf28869709acef521fb6a1c9a2b59530',
 }
 
 
