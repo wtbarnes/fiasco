@@ -180,6 +180,13 @@ def test_level_populations(ion):
     assert u.allclose(pop.squeeze().sum(axis=1), 1, atol=None, rtol=1e-15)
 
 
+def test_level_populations_proton_data_toggle(ion):
+    # Fe V has no psplups data so the toggle should have no effect
+    lp_protons = ion.level_populations(1e9*u.cm**(-3), include_protons=True)
+    lp_no_protons = ion.level_populations(1e9*u.cm**(-3), include_protons=False)
+    assert u.allclose(lp_protons, lp_no_protons, atol=0, rtol=0)
+
+
 def test_contribution_function(ion):
     cont_func = ion.contribution_function(1e7 * u.cm**-3)
     assert cont_func.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape

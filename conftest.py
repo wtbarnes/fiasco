@@ -11,6 +11,6 @@ def pytest_addoption(parser):
                      help='Disable MD5 hash checks on test files')
     parser.addoption('--idl-executable', action='store', default=None)
     parser.addoption('--idl-codebase-root', action='store', default=None)
-    parser.addoption('--include-all-files', action='store', default=False)
+    parser.addoption('--include-all-files', action='store_true', default=False)
     parser.addoption('--skip-version-check', action='store_true', default=False,
                      help='Do not check CHIANTI version')
