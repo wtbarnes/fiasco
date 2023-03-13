@@ -23,6 +23,11 @@ def another_ion(hdf5_dbase_root):
 
 
 @pytest.fixture
+def h1(hdf5_dbase_root):
+    return fiasco.Ion('H 1', temperature, hdf5_dbase_root=hdf5_dbase_root)
+
+
+@pytest.fixture
 def fe10(hdf5_dbase_root):
     return fiasco.Ion('Fe 10', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
@@ -312,6 +317,15 @@ def test_free_bound(ion):
     assert emission.shape == ion.temperature.shape + (1, )
     # This value has not been tested for correctness
     assert u.allclose(emission[0, 0], 9.7902609e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
+
+
+def test_free_bound_no_recombining(h1):
+    # This is test the case where there is no data available for the recombining
+    # ion (H 2)
+    emission = h1.free_bound(200 * u.Angstrom)
+    assert emission.shape == h1.temperature.shape + (1, )
+        # This value has not been tested for correctness
+    assert u.allclose(emission[0, 0], 1.9611545671496785e-28 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
 
 def test_add_ions(ion, another_ion):

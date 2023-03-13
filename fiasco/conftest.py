@@ -31,6 +31,7 @@ TEST_FILES = {
     'h_1.wgfa':                             'ed2a561ecdba5ee4b05ea56c297724ba',
     'h_1.scups':                            'de180c9e1b4f50a503efad8c83e714ab',
     'h_1.diparams':                         'f9be79794cc092c75733ece7aba9f29f',
+    'h_1.fblvl':                            'af45fd1ee7af4b4e71aba288d0b16bc8',
     'h_2.rrparams':                         '05eb5044dc1ad070338d1ba3745dc4de',
     'he_1.elvlc':                           '577245da46cfc4d27a05f40147f17610',
     'he_2.elvlc':                           '58eee740f6842850f1f35a4f95b3e12c',
