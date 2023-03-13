@@ -411,37 +411,36 @@ Using Datasets:
         """
         Energy level populations as a function of temperature and density.
 
+        Compute the level populations of the given ion as a function of temperature and
+        density. This is done by solving the homogeneous linear system of equations
+        describing the processes that populate and depopulate each energy level of each
+        ion. Section 3 of :cite:t:`young_chianti_2016` provides a brief description of
+        this set of equations.
+
         Parameters
         ----------
         density : `~astropy.units.Quantity`
         include_protons : `bool`, optional
             If True (default), include proton excitation and de-excitation rates.
+        include_level_resolved_rate_correction: `bool`, optional
+            If True (default), include the level-resolved ionization and recombination rate
+            correction in the resulting level populations as described in Section 2.3 of
+            :cite:t:`landi_chianti-atomic_2006`.
         couple_density_to_temperature: `bool`, optional
             If True, the density will vary along the same axis as temperature
-            in the computed level populations. The number of densities must be the same as the number of temperatures. This is useful, for
-            example, when computing the level populations at constant
-            pressure and is also much faster than computing the level
-            populations along an independent density axis. By default, this
-            is set to False.
+            in the computed level populations and the number of densities must be the same as
+            the number of temperatures. This is useful, for example, when computing the level
+            populations at constant pressure and is also much faster than computing the level
+            populations along an independent density axis. By default, this is set to False.
 
         Returns
         -------
         `~astropy.units.Quantity`
             A ``(l, m, n)`` shaped quantity, where ``l`` is the number of
-            temperatures, ``m`` is the number of densities, and ``n``
-            is the number of energy levels. If
-            ``couple_density_to_temperature=True``, then ``m=1`` and ``l``
+            temperatures, ``m`` is the number of densities, and ``n`` is the number of energy
+            levels. If ``couple_density_to_temperature=True``, then ``m=1`` and ``l``
             represents the number of temperatures and densities.
         """
-        # NOTE: Cannot include protons if psplups data not available
-        try:
-            _ = self._psplups
-        except KeyError:
-            self.log.warning(
-                f'No proton data available for {self.ion_name}. '
-                'Not including proton excitation and de-excitation in level populations calculation.')
-            include_protons = False
-
         density = np.atleast_1d(density)
         if couple_density_to_temperature:
             if density.shape != self.temperature.shape:
@@ -467,7 +466,20 @@ Using Datasets:
             lower_level, level, ex_rate_e.value.T, 0).T * ex_rate_e.unit
         dex_diagonal_e = vectorize_where_sum(
             upper_level, level, dex_rate_e.value.T, 0).T * dex_rate_e.unit
+
         # Collisional--protons
+        if include_protons:
+            # NOTE: Cannot include protons if psplups data not available for this ion
+            try:
+                ex_rate_p = self.proton_collision_excitation_rate
+                dex_rate_p = self.proton_collision_deexcitation_rate
+            except MissingDatasetException:
+                self.log.warning(
+                    f'No proton data available for {self.ion_name}. '
+                    'Not including proton excitation and de-excitation in level populations calculation.')
+                include_protons = False
+        # NOTE: Having two of the same if blocks here is ugly, but necessary. We cannot continue
+        # with the proton rate calculation if the data is not available.
         if include_protons:
             lower_level_p = self._psplups['lower_level']
             upper_level_p = self._psplups['upper_level']
@@ -476,8 +488,6 @@ Using Datasets:
                 proton_density = (pe_ratio * density)[:, np.newaxis, np.newaxis]
             else:
                 proton_density = np.outer(pe_ratio, density)[:, :, np.newaxis]
-            ex_rate_p = self.proton_collision_excitation_rate
-            dex_rate_p = self.proton_collision_deexcitation_rate
             ex_diagonal_p = vectorize_where_sum(
                 lower_level_p, level, ex_rate_p.value.T, 0).T * ex_rate_p.unit
             dex_diagonal_p = vectorize_where_sum(
@@ -508,7 +518,7 @@ Using Datasets:
             # Excitation from lower states
             c_matrix[:, upper_level-1, lower_level-1] += d*ex_rate_e
             # Same processes as above, but for protons
-            if include_protons and self._psplups is not None:
+            if include_protons:
                 d_p = proton_density[:, i, :]
                 c_matrix[:, level-1, level-1] -= d_p*(ex_diagonal_p + dex_diagonal_p)
                 c_matrix[:, lower_level_p-1, upper_level_p-1] += d_p * dex_rate_p

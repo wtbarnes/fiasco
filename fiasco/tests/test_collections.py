@@ -104,7 +104,7 @@ def test_free_bound(another_collection, wavelength):
     assert fb.shape == temperature.shape + wavelength.shape if wavelength.shape else (1,)
     index_w = 50 if wavelength.shape else 0
     index_t = 24  # This is approximately where the ioneq for Fe V peaks
-    assert u.allclose(fb[index_t, index_w], 1.1573022245197259e-35 * u.Unit('erg cm3 s-1 Angstrom-1'))
+    assert u.allclose(fb[index_t, index_w], 3.057781475607237e-36 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
 
 def test_radiative_los(collection):
