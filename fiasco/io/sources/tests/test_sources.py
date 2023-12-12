@@ -22,6 +22,7 @@ import fiasco.io
     'fe_2.trparams',
     'fe_12.drparams',
     'al_3.diparams',
+    'fe_23.auto',
 ])
 def test_ion_sources(ascii_dbase_root, filename,):
     parser = fiasco.io.Parser(filename, ascii_dbase_root=ascii_dbase_root)

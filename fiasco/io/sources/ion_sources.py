@@ -416,3 +416,26 @@ class DiparamsParser(GenericIonParser):
             ionization_potential = tmp[0]
             cs_spline = np.array(tmp[1:], dtype=float)*1e-14
             table[-1] = [ionization_potential] + table[-1] + [cs_spline] + [0.0]
+
+
+class AutoParser(GenericIonParser):
+    """
+    Autoionization rates for each level in an ion
+    """
+    filetype = 'auto'
+    dtypes = [int, int, float, str, str]
+    units = [None, None, 1/u.s, None, None]
+    headings = ['lower_level', 'upper_level', 'autoionization_rate', 'lower_label', 'upper_label']
+    descriptions = [
+        'lower level index', 
+        'upper level index', 
+        'autoionization rate', 
+        'lower level label', 
+        'upper level label'
+    ]
+    fformat = fortranformat.FortranRecordReader('(2I7,E12.2,A30,A30)')
+
+    def preprocessor(self, table, line, index):
+        super().preprocessor(table, line, index)
+        # remove the dash in the second-to-last entry
+        table[-1][-2] = table[-1][-2].split('-')[0].strip()
