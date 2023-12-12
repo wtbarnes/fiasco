@@ -425,12 +425,18 @@ class AutoParser(GenericIonParser):
     filetype = 'auto'
     dtypes = [int, int, float, str, str]
     units = [None, None, 1/u.s, None, None]
-    headings = ['lower_level', 'upper_level', 'autoionization_rate', 'lower_label', 'upper_label']
+    headings = [
+        'lower_level',
+        'upper_level',
+        'autoionization_rate',
+        'lower_label',
+        'upper_label'
+    ]
     descriptions = [
-        'lower level index', 
-        'upper level index', 
-        'autoionization rate', 
-        'lower level label', 
+        'lower level index',
+        'upper level index',
+        'autoionization rate',
+        'lower level label',
         'upper level label'
     ]
     fformat = fortranformat.FortranRecordReader('(2I7,E12.2,A30,A30)')
