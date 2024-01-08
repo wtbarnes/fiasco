@@ -32,6 +32,6 @@ def test_get_chianti_catalog(ascii_dbase_root):
             'ip_files',
             'continuum_files',
             'ion_files']
-    for k in catalog:
+    for k in keys:
         assert k in catalog
         assert isinstance(catalog[k], list)

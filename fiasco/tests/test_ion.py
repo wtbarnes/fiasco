@@ -198,8 +198,12 @@ def test_contribution_function(ion):
     # This value has not been tested for correctness
     assert u.allclose(cont_func[0, 0, 0], 2.08668713e-30 * u.cm**3 * u.erg / u.s)
 
-
-def test_emissivity_shape(c6):
+@pytest.mark.parametrize(('density', 'use_coupling'), [
+    ([1e9,] * u.cm**(-3), False),
+    ([1e8, 1e9, 1e10] * u.cm**(-3), False),
+    (None, True)
+])
+def test_emissivity_shape(c6, density, use_coupling):
     # NOTE: Explicitly testing C VI here because it has a psplups file
     # and thus will compute the proton rates as well which have a specific
     # codepath for coupled density/temperature.
@@ -208,23 +212,15 @@ def test_emissivity_shape(c6):
     # Using the emissivity quantity here because it is the highest level
     # product that needs to manipulate the density. This will implicitly test the
     # contribution function as well.
-    #
-    # Scalar, no coupling
-    density = 1e9 * u.cm**(-3)
-    emiss = c6.emissivity(density)
+    if use_coupling:
+        pressure = 1e15 * u.K * u.cm**(-3)
+        density = pressure / c6.temperature
+        density_shape = (1,)
+    else:
+        density_shape = density.shape
+    emiss = c6.emissivity(density, couple_density_to_temperature=use_coupling)
     wavelength = c6.transitions.wavelength[~c6.transitions.is_twophoton]
-    assert emiss.shape == c6.temperature.shape + (1,) + wavelength.shape
-    # Array, no coupling
-    density = [1e8, 1e9, 1e10] * u.cm**(-3)
-    emiss = c6.emissivity(density)
-    wavelength = c6.transitions.wavelength[~c6.transitions.is_twophoton]
-    assert emiss.shape == c6.temperature.shape + density.shape + wavelength.shape
-    # Array, with coupling
-    pressure = 1e15 * u.K * u.cm**(-3)
-    density = pressure / c6.temperature
-    emiss = c6.emissivity(density, couple_density_to_temperature=True)
-    wavelength = c6.transitions.wavelength[~c6.transitions.is_twophoton]
-    assert emiss.shape == c6.temperature.shape + (1,) + wavelength.shape
+    assert emiss.shape == c6.temperature.shape + density_shape + wavelength.shape
 
 
 def test_coupling_unequal_dimensions_exception(ion):

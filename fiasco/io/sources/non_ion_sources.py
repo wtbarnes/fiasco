@@ -4,7 +4,6 @@ Source classes for CHIANTI filetypes not attached to ions
 import astropy.units as u
 import fortranformat
 import numpy as np
-import os
 import pathlib
 import plasmapy
 

@@ -159,7 +159,7 @@ plt.show()
 Te_eff =  carbon.temperature[[(np.fabs(carbon.equilibrium_ionization - carbon_nei[i, :])).sum(axis=1).argmin()
                           for i in range(carbon_nei.shape[0])]]
 plt.plot(t, Te.to('MK'), label=r'$T$')
-plt.plot(t, Te_eff.to('MK'), label='$T_{\mathrm{eff}}$')
+plt.plot(t, Te_eff.to('MK'), label=r'$T_{\mathrm{eff}}$')
 plt.xlim(t[[0,-1]].value)
 plt.legend()
 plt.show()

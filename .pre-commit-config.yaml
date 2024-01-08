@@ -1,30 +1,20 @@
 repos:
-  # The warnings/errors we check for here are:
-  # E101 - mix of tabs and spaces
-  # W191 - use of tabs
-  # W291 - trailing whitespace
-  # W292 - no newline at end of file
-  # W293 - trailing whitespace
-  # W391 - blank line at end of file
-  # E111 - 4 spaces per indentation level
-  # E112 - 4 spaces per indentation level
-  # E113 - 4 spaces per indentation level
-  # E303 - too many blank lines (3)
-  # E304 - blank lines found after function decorator
-  # E305 - expected 2 blank lines after class or function definition
-  # E306 - expected 1 blank line before a nested definition
-  # E502 - the backslash is redundant between brackets
-  # E722 - do not use bare except
-  # E901 - SyntaxError or IndentationError
-  # E902 - IOError
-  # F822: undefined name in __all__
-  # F823: local variable name referenced before assignment
-  - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: "v0.1.5"
     hooks:
-      - id: flake8
-        additional_dependencies: [flake8-use-pathlib]
-        args: ['--count', '--select', 'E101,W191,W291,W292,W293,W391,E111,E112,E113,E303,E304,E306,E502,E722,E901,E902,F822,F823,PL100,PL102,PL103,PL104,PL105,PL110,PL112,PL113,PL18,PL120,PL122,PL123']
+      - id: ruff
+        args: ["--fix"]
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.12.0
+    hooks:
+    - id: isort
+      name: isort
+      entry: isort
+      require_serial: true
+      language: python
+      types:
+      - python
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
@@ -41,31 +31,9 @@ repos:
       - id: mixed-line-ending
         exclude: ".*(.fits|.fts|.fit|.txt|.bib|tca.*)$"
 
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
-    hooks:
-    - id: pyupgrade
-      args: [--keep-runtime-typing, --py38-plus]
-      files: ^fiasco/
-
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.2
+    rev: v2.2.6
     hooks:
       - id: codespell
-        args: ['--config setup.cfg']
-
-  - repo: https://github.com/MarcoGorelli/absolufy-imports
-    rev: v0.3.1
-    hooks:
-    - id: absolufy-imports
-
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
-    hooks:
-    - id: isort
-      name: isort
-      entry: isort
-      require_serial: true
-      language: python
-      types:
-      - python
+        additional_dependencies:
+        - tomli
