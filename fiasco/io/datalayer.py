@@ -106,7 +106,7 @@ class DataIndexerHDF5:
         return key_in_grp
 
     def __getitem__(self, key):
-        if type(key) is int:
+        if isinstance(key, int):
             raise NotImplementedError('Iteration not supported.')
         if key not in self:
             raise KeyError(f'{key} not found in {self.top_level_path}')

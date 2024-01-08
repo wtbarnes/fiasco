@@ -2,7 +2,6 @@
 IDL comparison tests for ionization equilibria
 """
 import astropy.units as u
-import numpy as np
 import pathlib
 import pytest
 
@@ -16,7 +15,7 @@ def ioneq_from_idl(idl_env, ascii_dbase_root):
     read_ioneq, ioneqfile, ioneq_logt, ioneq, ioneq_ref
     """
     args = {
-        'ioneq_filename': ascii_dbase_root / 'ioneq' / f'chianti.ioneq',
+        'ioneq_filename': ascii_dbase_root / 'ioneq' / 'chianti.ioneq',
     }
     res_idl = idl_env.run(script, args=args, verbose=True)
     return res_idl

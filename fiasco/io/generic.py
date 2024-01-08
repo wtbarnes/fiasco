@@ -1,7 +1,6 @@
 """
 Base class for file parser
 """
-import astropy
 import astropy.units as u
 import h5py
 import numpy as np
@@ -94,7 +93,7 @@ class GenericParser:
             line = self.fformat.read(line)
         else:
             line = line.strip().split()
-        line = [item.strip() if type(item) is str else item for item in line]
+        line = [item.strip() if isinstance(item, str) else item for item in line]
         table.append(line)
 
     def postprocessor(self, df):

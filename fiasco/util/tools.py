@@ -21,7 +21,9 @@ def vectorize_where(x_1, x_2):
     x_2 : array-like
         Values to search for
     """
-    return np.vectorize(lambda a, b: np.where(a == b)[0], excluded=[0])(x_1, x_2)
+    x_1 = np.atleast_1d(x_1)
+    x_2 = np.atleast_1d(x_2)
+    return np.array([np.where(x_1==x)[0] for x in x_2]).squeeze()
 
 
 def vectorize_where_sum(x_1, x_2, y, axis=None):
