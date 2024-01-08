@@ -3,7 +3,6 @@ Test package level functions
 """
 import astropy.units as u
 import numpy as np
-import pytest
 
 import fiasco
 
@@ -11,13 +10,13 @@ import fiasco
 def test_list_elements(hdf5_dbase_root):
     # FIXME: actually test the expected elements
     elements = fiasco.list_elements(hdf5_dbase_root)
-    assert type(elements) is list
+    assert isinstance(elements, list)
 
 
 def test_list_ions(hdf5_dbase_root):
     # FIXME: actually test the expected ions
     ions = fiasco.list_ions(hdf5_dbase_root)
-    assert type(ions) is list
+    assert isinstance(ions, list)
 
 
 def test_proton_electron_ratio(hdf5_dbase_root):

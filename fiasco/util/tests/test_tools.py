@@ -4,7 +4,7 @@ import pytest
 from fiasco.util import burgess_tully_descale, vectorize_where
 
 
-@pytest.mark.parametrize(('a, b, c'), [
+@pytest.mark.parametrize(('a', 'b', 'c'), [
     (np.arange(10), [3, 5, 9], np.array([3, 5, 9])),
     (np.arange(10), [6], np.array([6])),
     (np.arange(10), 6, np.array([6])),
