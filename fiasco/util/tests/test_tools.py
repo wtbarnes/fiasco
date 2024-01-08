@@ -1,7 +1,25 @@
 import numpy as np
 import pytest
 
-from fiasco.util import burgess_tully_descale
+from fiasco.util import burgess_tully_descale, vectorize_where
+
+
+@pytest.mark.parametrize(('a, b, c'), [
+    (np.arange(10), [3, 5, 9], np.array([3, 5, 9])),
+    (np.arange(10), [6], np.array([6])),
+    (np.arange(10), 6, np.array([6])),
+])
+def test_vectorize_where(a, b, c):
+    indices = vectorize_where(a, b)
+    assert (indices == c).all()
+
+
+def test_vectorize_where_result_in_array():
+    a = np.arange(20)
+    b = np.array([5, 7, 17, 19])
+    c = np.random.rand(*(15, 10,)+a.shape)
+    indices = vectorize_where(a, b)
+    assert c[:, :, indices].shape == (15, 10) + b.shape
 
 
 @pytest.mark.parametrize('x', [
