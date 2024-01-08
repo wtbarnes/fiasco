@@ -61,7 +61,7 @@ honor_noqa = true
 lines_between_types = 1
 
 [tool.codespell]
-skip = "*.fts,*.fits,venv,*.pro"
+skip = "*.fts,*.fits,venv,*.pro,*.bib"
 ignore-words-list = "te,emiss"
 
 [tool.ruff]
