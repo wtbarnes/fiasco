@@ -4,7 +4,6 @@ Source classes for continuum files
 import astropy.units as u
 import h5py
 import numpy as np
-import os
 import pathlib
 import plasmapy
 

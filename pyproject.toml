@@ -59,3 +59,58 @@ include_trailing_comma = true
 force_alphabetical_sort_within_sections = true
 honor_noqa = true
 lines_between_types = 1
+
+[tool.codespell]
+skip = "*.fts,*.fits,venv,*.pro,*.bib"
+ignore-words-list = "te,emiss"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 110
+exclude=[
+    ".git,",
+    "__pycache__",
+    "build",
+    "fiasco/version.py",
+]
+show-fixes = true
+show-source = true
+
+select = [
+       "E",
+       "F",
+       "W",
+       "UP",
+       "PT",
+       #"RET",
+       #"TID",
+
+]
+extend-ignore = [
+    # pycodestyle (E, W)
+    "E501",  # LineTooLong                             # TODO! fix
+    "E741",  # Ambiguous variable name
+
+    # pytest (PT)
+    "PT001",  # Always use pytest.fixture()
+    "PT004",  # Fixtures which don't return anything should have leading _
+    "PT007",  # Parametrize should be lists of tuples  # TODO! fix
+    "PT011",  # Too broad exception assert             # TODO! fix
+    "PT023",  # Always use () on pytest decorators
+]
+
+[tool.ruff.per-file-ignores]
+# Part of configuration, not a package.
+"setup.py" = ["INP001"]
+"conftest.py" = ["INP001"]
+# implicit-namespace-package. The examples are not a package.
+"docs/*.py" = ["INP001"]
+# Module level imports do not need to be at the top of a file here
+"docs/conf.py" = ["E402"]
+"__init__.py" = ["E402", "F401", "F403"]
+"test_*.py" = ["B011", "D", "E402", "PGH001", "S101"]
+# Allow star import for the factory
+"fiasco/io/factory.py" = ["F403"]
+
+[tool.ruff.pydocstyle]
+convention = "numpy"

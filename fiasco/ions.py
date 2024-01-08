@@ -127,7 +127,7 @@ Using Datasets:
 
     @property
     def _instance_kwargs(self):
-        # Keyword arguments used to istantiate this Ion. These are useful when
+        # Keyword arguments used to instantiate this Ion. These are useful when
         # constructing a new Ion instance that pulls from exactly the same
         # data sources.
         kwargs = {
