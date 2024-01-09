@@ -1,7 +1,7 @@
 import pathlib
 import pytest
 
-from fiasco.util import check_database
+from fiasco.util import check_database, read_chianti_version
 
 # Force MPL to use non-gui backends for testing.
 try:
@@ -148,3 +148,29 @@ def ascii_dbase_root(ascii_dbase_tree, hdf5_dbase_root):
     # but in a worse way. What this means is that the HDF5 database is always built, even
     # when testing the ASCII parsing code, but that is not a huge price to pay.
     return ascii_dbase_tree
+
+
+@pytest.fixture(scope="session")
+def dbase_version(ascii_dbase_root):
+    return read_chianti_version(ascii_dbase_root)
+
+
+@pytest.fixture(autouse=True)
+def requires_dbase_version(request, dbase_version):
+    # NOTE: Fixtures that depend on other fixtures are awkward to implement.
+    # See this SO answer: https://stackoverflow.com/a/28198398
+    if marker := request.node.get_closest_marker('requires_dbase_version'):
+        version_condition = marker.args[0]
+        # NOTE: This currently only works for major versions. If we
+        # need tests that discriminate between minor versions or patches,
+        # this logic will need to be added.
+        conditional = f'{dbase_version["major"]}{version_condition}'
+        allowed_dbase_version = eval(conditional)
+        if not allowed_dbase_version:
+            pytest.skip(f'Test skipped because current dbase version {conditional}.')
+
+
+def pytest_configure(config):
+  config.addinivalue_line(
+        "markers", "requires_dbase_version(dbase_version): Skip tests based on CHIANTI database version requirements.",
+  )

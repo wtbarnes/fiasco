@@ -22,7 +22,7 @@ import fiasco.io
     'fe_2.trparams',
     'fe_12.drparams',
     'al_3.diparams',
-    'fe_23.auto',
+    pytest.param('fe_23.auto', marks=pytest.mark.requires_dbase_version('>=9')),
 ])
 def test_ion_sources(ascii_dbase_root, filename,):
     parser = fiasco.io.Parser(filename, ascii_dbase_root=ascii_dbase_root)
