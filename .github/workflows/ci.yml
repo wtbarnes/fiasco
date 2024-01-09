@@ -18,11 +18,11 @@ jobs:
       posargs: '--ascii-dbase-root ~/.chianti'
       toxdeps: "'tox<4' tox-pypi-filter"
       envs: |
-        - macos: py310
-        - windows: py310
-        - linux: py38
-        - linux: py39
+        - macos: py312
+        - windows: py312
         - linux: py310
+        - linux: py311
+        - linux: py312
       coverage: 'codecov'
       cache-path: ~/.chianti
       cache-key: chianti-${{ github.event.number }}
@@ -35,7 +35,7 @@ jobs:
       posargs: '--ascii-dbase-root ~/.chianti --include-all-files'
       toxdeps: "'tox<4' tox-pypi-filter"
       envs: |
-        - linux: py310
+        - linux: py312
       cache-path: ~/.chianti
       cache-key: chianti-${{ github.event.number }}
   test_database_v9:
@@ -45,7 +45,7 @@ jobs:
       posargs: '--ascii-dbase-root ~/.chianti --ascii-dbase-url http://download.chiantidatabase.org/CHIANTI_v9.0.1_database.tar.gz --disable-file-hash --skip-version-check'
       toxdeps: "'tox<4' tox-pypi-filter"
       envs: |
-        - linux: py310
+        - linux: py312
   precommit:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
@@ -59,7 +59,7 @@ jobs:
       toxdeps: "'tox<4' tox-pypi-filter"
       envs: |
         - linux: build_docs
-          python-version: '3.10'
+          python-version: '3.12'
   publish:
     # Build wheels when pushing to any branch except main
     # publish.yml will only publish if tagged ^v.*
@@ -79,6 +79,6 @@ jobs:
       test_extras: 'dev'
       test_command: 'pytest -p no:warnings --doctest-rst --pyargs fiasco'
       submodules: false
-      python-version: '3.10'  # Plasmapy depends on Numba which is not compatible with 3.11
+      python-version: '3.12'
     secrets:
       pypi_token: ${{ secrets.PYPI_TOKEN }}
