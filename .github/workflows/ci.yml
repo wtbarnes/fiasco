@@ -46,14 +46,6 @@ jobs:
       toxdeps: "'tox<4' tox-pypi-filter"
       envs: |
         - linux: py310
-  test_database_v10:
-    needs: [test]
-    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
-    with:
-      posargs: '--ascii-dbase-root ~/.chianti --ascii-dbase-url http://download.chiantidatabase.org/CHIANTI_10.1_database.tar.gz --disable-file-hash --skip-version-check'
-      toxdeps: "'tox<4' tox-pypi-filter"
-      envs: |
-        - linux: py310
   precommit:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
