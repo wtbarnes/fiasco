@@ -420,7 +420,12 @@ class DiparamsParser(GenericIonParser):
 
 class AutoParser(GenericIonParser):
     """
-    Autoionization rates for each level in an ion
+    Autoionization rates for each level in an ion.  
+    
+    For full description, see http://www.chiantidatabase.org/tech_reports/08_auto/chianti_report_8.pdf 
+    The autoionization rate is the rate of decay of atomic level through autoionization to a 
+    bound level.  It is also needed to calculate the dielectronic recombination rate
+    from the more highly ionized ions, by means of the principle of detailed-balance.
     """
     filetype = 'auto'
     dtypes = [int, int, float, str, str]
