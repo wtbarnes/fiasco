@@ -13,6 +13,7 @@ from astropy.utils.exceptions import AstropyUserWarning
 import fiasco
 
 from fiasco.util.exceptions import MissingASCIIFileError
+from fiasco.util.util import read_chianti_version
 
 
 class GenericParser:
@@ -32,10 +33,8 @@ class GenericParser:
         if standalone:
             self.chianti_version = ''
         else:
-            version_file = self.ascii_dbase_root / 'VERSION'
-            with version_file.open() as f:
-                lines = f.readlines()
-                self.chianti_version = lines[0].strip()
+            version = read_chianti_version(self.ascii_dbase_root)
+            self.chianti_version = f"{version['major']}.{version['minor']}.{version['patch']}"
         self.full_path = pathlib.Path(filename) if standalone else self.ascii_dbase_root / self.filename
 
     def parse(self):

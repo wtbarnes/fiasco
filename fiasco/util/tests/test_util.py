@@ -3,7 +3,7 @@ Tests for util functions
 """
 import pytest
 
-from fiasco.util import get_chianti_catalog, parse_ion_name
+from fiasco.util import get_chianti_catalog, parse_ion_name, read_chianti_version
 
 
 @pytest.mark.parametrize('ion_name', [
@@ -35,3 +35,11 @@ def test_get_chianti_catalog(ascii_dbase_root):
     for k in keys:
         assert k in catalog
         assert isinstance(catalog[k], list)
+
+
+def test_chianti_version(ascii_dbase_root):
+    version = read_chianti_version(ascii_dbase_root)
+    assert isinstance(version, dict)
+    for k in ['major', 'minor', 'patch']:
+        assert k in version
+        assert isinstance(version[k], int)

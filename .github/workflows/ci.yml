@@ -18,9 +18,7 @@ jobs:
       posargs: '--ascii-dbase-root ~/.chianti'
       toxdeps: "'tox<4' tox-pypi-filter"
       envs: |
-        - macos: py38
         - macos: py310
-        - windows: py38
         - windows: py310
         - linux: py38
         - linux: py39
@@ -40,6 +38,14 @@ jobs:
         - linux: py310
       cache-path: ~/.chianti
       cache-key: chianti-${{ github.event.number }}
+  test_database_v9:
+    needs: [test]
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    with:
+      posargs: '--ascii-dbase-root ~/.chianti --ascii-dbase-url http://download.chiantidatabase.org/CHIANTI_v9.0.1_database.tar.gz --disable-file-hash --skip-version-check'
+      toxdeps: "'tox<4' tox-pypi-filter"
+      envs: |
+        - linux: py310
   precommit:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
