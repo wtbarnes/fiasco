@@ -12,7 +12,7 @@ from plasmapy.utils import roman
 FIASCO_HOME = pathlib.Path.home() / '.fiasco'
 FIASCO_RC = FIASCO_HOME / 'fiascorc'
 
-__all__ = ['setup_paths', 'get_chianti_catalog', 'parse_ion_name']
+__all__ = ['setup_paths', 'get_chianti_catalog', 'read_chianti_version', 'parse_ion_name']
 
 
 def parse_ion_name(ion_name):
@@ -115,6 +115,28 @@ def get_chianti_catalog(ascii_dbase_root):
     all_files['ion_files'] = ion_files
 
     return all_files
+
+
+def read_chianti_version(ascii_dbase_root):
+    """
+    Read the CHIANTI version number from the ASCII database.
+    """
+    version_file = pathlib.Path(ascii_dbase_root) / 'VERSION'
+    with version_file.open() as f:
+        lines = f.readlines()
+    version = lines[0].strip().split('.')
+    version_dict = {'major': 0, 'minor': 0, 'patch': 0}
+    n = len(version)
+    if n > 0:
+        version_dict['major'] = int(version[0])
+    if n > 1:
+        version_dict['minor'] = int(version[1])
+    if n > 2:
+        version_dict['patch'] = int(version[2])
+    if n > 3:
+        import fiasco
+        fiasco.log.warning(f'Version {version} has an unexpected number of entries.')
+    return version_dict
 
 
 def query_yes_no(question, default="yes"):
