@@ -22,6 +22,7 @@ __all__ = [
     'DrparamsParser',
     'DiparamsParser',
     'AutoParser',
+    'RrlvlParser',
 ]
 
 
