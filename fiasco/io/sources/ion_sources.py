@@ -461,3 +461,39 @@ class AutoParser(GenericIonParser):
         super().preprocessor(table, line, index)
         # remove the dash in the second-to-last entry
         table[-1][-2] = table[-1][-2].split('-')[0].strip()
+
+class RrlvlParser(GenericIonParser):
+    """
+    *Direct* radiative recombination rates from the recombining ion to the recombined ion.  
+    (N.B. .reclvl files contain *effective* radiation recombination rate coefficients.  
+    A given ion should have either a rrlvl file or a reclvl file, but not both.)
+    
+    For a full description of these files, see :cite:t:`dere_chianti_2017`.
+    """
+    filetype = 'rrlvl'
+    dtypes = [int, int, float, float]
+    units = [None, None, u.K, (u.cm**3)/u.s]
+    headings = [
+        'lower_level', 
+        'upper_level', 
+        'temperature', 
+        'recombination_rate'
+    ]
+    descriptions = [
+        'lower level index', 
+        'upper level index', 
+        'temperature', 
+        'recombination rate coefficient'
+    ]
+
+    def preprocessor(self, table, line, index):
+        line = line.strip().split()
+        if index % 2 == 0:
+            row = line[2:4]
+            temperature = np.array(line[4:], dtype=float)
+            row += [temperature]
+            table.append(row)
+        else:
+            rate_coefficient = np.array(line[4:], dtype=float)
+            table[-1].append(rate_coefficient)
+    
