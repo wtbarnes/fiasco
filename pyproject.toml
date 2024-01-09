@@ -1,51 +1,111 @@
 [build-system]
-
 requires = ["setuptools",
-            "setuptools_scm",
+            "setuptools_scm[toml]",
             "wheel"]
-
 build-backend = 'setuptools.build_meta'
 
-[tool.towncrier]
-    package = "fiasco"
-    filename = "CHANGELOG.rst"
-    directory = "changelog/"
-    issue_format = "`#{issue} <https://github.com/wtbarnes/fiasco/pull/{issue}>`__"
+[project]
+name = "fiasco"
+dynamic = ["version"]
+description = "A Python interface to the CHIANTI atomic database"
+readme = {file="README.md", content-type = "text/markdown"}
+license = {file="LICENSE.rst"}
+authors = [
+  {name="Will Barnes", email="will.t.barnes@gmail.com"}
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: BSD License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Topic :: Scientific/Engineering :: Astronomy",
+]
+keywords = [
+  "heliophysics",
+  "solar physics",
+  "astrophysics",
+  "plasma physics",
+  "science",
+  "atomic data",
+]
+requires-python = ">=3.9"
+dependencies = [
+  "astropy",
+  "numpy",
+  "h5py",
+  "fortranformat",
+  "plasmapy",
+]
 
-    [[tool.towncrier.type]]
-        directory = "breaking"
-        name = "Backwards Incompatible Changes"
-        showcontent = true
+[project.urls]
+Homepage = "https://fiasco.readthedocs.io"
+Documentation = "https://fiasco.readthedocs.io"
+Repository = "https://github.com/wtbarnes/fiasco"
+Issues = "https://github.com/wtbarnes/fiasco/issues/"
 
-    [[tool.towncrier.type]]
-        directory = "api"
-        name = "API Changes"
-        showcontent = true
+[project.optional-dependencies]
+all = ["fiasco"]
+test = [
+  "fiasco[all]",
+  "pytest",
+  "pytest-astropy",
+  "pytest-cov",
+  "matplotlib",
+]
+docs =[
+  "fiasco[all]",
+  "sphinx>=4.2,<5",
+  "sphinx-automodapi",
+  "sphinx-gallery",
+  "towncrier",
+  "aiapy",
+  "sphinx-book-theme",
+  "sphinxcontrib-bibtex",
+]
+dev = ["fiasco[test,docs]"]
 
-    [[tool.towncrier.type]]
-      directory = "removal"
-      name = "Deprecations and Removals"
-      showcontent = true
+[tool.setuptools]
+packages = ["fiasco"]
 
-    [[tool.towncrier.type]]
-      directory = "feature"
-      name = "Features"
-      showcontent = true
+[tool.setuptools_scm]
 
-    [[tool.towncrier.type]]
-      directory = "bugfix"
-      name = "Bug Fixes"
-      showcontent = true
+[tool.pytest.ini_options]
+testpaths = [
+  "fiasco",
+  "docs"
+]
+doctest_plus = "enabled"
+text_file_format = "rst"
+addopts = "--doctest-rst"
+remote_data_strict = "False"
+filterwarnings =[
+  "error",
+  "ignore:numpy.ndarray size changed",
+]
 
-    [[tool.towncrier.type]]
-      directory = "doc"
-      name = "Improved Documentation"
-      showcontent = true
+[tool.coverage.run]
+omit = [
+  "fiasco/conftest.py",
+  "fiasco/*setup_package*",
+  "fiasco/tests/*",
+  "fiasco/*/tests/*",
+  "fiasco/extern/*",
+  "fiasco/version*",
+  "*/fiasco/conftest.py",
+  "*/fiasco/*setup_package*",
+  "*/fiasco/tests/*",
+  "*/fiasco/*/tests/*",
+  "*/fiasco/extern/*",
+  "*/fiasco/version*",
+]
 
-    [[tool.towncrier.type]]
-      directory = "trivial"
-      name = "Trivial/Internal Changes"
-      showcontent = true
+[tool.coverage.report]
 
 [tool.isort]
 line_length = 88
@@ -114,3 +174,44 @@ extend-ignore = [
 
 [tool.ruff.pydocstyle]
 convention = "numpy"
+
+[tool.towncrier]
+    package = "fiasco"
+    filename = "CHANGELOG.rst"
+    directory = "changelog/"
+    issue_format = "`#{issue} <https://github.com/wtbarnes/fiasco/pull/{issue}>`__"
+
+    [[tool.towncrier.type]]
+        directory = "breaking"
+        name = "Backwards Incompatible Changes"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "api"
+        name = "API Changes"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+      directory = "removal"
+      name = "Deprecations and Removals"
+      showcontent = true
+
+    [[tool.towncrier.type]]
+      directory = "feature"
+      name = "Features"
+      showcontent = true
+
+    [[tool.towncrier.type]]
+      directory = "bugfix"
+      name = "Bug Fixes"
+      showcontent = true
+
+    [[tool.towncrier.type]]
+      directory = "doc"
+      name = "Improved Documentation"
+      showcontent = true
+
+    [[tool.towncrier.type]]
+      directory = "trivial"
+      name = "Trivial/Internal Changes"
+      showcontent = true
