@@ -463,38 +463,48 @@ class AutoParser(GenericIonParser):
         # remove the dash in the second-to-last entry
         table[-1][-2] = table[-1][-2].split('-')[0].strip()
 
+
 class RrlvlParser(GenericIonParser):
     """
-    *Direct* radiative recombination rates from the recombining ion to the recombined ion.  
-    (N.B. .reclvl files contain *effective* radiation recombination rate coefficients.  
-    A given ion should have either a rrlvl file or a reclvl file, but not both.)
-    
-    For a full description of these files, see :cite:t:`dere_chianti_2017`.
+    Level-resolved recombination rates as a function of temperature.
+
+    These files contain the *Direct* radiative recombination rates from
+    the recombining ion to the recombined ion. Note that these files contain
+    the *effective* radiation recombination rate coefficients.
+    A given ion should have either a ``.rrlvl`` file or a ``.reclvl`` file,
+    but not both. For a full description of these files, see :cite:t:`young_chianti_2019`.
     """
     filetype = 'rrlvl'
-    dtypes = [int, int, float, float]
-    units = [None, None, u.K, (u.cm**3)/u.s]
+    dtypes = [int, int, int, int, float, float]
+    units = [None, None, None, None, u.K, (u.cm**3)/u.s]
     headings = [
-        'lower_level', 
-        'upper_level', 
-        'temperature', 
-        'recombination_rate'
+        'Z',
+        'ion',
+        'initial_level',
+        'final_level',
+        'temperature',
+        'rate',
     ]
     descriptions = [
-        'lower level index', 
-        'upper level index', 
-        'temperature', 
-        'recombination rate coefficient'
+        'atomic number',
+        'ionization state',
+        'level index of the recombining ion',
+        'index of the final level of the transition in the recombined ion',
+        'temperatures at which rates are tabulated',
+        'direct radiative recombination rate coefficients',
     ]
 
     def preprocessor(self, table, line, index):
+        # NOTE: Every pair of lines has the same first four entries. On the even
+        # lines, the remaining entries contain the temperatures and on the odd
+        # lines, the remaining entries are the rate coefficients. Thus, every
+        # other line needs to be added to the one above it.
         line = line.strip().split()
         if index % 2 == 0:
-            row = line[2:4]
+            row = line[:4]
             temperature = np.array(line[4:], dtype=float)
             row += [temperature]
             table.append(row)
         else:
             rate_coefficient = np.array(line[4:], dtype=float)
             table[-1].append(rate_coefficient)
-    
