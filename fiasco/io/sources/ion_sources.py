@@ -469,8 +469,8 @@ class RrlvlParser(GenericIonParser):
     Level-resolved recombination rates as a function of temperature.
 
     These files contain the *Direct* radiative recombination rates from
-    the recombining ion to the recombined ion. Note that these files contain
-    the *effective* radiation recombination rate coefficients.
+    the recombining ion to the recombined ion, whereas the ``.reclvl`` files
+    contain the *effective* radiative recombination rates.
     A given ion should have either a ``.rrlvl`` file or a ``.reclvl`` file,
     but not both. For a full description of these files, see :cite:t:`young_chianti_2019`.
     """
