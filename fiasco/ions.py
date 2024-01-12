@@ -655,6 +655,9 @@ Using Datasets:
 
         return u.Quantity(populations)
 
+    def _build_coefficient_matrix(self, density):
+        ...
+
     def _level_resolved_rates_interpolation(self, temperature_table, rate_table,
                                             extrapolate_above=False,
                                             extrapolate_below=False):
