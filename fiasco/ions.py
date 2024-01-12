@@ -942,8 +942,8 @@ Using Datasets:
         :math:`U,f,\Sigma` are all stored in the CHIANTI database such that :math:`\sigma_I`
         can be computed for a given :math:`E`.
         """
-        if (self.hydrogenic and self.atomic_number >= 6) or
-            (self.helium_like and self.atomic_number >= 10):
+        if ((self.hydrogenic and self.atomic_number >= 6) or 
+            (self.helium_like and self.atomic_number >= 10)):
             return self._fontes_cross_section(energy)
         else:
             return self._dere_cross_section(energy)
