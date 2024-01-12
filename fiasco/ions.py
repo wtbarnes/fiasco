@@ -907,8 +907,8 @@ Using Datasets:
 
         The direction ionization cross-section is calculated one of two ways.
         See :cite:t:`dere_ionization_2007`, Sections 3.1 and 3.2 for details.
-        For H-like ions with :math:`Z\ge6` and He-like ions with :math:`Z\ge10`, 
-        the cross-section is computed according to the method of 
+        For H-like ions with :math:`Z\ge6` and He-like ions with :math:`Z\ge10`,
+        the cross-section is computed according to the method of
         :cite:t:`fontes_fully_1999`,
 
         .. math::
@@ -942,7 +942,7 @@ Using Datasets:
         :math:`U,f,\Sigma` are all stored in the CHIANTI database such that :math:`\sigma_I`
         can be computed for a given :math:`E`.
         """
-        if ((self.hydrogenic and self.atomic_number >= 6) or 
+        if ((self.hydrogenic and self.atomic_number >= 6) or
             (self.helium_like and self.atomic_number >= 10)):
             return self._fontes_cross_section(energy)
         else:
