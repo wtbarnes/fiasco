@@ -226,9 +226,9 @@ Using Datasets:
 
         Notes
         -----
-        This is `True` if :math:`Z - z = 1` and :math:`Z\ge6`.
+        This is `True` if :math:`Z - z = 1`.
         """
-        return (self.atomic_number - self.charge_state == 1) and (self.atomic_number >= 6)
+        return (self.atomic_number - self.charge_state == 1)
 
     @property
     def helium_like(self):
@@ -237,9 +237,9 @@ Using Datasets:
 
         Notes
         -----
-        This is `True` if :math:`Z - z = 2` and :math:`Z\ge10`.
+        This is `True` if :math:`Z - z = 2`.
         """
-        return (self.atomic_number - self.charge_state == 2) and (self.atomic_number >= 10)
+        return (self.atomic_number - self.charge_state == 2)
 
     @property
     @u.quantity_input
@@ -906,8 +906,10 @@ Using Datasets:
         Direct ionization cross-section as a function of energy.
 
         The direction ionization cross-section is calculated one of two ways.
-        For H and He like ions, the cross-section is computed according to
-        the method of :cite:t:`fontes_fully_1999`,
+        See :cite:t:`dere_ionization_2007`, Sections 3.1 and 3.2 for details.
+        For H-like ions with :math:`Z\ge6` and He-like ions with :math:`Z\ge10`,
+        the cross-section is computed according to the method of
+        :cite:t:`fontes_fully_1999`,
 
         .. math::
 
@@ -940,7 +942,8 @@ Using Datasets:
         :math:`U,f,\Sigma` are all stored in the CHIANTI database such that :math:`\sigma_I`
         can be computed for a given :math:`E`.
         """
-        if self.hydrogenic or self.helium_like:
+        if ((self.hydrogenic and self.atomic_number >= 6) or
+            (self.helium_like and self.atomic_number >= 10)):
             return self._fontes_cross_section(energy)
         else:
             return self._dere_cross_section(energy)
