@@ -7,7 +7,7 @@ import pytest
 
 import fiasco
 
-from fiasco.tests.idl import save_idl_test_output
+from fiasco.tests.idl.helpers import save_idl_test_output
 from fiasco.util import parse_ion_name
 
 # NOTE: This is necessary because I cannot figure out how to select the contribution function
