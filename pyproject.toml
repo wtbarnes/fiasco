@@ -59,6 +59,12 @@ test = [
   "pytest-cov",
   "matplotlib",
 ]
+test_idl = [
+  "fiasco[test]",
+  "asdf",
+  "asdf-astropy",
+  "hissw",
+]
 docs =[
   "fiasco[all]",
   "sphinx>=4.2,<5",
@@ -88,6 +94,8 @@ remote_data_strict = "False"
 filterwarnings =[
   "error",
   "ignore:numpy.ndarray size changed",
+  "ignore:The unit 'erg' has been deprecated in the VOUnit standard.*:astropy.units.core.UnitsWarning",
+  "ignore:The unit 'Angstrom' has been deprecated in the VOUnit standard.*:astropy.units.core.UnitsWarning",
 ]
 
 [tool.coverage.run]
@@ -122,7 +130,7 @@ honor_noqa = true
 lines_between_types = 1
 
 [tool.codespell]
-skip = "*.fts,*.fits,venv,*.pro,*.bib"
+skip = "*.fts,*.fits,venv,*.pro,*.bib,*.asdf"
 ignore-words-list = "te,emiss"
 
 [tool.ruff]
