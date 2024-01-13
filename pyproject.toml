@@ -67,7 +67,7 @@ test_idl = [
 ]
 docs =[
   "fiasco[all]",
-  "sphinx>=4.2,<5",
+  "sphinx>=4.2",
   "sphinx-automodapi",
   "sphinx-gallery",
   "towncrier",
