@@ -17,7 +17,7 @@ def ioneq_from_idl(idl_env, ascii_dbase_root):
     args = {
         'ioneq_filename': ascii_dbase_root / 'ioneq' / 'chianti.ioneq',
     }
-    res_idl = idl_env.run(script, args=args, verbose=True)
+    res_idl = idl_env.run(script, args=args)
     return res_idl
 
 

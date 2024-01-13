@@ -42,7 +42,7 @@ def idl_input_args(all_ions, wavelength, ascii_dbase_root):
 
 
 def test_idl_compare_free_free(idl_env, all_ions, wavelength, idl_input_args):
-    ff_python = all_ions.free_free(wavelength).to_value('erg cm3 s-1 Angstrom-1')
+    ff_python = all_ions.free_free(wavelength)
     # Run IDL free-free calculation
     script = """
     ; set common block
@@ -64,14 +64,14 @@ def test_idl_compare_free_free(idl_env, all_ions, wavelength, idl_input_args):
     ; The output of freefree is scaled by 10^40
     ff = ff/1d40
     """
-    res_idl = idl_env.run(script, args=idl_input_args, verbose=True)
-    ff_idl = res_idl['ff']
+    res_idl = idl_env.run(script, args=idl_input_args)
+    ff_idl = res_idl['ff'] * u.Unit('erg cm3 s-1 Angstrom-1')
     # Compare IDL and Python calculation
-    assert u.allclose(ff_idl, ff_python, atol=0.0, rtol=0.005)
+    assert u.allclose(ff_idl, ff_python, atol=None, rtol=0.005)
 
 
 def test_idl_compare_free_bound(idl_env, all_ions, wavelength, idl_input_args):
-    fb_python = all_ions.free_bound(wavelength).to_value('erg cm3 s-1 Angstrom-1')
+    fb_python = all_ions.free_bound(wavelength)
     # NOTE: our expression does not include the 1/4π per steradian
     fb_python /= 4*np.pi
     # Run IDL free-free calculation
@@ -95,10 +95,10 @@ def test_idl_compare_free_bound(idl_env, all_ions, wavelength, idl_input_args):
     ; The output of freefree is scaled by 10^40
     fb = fb/1d40
     """
-    res_idl = idl_env.run(script, args=idl_input_args, verbose=True)
-    fb_idl = res_idl['fb']
+    res_idl = idl_env.run(script, args=idl_input_args)
+    fb_idl = res_idl['fb'] * u.Unit('erg cm3 s-1 Angstrom-1')
     # Compare IDL and Python calculation
-    assert u.allclose(fb_idl, fb_python, atol=0.0, rtol=0.005)
+    assert u.allclose(fb_idl, fb_python, atol=None, rtol=0.005)
 
 
 def test_idl_compare_free_bound_ion(idl_env, all_ions, wavelength, idl_input_args):
@@ -129,11 +129,10 @@ def test_idl_compare_free_bound_ion(idl_env, all_ions, wavelength, idl_input_arg
             fb_python = ion.free_bound(wavelength)
         except MissingDatasetException:
             continue
-        fb_python = fb_python.to_value('erg cm3 s-1 Angstrom-1')
         # NOTE: our expression does not include the 1/4π per steradian
         fb_python /= 4*np.pi
         args = {**idl_input_args, 'atomic_number':ion.atomic_number, 'ionization_stage':ion.ionization_stage}
-        res_idl = idl_env.run(script, args=args, verbose=True)
-        fb_idl = res_idl['fb']
+        res_idl = idl_env.run(script, args=args)
+        fb_idl = res_idl['fb'] * u.Unit('erg cm3 s-1 Angstrom-1')
         # Compare IDL and Python calculation
-        assert u.allclose(fb_idl, fb_python, atol=0.0, rtol=0.006)
+        assert u.allclose(fb_idl, fb_python, atol=None, rtol=0.006)
