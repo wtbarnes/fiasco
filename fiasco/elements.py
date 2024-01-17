@@ -60,7 +60,7 @@ class Element(fiasco.IonCollection):
     @property
     def abundance(self):
         return self[0].abundance
-        
+
     @abundance.setter
     def abundance(self, abundance):
         for i in range(self.atomic_number + 1):

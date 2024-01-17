@@ -43,7 +43,7 @@ class Ion(IonBase, ContinuumBase):
     ioneq_filename : `str`, optional
         Ionization equilibrium dataset
     abundance : `str` or `float`, optional
-        If a string is provided, use the appropriate abundance dataset.  
+        If a string is provided, use the appropriate abundance dataset.
         If a float is provided, use that value as the abundance.
     ip_filename : `str`, optional
         Ionization potential dataset
@@ -63,7 +63,7 @@ class Ion(IonBase, ContinuumBase):
             self._dset_names['abundance'] = abund
             self.abundance = self._abund[self._dset_names['abundance']]
         else:
-            self.abundance = abund 
+            self.abundance = abund
 
     def _new_instance(self, temperature=None, **kwargs):
         """
@@ -214,7 +214,7 @@ Using Datasets:
         Elemental abundance relative to H.
         """
         return self._abundance
-        
+
     @abundance.setter
     def abundance(self, abundance):
         self._abundance = abundance
