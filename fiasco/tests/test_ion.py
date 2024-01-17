@@ -45,16 +45,16 @@ def fe20(hdf5_dbase_root):
 
 
 def test_new_instance(ion):
-    abundance_filename = ion._instance_kwargs['abundance']
+    abundance = ion._instance_kwargs['abundance']
     new_ion = ion._new_instance()
     for k in new_ion._instance_kwargs:
         assert new_ion._instance_kwargs[k] == ion._instance_kwargs[k]
     assert u.allclose(new_ion.temperature, ion.temperature, rtol=0)
     new_ion = ion._new_instance(temperature=ion.temperature[:1])
     assert u.allclose(new_ion.temperature, ion.temperature[:1])
-    new_ion = ion._new_instance(abundance_filename='sun_coronal_1992_feldman')
+    new_ion = ion._new_instance(abundance='sun_coronal_1992_feldman')
     assert new_ion._instance_kwargs['abundance'] == 'sun_coronal_1992_feldman'
-    assert ion._instance_kwargs['abundance'] == abundance_filename
+    assert ion._instance_kwargs['abundance'] == abundance
 
 
 def test_level_indexing(ion):
