@@ -172,6 +172,7 @@ def requires_dbase_version(request, dbase_version):
                    '>': np.greater,
                    '>=': np.greater_equal,
                    '=': np.equal,
+                   '==': np.equal,
                    '!=': np.not_equal}
         if operator not in op_dict:
             raise ValueError(f'''{operator} is not a supported comparison operation.
