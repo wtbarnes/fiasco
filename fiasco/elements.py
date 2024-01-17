@@ -29,7 +29,7 @@ class Element(fiasco.IonCollection):
     temperature : `~astropy.units.Quantity`
 
     See Also
-    --------clTabCtrl
+    --------
     fiasco.Ion : All the same keyword arguments can also be passed here.
     """
 
