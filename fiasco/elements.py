@@ -29,7 +29,7 @@ class Element(fiasco.IonCollection):
     temperature : `~astropy.units.Quantity`
 
     See Also
-    --------
+    --------clTabCtrl
     fiasco.Ion : All the same keyword arguments can also be passed here.
     """
 
@@ -60,6 +60,12 @@ class Element(fiasco.IonCollection):
     @property
     def abundance(self):
         return self[0].abundance
+        
+    @abundance.setter
+    def abundance(self, abundance):
+        for i in range(self.atomic_number + 1):
+            self[i]._abundance = abundance
+        self._abundance = abundance
 
     @cached_property
     def _rate_matrix(self):

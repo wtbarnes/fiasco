@@ -42,8 +42,9 @@ class Ion(IonBase, ContinuumBase):
         Temperature array over which to evaluate temperature dependent quantities.
     ioneq_filename : `str`, optional
         Ionization equilibrium dataset
-    abundance_filename : `str`, optional
-        Abundance dataset
+    abundance : `str` or `float`, optional
+        If a string is provided, use the appropriate abundance dataset.  
+        If a float is provided, use that value as the abundance.
     ip_filename : `str`, optional
         Ionization potential dataset
     """
@@ -56,9 +57,13 @@ class Ion(IonBase, ContinuumBase):
         # TODO: do not hardcode defaults, pull from rc file
         self._dset_names = {}
         self._dset_names['ioneq_filename'] = kwargs.get('ioneq_filename', 'chianti')
-        self._dset_names['abundance_filename'] = kwargs.get('abundance_filename',
-                                                            'sun_coronal_1992_feldman_ext')
         self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
+        abund = kwargs.get('abundance', 'sun_coronal_1992_feldman_ext')
+        if isinstance(abund, str):
+            self._dset_names['abundance'] = abund
+            self.abundance = self._abund[self._dset_names['abundance']]
+        else:
+            self.abundance = abund 
 
     def _new_instance(self, temperature=None, **kwargs):
         """
@@ -94,7 +99,7 @@ Temperature range: [{self.temperature[0].to(u.MK):.3f}, {self.temperature[-1].to
 HDF5 Database: {self.hdf5_dbase_root}
 Using Datasets:
   ioneq: {self._dset_names['ioneq_filename']}
-  abundance: {self._dset_names['abundance_filename']}
+  abundance: {self._dset_names['abundance']}
   ip: {self._dset_names['ip_filename']}"""
 
     @cached_property
@@ -208,7 +213,11 @@ Using Datasets:
         """
         Elemental abundance relative to H.
         """
-        return self._abundance[self._dset_names['abundance_filename']]
+        return self._abundance
+        
+    @abundance.setter
+    def abundance(self, abundance):
+        self._abundance = abundance
 
     @property
     @needs_dataset('ip')
