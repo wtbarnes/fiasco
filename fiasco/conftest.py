@@ -1,5 +1,8 @@
+import numpy as np
 import pathlib
 import pytest
+
+from packaging.version import Version
 
 from fiasco.util import check_database, read_chianti_version
 
@@ -160,14 +163,23 @@ def requires_dbase_version(request, dbase_version):
     # NOTE: Fixtures that depend on other fixtures are awkward to implement.
     # See this SO answer: https://stackoverflow.com/a/28198398
     if marker := request.node.get_closest_marker('requires_dbase_version'):
-        version_condition = marker.args[0]
-        # NOTE: This currently only works for major versions. If we
-        # need tests that discriminate between minor versions or patches,
-        # this logic will need to be added.
-        conditional = f'{dbase_version["major"]}{version_condition}'
-        allowed_dbase_version = eval(conditional)
+        # NOTE: This has to have a space between the operator and the target
+        if  len(marker.args) != 2:
+            raise ValueError("Arguments must contain a condition and a version number, e.g. '<', '8.0.7'")
+        operator, target_version = marker.args
+        op_dict = {'<': np.less,
+                   '<=': np.less_equal,
+                   '>': np.greater,
+                   '>=': np.greater_equal,
+                   '=': np.equal,
+                   '!=': np.not_equal}
+        if operator not in op_dict:
+            raise ValueError(f'''{operator} is not a supported comparison operation.
+                                 Must be one of {list(op_dict.keys())}.''')
+        target_version = Version(target_version)
+        allowed_dbase_version = op_dict[operator](dbase_version, target_version)
         if not allowed_dbase_version:
-            pytest.skip(f'Test skipped because current dbase version {conditional}.')
+            pytest.skip(f'Skip because database version {dbase_version} is not {operator} {target_version}.')
 
 
 def pytest_configure(config):
