@@ -45,7 +45,7 @@ def fe20(hdf5_dbase_root):
 
 
 def test_new_instance(ion):
-    abundance_filename = ion._instance_kwargs['abundance_filename']
+    abundance_filename = ion._instance_kwargs['abundance']
     new_ion = ion._new_instance()
     for k in new_ion._instance_kwargs:
         assert new_ion._instance_kwargs[k] == ion._instance_kwargs[k]
@@ -53,8 +53,8 @@ def test_new_instance(ion):
     new_ion = ion._new_instance(temperature=ion.temperature[:1])
     assert u.allclose(new_ion.temperature, ion.temperature[:1])
     new_ion = ion._new_instance(abundance_filename='sun_coronal_1992_feldman')
-    assert new_ion._instance_kwargs['abundance_filename'] == 'sun_coronal_1992_feldman'
-    assert ion._instance_kwargs['abundance_filename'] == abundance_filename
+    assert new_ion._instance_kwargs['abundance'] == 'sun_coronal_1992_feldman'
+    assert ion._instance_kwargs['abundance'] == abundance_filename
 
 
 def test_level_indexing(ion):
@@ -158,7 +158,7 @@ def test_proton_collision(fe10):
 def test_missing_abundance(hdf5_dbase_root):
     ion = fiasco.Ion('Li 1',
                      temperature,
-                     abundance_filename='sun_coronal_1992_feldman',
+                     abundance='sun_coronal_1992_feldman',
                      hdf5_dbase_root=hdf5_dbase_root)
     with pytest.raises(KeyError):
         _ = ion.abundance
