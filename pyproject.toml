@@ -99,20 +99,9 @@ filterwarnings =[
 ]
 
 [tool.coverage.run]
+branch = true
 omit = [
-  "fiasco/conftest.py",
-  "fiasco/*setup_package*",
-  "fiasco/tests/*",
-  "fiasco/tests/idl/*",
-  "fiasco/*/tests/*",
-  "fiasco/extern/*",
-  "fiasco/version*",
-  "*/fiasco/conftest.py",
-  "*/fiasco/*setup_package*",
-  "*/fiasco/tests/*",
-  "*/fiasco/*/tests/*",
-  "*/fiasco/extern/*",
-  "*/fiasco/version*",
+  "*/test_idl*.py"
 ]
 
 [tool.coverage.report]
