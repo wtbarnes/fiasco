@@ -120,13 +120,21 @@ def md5hash(path):
         return hashlib.md5(f.read()).hexdigest()
 
 
-def get_hash_table(version):
+def _get_hash_table(version):
     data_dir = pathlib.Path(get_pkg_data_path('data', package='fiasco.util'))
     file_path = data_dir / f'file_hashes_v{version}.json'
     with open(file_path) as f:
         hash_table = json.load(f)
     return hash_table
 
+
+def _check_hash(parser, hash_table):
+    actual = md5hash(parser.full_path)
+    key = '_'.join(parser.full_path.relative_to(parser.ascii_dbase_root).parts)
+    if hash_table[key] != actual:
+        raise RuntimeError(
+            f'Hash of {parser.full_path} ({actual}) did not match expected hash ({hash_table[key]})'
+        )
 
 
 def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=False):
@@ -157,22 +165,23 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=F
             files += tmp[k]
     if check_hash:
         version = read_chianti_version(ascii_dbase_root)
-        hash_table = get_hash_table(version)
+        hash_table = _get_hash_table(version)
         log.debug(f'Checking hashes for version {version}')
     log.debug(f'Building HDF5 database in {hdf5_dbase_root}')
     with ProgressBar(len(files)) as progress:
         with h5py.File(hdf5_dbase_root, 'a') as hf:
             for f in files:
                 parser = fiasco.io.Parser(f, ascii_dbase_root=ascii_dbase_root)
-                if check_hash:
-                    actual = md5hash(parser.full_path)
-                    if hash_table[parser.full_path.name] != actual:
-                        raise RuntimeError(f'Hash of {parser.full_path} ({actual}) did not match expected hash ({hash_table[f]})')
                 try:
                     df = parser.parse()
                 except MissingASCIIFileError as e:
                     log.debug(f'{e}. Not including {f} in {hdf5_dbase_root}')
                 else:
+                    # NOTE: This conditional is purposefully placed here because files that fail to parse
+                    # do not have a valid full path and thus their hash cannot be checked. When the parsing
+                    # is eventually simplified, this can be moved to a more sane place.
+                    if check_hash:
+                        _check_hash(parser, hash_table)
                     parser.to_hdf5(hf, df)
                 progress.update()
             # Build an index for quick lookup of all ions in database

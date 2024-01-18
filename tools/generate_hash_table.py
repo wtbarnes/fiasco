@@ -29,7 +29,7 @@ def build_hash_table(dbase_root):
         map(lambda x: pathlib.Path('dem') / x, catalogue['dem_files']),
     )
     filepaths = map(lambda x: dbase_root / x, filepaths)
-    return {f.name: md5hash(f) for f in filepaths}
+    return {'_'.join(f.relative_to(dbase_root).parts): md5hash(f) for f in filepaths}
 
 
 @click.command()
