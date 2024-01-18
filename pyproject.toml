@@ -54,6 +54,8 @@ Issues = "https://github.com/wtbarnes/fiasco/issues/"
 all = ["fiasco"]
 test = [
   "fiasco[all]",
+  "asdf",
+  "asdf-astropy",
   "pytest",
   "pytest-astropy",
   "pytest-cov",
@@ -61,8 +63,6 @@ test = [
 ]
 test_idl = [
   "fiasco[test]",
-  "asdf",
-  "asdf-astropy",
   "hissw",
 ]
 docs =[
