@@ -157,10 +157,10 @@ def test_proton_collision(fe10):
 
 def test_missing_abundance(hdf5_dbase_root):
     with pytest.raises(KeyError):
-        ion = fiasco.Ion('Li 1',
-                        temperature,
-                        abundance='sun_coronal_1992_feldman',
-                        hdf5_dbase_root=hdf5_dbase_root)
+        fiasco.Ion('Li 1',
+                    temperature,
+                    abundance='sun_coronal_1992_feldman',
+                    hdf5_dbase_root=hdf5_dbase_root)
 
 
 def test_ip(ion):
