@@ -63,9 +63,14 @@ class Element(fiasco.IonCollection):
 
     @abundance.setter
     def abundance(self, abundance):
-        for i in range(self.atomic_number + 1):
-            self[i]._abundance = abundance
-        self._abundance = abundance
+        if isinstance(abundance, str):
+            self[0]._dset_names['abundance'] = abundance
+            self[0]._abundance = self[0]._abund[self[0]._dset_names['abundance']]
+        else:
+            self[0]._abundance = abundance
+        for i in range(1, self.atomic_number + 1):
+            self[i]._abundance = self[0]._abundance
+        self._abundance = self[0]._abundance
 
     @cached_property
     def _rate_matrix(self):

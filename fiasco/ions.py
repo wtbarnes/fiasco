@@ -50,7 +50,8 @@ class Ion(IonBase, ContinuumBase):
     """
 
     @u.quantity_input
-    def __init__(self, ion_name, temperature: u.K, *args, **kwargs):
+    def __init__(self, ion_name, temperature: u.K,
+                abundance = 'sun_coronal_1992_feldman_ext', *args, **kwargs):
         super().__init__(ion_name, *args, **kwargs)
         self.temperature = np.atleast_1d(temperature)
         # Get selected datasets
@@ -58,12 +59,7 @@ class Ion(IonBase, ContinuumBase):
         self._dset_names = {}
         self._dset_names['ioneq_filename'] = kwargs.get('ioneq_filename', 'chianti')
         self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
-        abund = kwargs.get('abundance', 'sun_coronal_1992_feldman_ext')
-        if isinstance(abund, str):
-            self._dset_names['abundance'] = abund
-            self.abundance = self._abund[self._dset_names['abundance']]
-        else:
-            self.abundance = abund
+        self.abundance = abundance
 
     def _new_instance(self, temperature=None, **kwargs):
         """
@@ -99,7 +95,7 @@ Temperature range: [{self.temperature[0].to(u.MK):.3f}, {self.temperature[-1].to
 HDF5 Database: {self.hdf5_dbase_root}
 Using Datasets:
   ioneq: {self._dset_names['ioneq_filename']}
-  abundance: {self._dset_names['abundance']}
+  abundance: {self._dset_names.get('abundance', self.abundance)}
   ip: {self._dset_names['ip_filename']}"""
 
     @cached_property
@@ -217,7 +213,16 @@ Using Datasets:
 
     @abundance.setter
     def abundance(self, abundance):
-        self._abundance = abundance
+        """
+        Sets the abundance of an ion (relative to H).
+        If the abundance is given as a string, use the matching abundance set.
+        If the abundance is given as a float, use that value directly.
+        """
+        if isinstance(abundance, str):
+            self._dset_names['abundance'] = abundance
+            self._abundance = self._abund[self._dset_names['abundance']]
+        else:
+            self._abundance = abundance
 
     @property
     @needs_dataset('ip')
