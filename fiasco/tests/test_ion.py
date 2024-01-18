@@ -244,7 +244,7 @@ def test_level_populations_normalized(pops_no_correction, pops_with_correction):
     assert u.allclose(pops_no_correction.sum(axis=1), 1, atol=None, rtol=1e-15)
 
 
-@pytest.mark.requires_dbase_version('<=','8')
+@pytest.mark.requires_dbase_version('<=','8.0.7')
 def test_level_populations_correction(fe20, pops_no_correction, pops_with_correction):
     # Test level-resolved correction applied to correct levels
     i_corrected = np.unique(np.concatenate([fe20._cilvl['upper_level'], fe20._reclvl['upper_level']]))
