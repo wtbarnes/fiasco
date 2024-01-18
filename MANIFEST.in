@@ -1,0 +1,2 @@
+prune fiasco/test/idl/data
+prune fiasco/test/idl/ssw_gen_functions
