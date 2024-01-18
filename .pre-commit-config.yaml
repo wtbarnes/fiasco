@@ -22,14 +22,14 @@ repos:
       - id: check-ast
       - id: check-case-conflict
       - id: trailing-whitespace
-        exclude: ".*(.fits|.fts|.fit|.txt|.pro|.asdf)$"
+        exclude: ".*(.fits|.fts|.fit|.txt|.pro|.asdf|.json)$"
       - id: check-yaml
       - id: debug-statements
       - id: check-added-large-files
       - id: end-of-file-fixer
-        exclude: ".*(.fits|.fts|.fit|.txt|.pro|.asdf|.bib|tca.*)$"
+        exclude: ".*(.fits|.fts|.fit|.txt|.pro|.asdf|.json|.bib|tca.*)$"
       - id: mixed-line-ending
-        exclude: ".*(.fits|.fts|.fit|.txt|.bib|.pro|.asdf|tca.*)$"
+        exclude: ".*(.fits|.fts|.fit|.txt|.bib|.pro|.asdf|.json|tca.*)$"
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
