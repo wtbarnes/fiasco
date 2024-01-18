@@ -7,6 +7,7 @@ import pytest
 
 import fiasco
 
+from fiasco.tests.idl.helpers import run_idl_script
 from fiasco.util.exceptions import MissingDatasetException
 
 
@@ -30,109 +31,113 @@ def wavelength():
 
 
 @pytest.fixture
-def idl_input_args(all_ions, wavelength, ascii_dbase_root):
-    abundance_name = all_ions[0]._dset_names['abundance_filename']
-    ioneq_name = all_ions[0]._dset_names['ioneq_filename']
+def idl_input_args(all_ions, wavelength):
     return {
         'wavelength': wavelength,
         'temperature': all_ions.temperature,
-        'abundance_filename': ascii_dbase_root / 'abundance' / f'{abundance_name}.abund',
-        'ioneq_filename': ascii_dbase_root / 'ioneq' / f'{ioneq_name}.ioneq',
+        'abundance': all_ions[0]._dset_names['abundance_filename'],
+        'ioneq': all_ions[0]._dset_names['ioneq_filename'],
     }
 
 
-def test_idl_compare_free_free(idl_env, all_ions, wavelength, idl_input_args):
-    ff_python = all_ions.free_free(wavelength)
-    # Run IDL free-free calculation
+def test_idl_compare_free_free(idl_env, all_ions, idl_input_args, dbase_version):
     script = """
     ; set common block
     common elements, abund, abund_ref, ioneq, ioneq_logt, ioneq_ref
 
     ; read abundance and ionization equilibrium
-    abundfile='{{ abundance_filename }}'
-    read_abund, abundfile, abund, abund_ref
-    ioneqfile="{{ ioneq_filename }}"
-    read_ioneq, ioneqfile, ioneq_logt, ioneq, ioneq_ref
+    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
+    ioneq_file = FILEPATH('{{ioneq}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    read_abund, abund_file, abund, abund_ref
+    read_ioneq, ioneq_file, ioneq_logt, ioneq, ioneq_ref
 
     ; set temperature and wavelength
     temperature = {{ temperature | to_unit('K') | force_double_precision }}
     wavelength = {{ wavelength | to_unit('Angstrom') | force_double_precision }}
 
     ; calculate free-free
-    freefree, temperature, wavelength, ff, /no_setup
-
-    ; The output of freefree is scaled by 10^40
-    ff = ff/1d40
+    freefree, temperature, wavelength, free_free, /no_setup
     """
-    res_idl = idl_env.run(script, args=idl_input_args)
-    ff_idl = res_idl['ff'] * u.Unit('erg cm3 s-1 Angstrom-1')
+    idl_result = run_idl_script(idl_env,
+                                script,
+                                idl_input_args,
+                                ['free_free'],
+                                'freefree_all_ions',
+                                dbase_version,
+                                format_func={'free_free': lambda x: x/1e40*u.Unit('erg cm3 s-1 Angstrom-1')})
+
+    free_free_python = all_ions.free_free(idl_result['wavelength'])
     # Compare IDL and Python calculation
-    assert u.allclose(ff_idl, ff_python, atol=None, rtol=0.005)
+    assert u.allclose(idl_result['free_free'], free_free_python, atol=None, rtol=0.005)
 
 
-def test_idl_compare_free_bound(idl_env, all_ions, wavelength, idl_input_args):
-    fb_python = all_ions.free_bound(wavelength)
+def test_idl_compare_free_bound(idl_env, all_ions, idl_input_args, dbase_version):
+    script = """
+    ; set common block
+    common elements, abund, abund_ref, ioneq, ioneq_logt, ioneq_ref
+
+    ; read abundance and ionization equilibrium
+    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
+    ioneq_file = FILEPATH('{{ioneq}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    read_abund, abund_file, abund, abund_ref
+    read_ioneq, ioneq_file, ioneq_logt, ioneq, ioneq_ref
+
+    ; set temperature and wavelength
+    temperature = {{ temperature | to_unit('K') | force_double_precision }}
+    wavelength = {{ wavelength | to_unit('Angstrom') | force_double_precision }}
+
+    ; calculate free-bound
+    freebound, temperature, wavelength, free_bound, /no_setup
+    """
+    idl_result = run_idl_script(idl_env,
+                                script,
+                                idl_input_args,
+                                ['free_bound'],
+                                'freebound_all_ions',
+                                dbase_version,
+                                format_func={'free_bound': lambda x: x/1e40*u.Unit('erg cm3 s-1 Angstrom-1')})
+    free_bound_python = all_ions.free_bound(idl_result['wavelength'])
     # NOTE: our expression does not include the 1/4π per steradian
-    fb_python /= 4*np.pi
-    # Run IDL free-free calculation
-    script = """
-    ; set common block
-    common elements, abund, abund_ref, ioneq, ioneq_logt, ioneq_ref
-
-    ; read abundance and ionization equilibrium
-    abundfile='{{ abundance_filename }}'
-    read_abund, abundfile, abund, abund_ref
-    ioneqfile="{{ ioneq_filename }}"
-    read_ioneq, ioneqfile, ioneq_logt, ioneq, ioneq_ref
-
-    ; set temperature and wavelength
-    temperature = {{ temperature | to_unit('K') | force_double_precision }}
-    wavelength = {{ wavelength | to_unit('Angstrom') | force_double_precision }}
-
-    ; calculate free-bound
-    freebound, temperature, wavelength, fb, /no_setup
-
-    ; The output of freefree is scaled by 10^40
-    fb = fb/1d40
-    """
-    res_idl = idl_env.run(script, args=idl_input_args)
-    fb_idl = res_idl['fb'] * u.Unit('erg cm3 s-1 Angstrom-1')
+    free_bound_python /= 4*np.pi
     # Compare IDL and Python calculation
-    assert u.allclose(fb_idl, fb_python, atol=None, rtol=0.005)
+    assert u.allclose(idl_result['free_bound'], free_bound_python, atol=None, rtol=0.005)
 
 
-def test_idl_compare_free_bound_ion(idl_env, all_ions, wavelength, idl_input_args):
+def test_idl_compare_free_bound_ion(idl_env, all_ions, idl_input_args, dbase_version):
     script = """
     ; set common block
     common elements, abund, abund_ref, ioneq, ioneq_logt, ioneq_ref
 
     ; read abundance and ionization equilibrium
-    abundfile='{{ abundance_filename }}'
-    read_abund, abundfile, abund, abund_ref
-    ioneqfile="{{ ioneq_filename }}"
-    read_ioneq, ioneqfile, ioneq_logt, ioneq, ioneq_ref
+    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
+    ioneq_file = FILEPATH('{{ioneq}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    read_abund, abund_file, abund, abund_ref
+    read_ioneq, ioneq_file, ioneq_logt, ioneq, ioneq_ref
 
     ; set temperature and wavelength
     temperature = {{ temperature | to_unit('K') | force_double_precision }}
     wavelength = {{ wavelength | to_unit('Angstrom') | force_double_precision }}
 
     ; calculate free-bound
-    freebound_ion, temperature, wavelength, fb, {{ atomic_number }}, {{ ionization_stage }}
-
-    ; The output of freefree is scaled by 10^40
-    fb = fb/1d40
+    freebound_ion, temperature, wavelength, free_bound, {{ atomic_number }}, {{ ionization_stage }}
     """
     # NOTE: this should be something we parametrize over such that there is a test for each
     # ion rather than all being lumped into a single test that takes a really long time
     for ion in all_ions:
         try:
-            fb_python = ion.free_bound(wavelength)
+            free_bound_python = ion.free_bound(idl_input_args['wavelength'])
         except MissingDatasetException:
             continue
         # NOTE: our expression does not include the 1/4π per steradian
-        fb_python /= 4*np.pi
+        free_bound_python /= 4*np.pi
         args = {**idl_input_args, 'atomic_number':ion.atomic_number, 'ionization_stage':ion.ionization_stage}
-        res_idl = idl_env.run(script, args=args)
-        fb_idl = res_idl['fb'] * u.Unit('erg cm3 s-1 Angstrom-1')
+        idl_result = run_idl_script(idl_env,
+                                    script,
+                                    args,
+                                    ['free_bound'],
+                                    f'freebound_{ion.atomic_number}_{ion.ionization_stage}',
+                                    dbase_version,
+                                    format_func={'free_bound': lambda x: x/1e40*u.Unit('erg cm3 s-1 Angstrom-1')},
+                                    write_file=False)
         # Compare IDL and Python calculation
-        assert u.allclose(fb_idl, fb_python, atol=None, rtol=0.006)
+        assert u.allclose(idl_result['free_bound'], free_bound_python, atol=None, rtol=0.006)

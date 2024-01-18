@@ -7,7 +7,7 @@ import pytest
 
 import fiasco
 
-from fiasco.tests.idl.helpers import save_idl_test_output
+from fiasco.tests.idl.helpers import run_idl_script
 from fiasco.util import parse_ion_name
 
 # NOTE: This is necessary because I cannot figure out how to select the contribution function
@@ -30,62 +30,59 @@ INDEX_WAVE_MAPPING = {
     ('Fe XIV', 197.862*u.Angstrom),
     ('Fe XVI', 262.984*u.Angstrom),
 ])
-def test_idl_compare_goft(idl_env, ascii_dbase_root, hdf5_dbase_root, ion_name, wavelength):
+def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, ion_name, wavelength):
     goft_script = """
-    abund_file = '{{ [xuvtop, 'abundance', abundance_file] | join('/') }}'
-    ioneq_file = '{{ [xuvtop, 'ioneq', ioneq_file] | join('/') }}'
+    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
+    ioneq_file = FILEPATH('{{ioneq}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     density = {{ density | to_unit('cm-3') | log10 | force_double_precision }}
-    wave_min = {{ wave_min | to_unit('angstrom') | force_double_precision }}
-    wave_max = {{ wave_max | to_unit('angstrom') | force_double_precision }}
+    wave_min = {{ (wavelength - wave_window) | to_unit('angstrom') | force_double_precision }}
+    wave_max = {{ (wavelength + wave_window) | to_unit('angstrom') | force_double_precision }}
     contribution_function = g_of_t({{ Z }},$
-                                   {{ iz }},$
-                                   dens=density,$
-                                   abund_file=abund_file,$
-                                   ioneq_file=ioneq_file,$
-                                   {% if index %}index={{ index }},/quiet,${% endif %}
-                                   wrange=[wave_min, wave_max])
+                                    {{ iz }},$
+                                    dens=density,$
+                                    abund_file=abund_file,$
+                                    ioneq_file=ioneq_file,$
+                                    {% if index %}index={{ index }},/quiet,${% endif %}
+                                    wrange=[wave_min, wave_max])
     ; Call this function to get the temperature array
     read_ioneq,ioneq_file,temperature,ioneq,ref
     """
-    Z, iz = parse_ion_name(ion_name)
     # Setup IDl arguments
-    abundance_set = 'sun_coronal_1992_feldman_ext'
-    ioneq_set = 'chianti'
-    density = 1e+10 * u.cm**(-3)
-    wave_window = 1 * u.angstrom
-    idl_args = {
+    Z, iz = parse_ion_name(ion_name)
+    input_args = {
         'Z': Z,
         'iz': iz,
-        'wave_min': wavelength - wave_window,
-        'wave_max': wavelength + wave_window,
+        'wavelength': wavelength,
+        'wave_window': 1 * u.angstrom,
         'index': INDEX_WAVE_MAPPING[wavelength],
-        'density': density,
-        'abundance_file': f'{abundance_set}.abund',
-        'ioneq_file': f'{ioneq_set}.ioneq',
-        'xuvtop': str(ascii_dbase_root),
+        'density': 1e+10 * u.cm**(-3),
+        'abundance': 'sun_coronal_1992_feldman_ext',
+        'ioneq': 'chianti',
     }
-    # Run IDL code
-    res = idl_env.run(goft_script, args=idl_args, save_vars=['temperature','contribution_function'])
-    temperature = 10**res['temperature']*u.K
-    goft_idl = res['contribution_function'] * u.Unit('erg cm3 s-1')
-    # Save the the contribution function to the data directory
-    save_idl_test_output({'temperature': temperature, 'goft': goft_idl, 'idl_script': goft_script, **idl_args},
-                         f'goft_{Z}_{iz}_{wavelength.to_value("AA"):.3f}',
-                         ascii_dbase_root)
+    formatters = {'temperature': lambda x: 10**x*u.K,
+                  'contribution_function': lambda x: x*u.Unit('erg cm3 s-1')}
+    idl_result = run_idl_script(idl_env,
+                                goft_script,
+                                input_args,
+                                ['temperature', 'contribution_function'],
+                                f'goft_{Z}_{iz}_{wavelength.to_value("AA"):.3f}',
+                                dbase_version,
+                                format_func=formatters)
     # Run equivalent fiasco code
-    ion = fiasco.Ion((Z,iz),
-                     temperature,
+    ion = fiasco.Ion(ion_name,
+                     idl_result['temperature'],
                      hdf5_dbase_root=hdf5_dbase_root,
-                     abundance_filename=abundance_set,
-                     ioneq_filename=ioneq_set)
-    contribution_func = ion.contribution_function(density)
-    idx = np.argmin(np.abs(ion.transitions.wavelength[~ion.transitions.is_twophoton] - wavelength))
+                     abundance_filename=idl_result['abundance'],
+                     ioneq_filename=idl_result['ioneq'])
+    contribution_func = ion.contribution_function(idl_result['density'])
+    idx = np.argmin(np.abs(ion.transitions.wavelength[~ion.transitions.is_twophoton] - idl_result['wavelength']))
     goft_python = contribution_func[:, 0, idx]
     # Find relevant range for comparison. The solutions may diverge many orders of magnitude below
     # the peak of the contribution function, but that is not relevant in assessing meaningful
     # differences between the IDL and Python approaches. Thus, we only assess the differences
     # where the contribution function is above some threshold relative to the peak of the
     # contribution function.
+    goft_idl = idl_result['contribution_function']
     i_compare = np.where(goft_idl>=goft_idl.max()*1e-10)
     # Compare results
     assert u.allclose(goft_idl[i_compare], goft_python[i_compare], atol=None, rtol=0.05)

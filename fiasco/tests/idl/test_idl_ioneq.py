@@ -2,23 +2,12 @@
 IDL comparison tests for ionization equilibria
 """
 import astropy.units as u
-import pathlib
 import pytest
 
 import fiasco
 
-
-@pytest.fixture
-def ioneq_from_idl(idl_env, ascii_dbase_root):
-    script = """
-    ioneqfile="{{ ioneq_filename }}"
-    read_ioneq, ioneqfile, ioneq_logt, ioneq, ioneq_ref
-    """
-    args = {
-        'ioneq_filename': ascii_dbase_root / 'ioneq' / 'chianti.ioneq',
-    }
-    res_idl = idl_env.run(script, args=args)
-    return res_idl
+from fiasco.tests.idl.helpers import run_idl_script
+from fiasco.util import parse_ion_name
 
 
 @pytest.mark.parametrize('ion_name', [
@@ -33,13 +22,24 @@ def ioneq_from_idl(idl_env, ascii_dbase_root):
     'Ca 2',
     'Fe 20',
 ])
-def test_ioneq_from_idl(ion_name, ioneq_from_idl, hdf5_dbase_root):
-    temperature = 10**ioneq_from_idl['ioneq_logt'] * u.K
-    ion_kwargs = {
-        'ioneq_filename': pathlib.Path(str(ioneq_from_idl['ioneqfile'])).stem,
-        'hdf5_dbase_root': hdf5_dbase_root,
-    }
-    ion = fiasco.Ion(ion_name, temperature, **ion_kwargs)
-    ioneq_idl = ioneq_from_idl['ioneq'][ion.charge_state, ion.atomic_number-1, :]
-    ioneq_python = ion.ioneq
-    assert u.allclose(ioneq_idl, ioneq_python, rtol=0.0, atol=1e-5)
+def test_ioneq_from_idl(ion_name, idl_env, dbase_version, hdf5_dbase_root):
+    Z, iz = parse_ion_name(ion_name)
+    script = """
+    ioneq_file = FILEPATH('{{ioneq_filename}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    read_ioneq, ioneq_file, temperature, ioneq, ioneq_ref
+    ioneq = ioneq[*,{{Z-1}},{{iz-1}}]
+    """
+    formatters = {'temperature': lambda x: 10**x*u.K,
+                  'ioneq': lambda x: x*u.dimensionless_unscaled}
+    idl_result = run_idl_script(idl_env,
+                                script,
+                                {'ioneq_filename': 'chianti', 'Z': Z, 'iz': iz},
+                                ['temperature', 'ioneq'],
+                                f'ioneq_{Z}_{iz}',
+                                dbase_version,
+                                format_func=formatters)
+    ion = fiasco.Ion(ion_name,
+                     idl_result['temperature'],
+                     hdf5_dbase_root=hdf5_dbase_root,
+                     ioneq_filename=idl_result['ioneq_filename'])
+    assert u.allclose(idl_result['ioneq'], ion.ioneq, rtol=0.0, atol=1e-5)
