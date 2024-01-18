@@ -166,7 +166,7 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=F
                 parser = fiasco.io.Parser(f, ascii_dbase_root=ascii_dbase_root)
                 if check_hash:
                     actual = md5hash(parser.full_path)
-                    if hash_table[f] != actual:
+                    if hash_table[parser.full_path.name] != actual:
                         raise RuntimeError(f'Hash of {parser.full_path} ({actual}) did not match expected hash ({hash_table[f]})')
                 try:
                     df = parser.parse()
