@@ -103,6 +103,7 @@ omit = [
   "fiasco/conftest.py",
   "fiasco/*setup_package*",
   "fiasco/tests/*",
+  "fiasco/tests/idl/*",
   "fiasco/*/tests/*",
   "fiasco/extern/*",
   "fiasco/version*",
