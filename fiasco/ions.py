@@ -131,17 +131,16 @@ Using Datasets:
         # Keyword arguments used to instantiate this Ion. These are useful when
         # constructing a new Ion instance that pulls from exactly the same
         # data sources.
-        if 'abundance' in self._dset_names.keys():
-            kwargs = {
-                'hdf5_dbase_root': self.hdf5_dbase_root,
-                **self._dset_names,
-            }
-        else:
-            kwargs = {
-                'hdf5_dbase_root': self.hdf5_dbase_root,
-                'abundance': self._abundance,
-                **self._dset_names,
-            }
+        kwargs = {
+            'hdf5_dbase_root': self.hdf5_dbase_root,
+            **self._dset_names,
+        }
+        # If the abundance is set using a string specifying the abundance dataset,
+        # the dataset name is in _dset_names. We want to pass this to the new instance
+        # so that the new instance knows that the abundance was specified using a
+        # dataset name. Otherwise, we can just pass the actual abundance value.
+        if kwargs['abundance'] is None:
+            kwargs['abundance'] = self.abundance
         return kwargs
 
     def next_ion(self):
@@ -212,7 +211,8 @@ Using Datasets:
         return u.Quantity(ioneq)
 
     @property
-    def abundance(self):
+    @u.quantity_input
+    def abundance(self) -> u.dimensionless_unscaled:
         """
         Elemental abundance relative to H.
         """
@@ -229,6 +229,7 @@ Using Datasets:
             self._dset_names['abundance'] = abundance
             self._abundance = self._abund[self._dset_names['abundance']]
         else:
+            self._dset_names['abundance'] = None
             self._abundance = abundance
 
     @property
