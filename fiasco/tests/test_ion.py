@@ -389,47 +389,27 @@ def test_previous_ion(ion):
     assert prev_ion.atomic_number == ion.atomic_number
 
 
-def test_change_ion_abundance(ion):
-    assert ion._dset_names['abundance'] == 'sun_coronal_1992_feldman_ext'
-    assert ion._instance_kwargs['abundance'] == 'sun_coronal_1992_feldman_ext'
-    assert u.allclose(ion.abundance, 0.0001258925411794166)
+@pytest.mark.parametrize(('value', 'dset'),[
+    (0.0001258925411794166, 'sun_coronal_1992_feldman_ext'),
+    (2.818382931264455e-05, 'sun_photospheric_2007_grevesse'),
+    (1e-3, None),
+])
+def test_change_ion_abundance(ion, value, dset):
+    ion.abundance = value if dset is None else dset
+    assert u.allclose(ion.abundance, value)
+    assert ion._dset_names['abundance'] == dset
+    assert ion._instance_kwargs['abundance'] == (value if dset is None else dset)
 
-    ion.abundance = 'sun_photospheric_2007_grevesse'
-    assert ion._dset_names['abundance'] == 'sun_photospheric_2007_grevesse'
-    assert u.allclose(ion.abundance, 2.818382931264455e-05)
 
+def test_new_instance_abundance_preserved_float(ion):
     ion.abundance = 1e-3
-    assert u.allclose(ion.abundance, 1e-3)
-
-
-def test_change_element_abundance(hdf5_dbase_root):
-    element = fiasco.Element('iron',
-                             temperature,
-                             abundance='sun_coronal_1992_feldman_ext',
-                             hdf5_dbase_root=hdf5_dbase_root)
-    assert u.allclose(element.abundance, 0.0001258925411794166)
-    assert u.allclose(element[10].abundance, 0.0001258925411794166)
-
-    element.abundance = 1e-3
-    assert u.allclose(element.abundance, 1e-3)
-    assert u.allclose(element[10].abundance, 1e-3)
-
-    element2 = fiasco.Element('iron',
-                              temperature,
-                              abundance=1e-3,
-                              hdf5_dbase_root=hdf5_dbase_root)
-    assert u.allclose(element2.abundance, 1e-3)
-    assert u.allclose(element2[10].abundance, 1e-3)
-
-    element2.abundance = 'sun_photospheric_2007_grevesse'
-    assert u.allclose(element2.abundance, 2.818382931264455e-05)
-    assert u.allclose(element2[10].abundance, 2.818382931264455e-05)
-
-
-def test_new_instance_float_abundance(hdf5_dbase_root):
-    ion = fiasco.Ion('Fe 1',
-                     temperature,
-                     abundance=1e-3,
-                     hdf5_dbase_root=hdf5_dbase_root)
     new_ion = ion._new_instance()
-    assert u.allclose(new_ion._instance_kwargs['abundance'], 1e-3)
+    assert u.allclose(new_ion.abundance, ion.abundance)
+    assert new_ion._dset_names['abundance'] is None
+
+
+def test_new_instance_abundance_preserved_string(ion):
+    ion.abundance = 'sun_photospheric_2007_grevesse'
+    new_ion = ion._new_instance()
+    assert u.allclose(new_ion.abundance, 2.818382931264455e-05)
+    assert new_ion._dset_names['abundance'] == 'sun_photospheric_2007_grevesse'

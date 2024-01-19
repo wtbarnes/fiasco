@@ -83,3 +83,14 @@ def test_equilibrium_ionization(hdf5_dbase_root):
 
 def test_element_repr(element):
     assert element.element_name in element.__repr__()
+
+
+@pytest.mark.parametrize(('value', 'dset'),[
+    (0.07943282347242822, 'sun_coronal_1992_feldman_ext'),
+    (0.08511380382023759, 'sun_photospheric_2007_grevesse'),
+    (1e-3, None),
+])
+def test_change_element_abundance(another_element, value, dset):
+    another_element.abundance = value if dset is None else dset
+    assert u.allclose(another_element.abundance, value)
+    assert u.allclose(another_element[1].abundance, value)
