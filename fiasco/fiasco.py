@@ -83,7 +83,7 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
         try:
             abundance = el.abundance
         except KeyError:
-            abund_file = el[0]._instance_kwargs['abundance_filename']
+            abund_file = el[0]._instance_kwargs['abundance']
             log.warning(
                 f'Not including {el.atomic_symbol}. Abundance not available from {abund_file}.')
             continue
