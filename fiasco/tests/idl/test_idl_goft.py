@@ -72,7 +72,7 @@ def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, ion_name, wav
     ion = fiasco.Ion(ion_name,
                      idl_result['temperature'],
                      hdf5_dbase_root=hdf5_dbase_root,
-                     abundance_filename=idl_result['abundance'],
+                     abundance=idl_result['abundance'],
                      ioneq_filename=idl_result['ioneq'])
     contribution_func = ion.contribution_function(idl_result['density'])
     idx = np.argmin(np.abs(ion.transitions.wavelength[~ion.transitions.is_twophoton] - idl_result['wavelength']))

@@ -17,7 +17,7 @@ def all_ions(hdf5_dbase_root):
     abundance_name = 'sun_coronal_1992_feldman_ext'
     ioneq_name = 'chianti'
     ion_kwargs = {
-        'abundance_filename': abundance_name,
+        'abundance': abundance_name,
         'ioneq_filename': ioneq_name,
         'hdf5_dbase_root': hdf5_dbase_root,
     }
@@ -35,7 +35,7 @@ def idl_input_args(all_ions, wavelength):
     return {
         'wavelength': wavelength,
         'temperature': all_ions.temperature,
-        'abundance': all_ions[0]._dset_names['abundance_filename'],
+        'abundance': all_ions[0]._dset_names['abundance'],
         'ioneq': all_ions[0]._dset_names['ioneq_filename'],
     }
 

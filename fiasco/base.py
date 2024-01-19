@@ -143,7 +143,7 @@ class IonBase(Base):
     """
 
     @property
-    def _abundance(self):
+    def _abund(self):
         data_path = '/'.join([self.atomic_symbol.lower(), 'abundance'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 

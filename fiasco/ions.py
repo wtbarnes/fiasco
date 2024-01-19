@@ -42,23 +42,24 @@ class Ion(IonBase, ContinuumBase):
         Temperature array over which to evaluate temperature dependent quantities.
     ioneq_filename : `str`, optional
         Ionization equilibrium dataset
-    abundance_filename : `str`, optional
-        Abundance dataset
+    abundance : `str` or `float`, optional
+        If a string is provided, use the appropriate abundance dataset.
+        If a float is provided, use that value as the abundance.
     ip_filename : `str`, optional
         Ionization potential dataset
     """
 
     @u.quantity_input
-    def __init__(self, ion_name, temperature: u.K, *args, **kwargs):
+    def __init__(self, ion_name, temperature: u.K,
+                abundance = 'sun_coronal_1992_feldman_ext', *args, **kwargs):
         super().__init__(ion_name, *args, **kwargs)
         self.temperature = np.atleast_1d(temperature)
         # Get selected datasets
         # TODO: do not hardcode defaults, pull from rc file
         self._dset_names = {}
         self._dset_names['ioneq_filename'] = kwargs.get('ioneq_filename', 'chianti')
-        self._dset_names['abundance_filename'] = kwargs.get('abundance_filename',
-                                                            'sun_coronal_1992_feldman_ext')
         self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
+        self.abundance = abundance
 
     def _new_instance(self, temperature=None, **kwargs):
         """
@@ -94,7 +95,7 @@ Temperature range: [{self.temperature[0].to(u.MK):.3f}, {self.temperature[-1].to
 HDF5 Database: {self.hdf5_dbase_root}
 Using Datasets:
   ioneq: {self._dset_names['ioneq_filename']}
-  abundance: {self._dset_names['abundance_filename']}
+  abundance: {self._dset_names.get('abundance', self.abundance)}
   ip: {self._dset_names['ip_filename']}"""
 
     @cached_property
@@ -134,6 +135,12 @@ Using Datasets:
             'hdf5_dbase_root': self.hdf5_dbase_root,
             **self._dset_names,
         }
+        # If the abundance is set using a string specifying the abundance dataset,
+        # the dataset name is in _dset_names. We want to pass this to the new instance
+        # so that the new instance knows that the abundance was specified using a
+        # dataset name. Otherwise, we can just pass the actual abundance value.
+        if kwargs['abundance'] is None:
+            kwargs['abundance'] = self.abundance
         return kwargs
 
     def next_ion(self):
@@ -204,11 +211,26 @@ Using Datasets:
         return u.Quantity(ioneq)
 
     @property
-    def abundance(self):
+    @u.quantity_input
+    def abundance(self) -> u.dimensionless_unscaled:
         """
         Elemental abundance relative to H.
         """
-        return self._abundance[self._dset_names['abundance_filename']]
+        return self._abundance
+
+    @abundance.setter
+    def abundance(self, abundance):
+        """
+        Sets the abundance of an ion (relative to H).
+        If the abundance is given as a string, use the matching abundance set.
+        If the abundance is given as a float, use that value directly.
+        """
+        if isinstance(abundance, str):
+            self._dset_names['abundance'] = abundance
+            self._abundance = self._abund[self._dset_names['abundance']]
+        else:
+            self._dset_names['abundance'] = None
+            self._abundance = abundance
 
     @property
     @needs_dataset('ip')

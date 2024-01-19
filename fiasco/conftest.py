@@ -20,6 +20,7 @@ else:
 TEST_FILES = {
     'sun_coronal_1992_feldman_ext.abund',
     'sun_coronal_1992_feldman.abund',
+    'sun_photospheric_2007_grevesse.abund',
     'chianti.ip',
     'chianti.ioneq',
     'gffgu.dat',

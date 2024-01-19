@@ -61,6 +61,11 @@ class Element(fiasco.IonCollection):
     def abundance(self):
         return self[0].abundance
 
+    @abundance.setter
+    def abundance(self, abundance):
+        for _ion in self:
+            _ion.abundance = abundance
+
     @cached_property
     def _rate_matrix(self):
         rate_matrix = np.zeros(self.temperature.shape+(self.atomic_number+1, self.atomic_number+1))

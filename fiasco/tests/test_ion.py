@@ -45,16 +45,16 @@ def fe20(hdf5_dbase_root):
 
 
 def test_new_instance(ion):
-    abundance_filename = ion._instance_kwargs['abundance_filename']
+    abundance = ion._instance_kwargs['abundance']
     new_ion = ion._new_instance()
     for k in new_ion._instance_kwargs:
         assert new_ion._instance_kwargs[k] == ion._instance_kwargs[k]
     assert u.allclose(new_ion.temperature, ion.temperature, rtol=0)
     new_ion = ion._new_instance(temperature=ion.temperature[:1])
     assert u.allclose(new_ion.temperature, ion.temperature[:1])
-    new_ion = ion._new_instance(abundance_filename='sun_coronal_1992_feldman')
-    assert new_ion._instance_kwargs['abundance_filename'] == 'sun_coronal_1992_feldman'
-    assert ion._instance_kwargs['abundance_filename'] == abundance_filename
+    new_ion = ion._new_instance(abundance='sun_coronal_1992_feldman')
+    assert new_ion._instance_kwargs['abundance'] == 'sun_coronal_1992_feldman'
+    assert ion._instance_kwargs['abundance'] == abundance
 
 
 def test_level_indexing(ion):
@@ -137,7 +137,7 @@ def test_ioneq_out_bounds_is_nan(ion):
     assert np.isnan(ion_out_of_bounds.ioneq).all()
 
 
-def test_formation_temeprature(ion):
+def test_formation_temperature(ion):
     assert ion.formation_temperature == ion.temperature[np.argmax(ion.ioneq)]
 
 
@@ -156,13 +156,11 @@ def test_proton_collision(fe10):
 
 
 def test_missing_abundance(hdf5_dbase_root):
-    ion = fiasco.Ion('Li 1',
-                     temperature,
-                     abundance_filename='sun_coronal_1992_feldman',
-                     hdf5_dbase_root=hdf5_dbase_root)
     with pytest.raises(KeyError):
-        _ = ion.abundance
-
+        fiasco.Ion('Li 1',
+                    temperature,
+                    abundance='sun_coronal_1992_feldman',
+                    hdf5_dbase_root=hdf5_dbase_root)
 
 def test_ip(ion):
     assert ion.ip.dtype == np.dtype('float64')
@@ -389,3 +387,29 @@ def test_previous_ion(ion):
     prev_ion = ion.previous_ion()
     assert prev_ion.ionization_stage == ion.ionization_stage - 1
     assert prev_ion.atomic_number == ion.atomic_number
+
+
+@pytest.mark.parametrize(('value', 'dset'),[
+    (0.0001258925411794166, 'sun_coronal_1992_feldman_ext'),
+    (2.818382931264455e-05, 'sun_photospheric_2007_grevesse'),
+    (1e-3, None),
+])
+def test_change_ion_abundance(ion, value, dset):
+    ion.abundance = value if dset is None else dset
+    assert u.allclose(ion.abundance, value)
+    assert ion._dset_names['abundance'] == dset
+    assert ion._instance_kwargs['abundance'] == (value if dset is None else dset)
+
+
+def test_new_instance_abundance_preserved_float(ion):
+    ion.abundance = 1e-3
+    new_ion = ion._new_instance()
+    assert u.allclose(new_ion.abundance, ion.abundance)
+    assert new_ion._dset_names['abundance'] is None
+
+
+def test_new_instance_abundance_preserved_string(ion):
+    ion.abundance = 'sun_photospheric_2007_grevesse'
+    new_ion = ion._new_instance()
+    assert u.allclose(new_ion.abundance, 2.818382931264455e-05)
+    assert new_ion._dset_names['abundance'] == 'sun_photospheric_2007_grevesse'
