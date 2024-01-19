@@ -54,14 +54,20 @@ Issues = "https://github.com/wtbarnes/fiasco/issues/"
 all = ["fiasco"]
 test = [
   "fiasco[all]",
+  "asdf",
+  "asdf-astropy",
   "pytest",
   "pytest-astropy",
   "pytest-cov",
   "matplotlib",
 ]
+test_idl = [
+  "fiasco[test]",
+  "hissw",
+]
 docs =[
   "fiasco[all]",
-  "sphinx>=4.2,<5",
+  "sphinx>=4.2",
   "sphinx-automodapi",
   "sphinx-gallery",
   "towncrier",
@@ -88,22 +94,14 @@ remote_data_strict = "False"
 filterwarnings =[
   "error",
   "ignore:numpy.ndarray size changed",
+  "ignore:The unit 'erg' has been deprecated in the VOUnit standard.*:astropy.units.core.UnitsWarning",
+  "ignore:The unit 'Angstrom' has been deprecated in the VOUnit standard.*:astropy.units.core.UnitsWarning",
 ]
 
 [tool.coverage.run]
+branch = true
 omit = [
-  "fiasco/conftest.py",
-  "fiasco/*setup_package*",
-  "fiasco/tests/*",
-  "fiasco/*/tests/*",
-  "fiasco/extern/*",
-  "fiasco/version*",
-  "*/fiasco/conftest.py",
-  "*/fiasco/*setup_package*",
-  "*/fiasco/tests/*",
-  "*/fiasco/*/tests/*",
-  "*/fiasco/extern/*",
-  "*/fiasco/version*",
+  "*/test_idl*.py"
 ]
 
 [tool.coverage.report]
@@ -122,7 +120,7 @@ honor_noqa = true
 lines_between_types = 1
 
 [tool.codespell]
-skip = "*.fts,*.fits,venv,*.pro,*.bib"
+skip = "*.fts,*.fits,venv,*.pro,*.bib,*.asdf,*.json"
 ignore-words-list = "te,emiss"
 
 [tool.ruff]

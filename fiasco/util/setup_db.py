@@ -3,19 +3,19 @@ Various functions for downloading and setting up the database
 """
 import h5py
 import hashlib
+import json
 import numpy as np
 import pathlib
 import tarfile
 
 from astropy.config import set_temp_cache
 from astropy.utils.console import ProgressBar
-from astropy.utils.data import download_file
+from astropy.utils.data import download_file, get_pkg_data_path
 
 import fiasco.io
 
-from fiasco.io import DataIndexer
 from fiasco.util.exceptions import MissingASCIIFileError, UnsupportedVersionError
-from fiasco.util.util import get_chianti_catalog, query_yes_no
+from fiasco.util.util import get_chianti_catalog, query_yes_no, read_chianti_version
 
 FIASCO_HOME = pathlib.Path.home() / '.fiasco'
 CHIANTI_URL = 'http://download.chiantidatabase.org/CHIANTI_v{version}_database.tar.gz'
@@ -81,21 +81,21 @@ def check_database(hdf5_dbase_root, **kwargs):
                 # FIXME: how to gracefully handle this exit?
                 return None
         download_dbase(ascii_dbase_url, ascii_dbase_root)
-    # If we made it this far, build the HDF5 database
-    files = kwargs.get('files')
-    build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=files)
     # Ensure that an unsupported version is not being passed to fiasco
     # NOTE: this check is only meant to be bypassed when testing new
     # versions. Hence, this kwarg is not documented
     if kwargs.get('check_chianti_version', True):
-        check_database_version(hdf5_dbase_root)
+        check_database_version(ascii_dbase_root)
+    # If we made it this far, build the HDF5 database
+    files = kwargs.get('files')
+    build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=files, check_hash=kwargs.get('check_hash', False))
 
 
-def check_database_version(hdf5_dbase_root):
-    dl = DataIndexer.create_indexer(hdf5_dbase_root, '/h/h_1/elvlc')
-    if dl.version not in SUPPORTED_VERSIONS:
+def check_database_version(ascii_dbase_root):
+    version = read_chianti_version(ascii_dbase_root)
+    if str(version) not in SUPPORTED_VERSIONS:
         raise UnsupportedVersionError(
-            f'CHIANTI {dl.version} is not in the list of supported versions {SUPPORTED_VERSIONS}.')
+            f'CHIANTI {version} is not in the list of supported versions {SUPPORTED_VERSIONS}.')
 
 
 def download_dbase(ascii_dbase_url, ascii_dbase_root):
@@ -120,7 +120,24 @@ def md5hash(path):
         return hashlib.md5(f.read()).hexdigest()
 
 
-def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
+def _get_hash_table(version):
+    data_dir = pathlib.Path(get_pkg_data_path('data', package='fiasco.util'))
+    file_path = data_dir / f'file_hashes_v{version}.json'
+    with open(file_path) as f:
+        hash_table = json.load(f)
+    return hash_table
+
+
+def _check_hash(parser, hash_table):
+    actual = md5hash(parser.full_path)
+    key = '_'.join(parser.full_path.relative_to(parser.ascii_dbase_root).parts)
+    if hash_table[key] != actual:
+        raise RuntimeError(
+            f'Hash of {parser.full_path} ({actual}) did not match expected hash ({hash_table[key]})'
+        )
+
+
+def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=False):
     """
     Assemble HDF5 file from raw ASCII CHIANTI database.
 
@@ -132,10 +149,10 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
         Path to HDF5 file
     files : `list` or `dict`, optional
         A list of files to update in the HDF5 database. By default,
-        this is all of the files in `ascii_dbase_root`. If a `dict`, the
-        dictionary keys must contain filenames and the items corresponding
-        expected md5 hash of the file. Building the database will fail if any
-        of the md5 hashes is not as expected.
+        this is all of the files in `ascii_dbase_root`.
+    check_hash: `bool`, optional
+        If True, check the file hash before adding it to the database.
+        Building the database will fail if any of the hashes is not as expected.
     """
     # Import the logger here to avoid circular imports
     from fiasco import log
@@ -146,21 +163,25 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None):
         tmp = get_chianti_catalog(ascii_dbase_root)
         for k in tmp:
             files += tmp[k]
+    if check_hash:
+        version = read_chianti_version(ascii_dbase_root)
+        hash_table = _get_hash_table(version)
+        log.debug(f'Checking hashes for version {version}')
     log.debug(f'Building HDF5 database in {hdf5_dbase_root}')
     with ProgressBar(len(files)) as progress:
         with h5py.File(hdf5_dbase_root, 'a') as hf:
             for f in files:
                 parser = fiasco.io.Parser(f, ascii_dbase_root=ascii_dbase_root)
-                if isinstance(files, dict):
-                    expected = files[f]
-                    actual = md5hash(parser.full_path)
-                    if expected != actual:
-                        raise RuntimeError(f'Hash of {parser.full_path} ({actual}) did not match expected hash ({expected})')
                 try:
                     df = parser.parse()
                 except MissingASCIIFileError as e:
                     log.debug(f'{e}. Not including {f} in {hdf5_dbase_root}')
                 else:
+                    # NOTE: This conditional is purposefully placed here because files that fail to parse
+                    # do not have a valid full path and thus their hash cannot be checked. When the parsing
+                    # is eventually simplified, this can be moved to a more sane place.
+                    if check_hash:
+                        _check_hash(parser, hash_table)
                     parser.to_hdf5(hf, df)
                 progress.update()
             # Build an index for quick lookup of all ions in database

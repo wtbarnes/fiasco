@@ -1,6 +1,7 @@
 """
 Tests for util functions
 """
+import packaging.version
 import pytest
 
 from fiasco.util import get_chianti_catalog, parse_ion_name, read_chianti_version
@@ -39,7 +40,4 @@ def test_get_chianti_catalog(ascii_dbase_root):
 
 def test_chianti_version(ascii_dbase_root):
     version = read_chianti_version(ascii_dbase_root)
-    assert isinstance(version, dict)
-    for k in ['major', 'minor', 'patch']:
-        assert k in version
-        assert isinstance(version[k], int)
+    assert isinstance(version, packaging.version.Version)

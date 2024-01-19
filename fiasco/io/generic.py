@@ -34,7 +34,7 @@ class GenericParser:
             self.chianti_version = ''
         else:
             version = read_chianti_version(self.ascii_dbase_root)
-            self.chianti_version = f"{version['major']}.{version['minor']}.{version['patch']}"
+            self.chianti_version = f"{version}"
         self.full_path = pathlib.Path(filename) if standalone else self.ascii_dbase_root / self.filename
 
     def parse(self):
