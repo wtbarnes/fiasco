@@ -41,6 +41,7 @@ extensions = [
     'sphinx_automodapi.automodapi',
     'sphinx_automodapi.smart_resolver',
     'sphinxcontrib.bibtex',
+    'sphinx_design',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -91,13 +92,38 @@ intersphinx_mapping = {
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 
-html_theme = 'sphinx_book_theme'
+html_theme = 'pydata_sphinx_theme'
 
 # -- Sphinx Book Theme Options -----------------------------------------------------
 html_theme_options = {
-    "repository_url": 'https://github.com/wtbarnes/fiasco',
-    "use_repository_button": True,
-    "use_issues_button": True,
+    "use_edit_page_button": True,
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/wtbarnes/fiasco",
+            "icon": "fa-brands fa-github",
+        },
+        {
+            "name": "PyPI",
+            "url": "https://pypi.org/project/fiasco/",
+            "icon": "fa-brands fa-python",
+        },
+        {
+            "name": "CHIANTI",
+            "url": "http://chiantidatabase.org/",
+            "icon": "fa-solid fa-wine-glass",
+        }
+    ],
+    "secondary_sidebar_items": {
+        # "index": []  # Remove secondary sidebar on landing page
+    },
+    "announcement": "fiasco currently only supports version 8 of the CHIANTI database.",
+}
+html_context = {
+    "github_user": "wtbarnes",
+    "github_repo": "fiasco",
+    "github_version": "main",
+    "doc_path": "docs",
 }
 html_logo = '_static/fiasco-logo.png'
 
