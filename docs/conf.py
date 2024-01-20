@@ -114,9 +114,9 @@ html_theme_options = {
             "icon": "fa-solid fa-wine-glass",
         }
     ],
-    "secondary_sidebar_items": {
-        # "index": []  # Remove secondary sidebar on landing page
-    },
+    #"secondary_sidebar_items": {
+    #    "index": []  # Remove secondary sidebar on landing page
+    #},
     "announcement": "fiasco currently only supports version 8 of the CHIANTI database.",
 }
 html_context = {
