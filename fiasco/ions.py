@@ -6,7 +6,7 @@ import astropy.units as u
 import numpy as np
 
 from functools import cached_property
-from scipy.interpolate import interp1d, PchipInterpolator, splev, splrep, CubicSpline
+from scipy.interpolate import CubicSpline, interp1d, PchipInterpolator, splev, splrep
 from scipy.ndimage import map_coordinates
 
 from fiasco import proton_electron_ratio
@@ -1472,19 +1472,19 @@ Using Datasets:
         """
         """
         prefactor = (const.h * const.c) / (4*np.pi)
-        
+
         if self.hydrogenic:
             A_ji = self._hseq['A']
-            spline = CubicSpline(self._hseq['y'], self._hseq['psi'])
+            cubic_spline = CubicSpline(self._hseq['y'], self._hseq['psi'])
         if self.helium_like:
             A_ji = self._heseq['A']
-            spline = CubicSpline(self._heseq['y'], self._heseq['psi'])
-        
+            cubic_spline = CubicSpline(self._heseq['y'], self._heseq['psi'])
+
         # store the rest wavelength:
         # for hydrogen-like, the 2S1/2 state and for helium-like, the 1s2s 1S0 state:
         # (should we use theoretical or observed wavelength??)
-        rest_wavelength = 1 / (self._elvlc['E_th'].to(1/u.angstrom)[1]) 
+        rest_wavelength = 1 / (self._elvlc['E_th'].to(1/u.angstrom)[1])
         y_interp = (rest_wavelength / wavelength)
-        psi_interp = spline(y_interp)
-        
+        psi_interp = cubic_spline(y_interp)
+
         return 0.0 * u.erg * u.cm**3 / u.s / u.angstrom
