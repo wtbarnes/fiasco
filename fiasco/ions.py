@@ -1468,7 +1468,7 @@ Using Datasets:
         return cross_section
 
     @u.quantity_input
-    def two_photon(self, wavelength: u.angstrom, density: u.cm**(-3)) -> u.erg * u.cm**3 / u.s / u.angstrom:
+    def two_photon(self, wavelength: u.angstrom, electron_density: u.cm**(-3)) -> u.erg * u.cm**3 / u.s / u.angstrom:
         """
         """
         prefactor = (const.h * const.c) / (4*np.pi)
@@ -1481,10 +1481,19 @@ Using Datasets:
             cubic_spline = CubicSpline(self._heseq['y'], self._heseq['psi'])
 
         # store the rest wavelength:
-        # for hydrogen-like, the 2S1/2 state and for helium-like, the 1s2s 1S0 state:
-        # (should we use theoretical or observed wavelength??)
-        rest_wavelength = 1 / (self._elvlc['E_th'].to(1/u.angstrom)[1])
+        # for hydrogen-like, the 2S1/2 state, and for helium-like, the 1s2s 1S0 state
+        E_obs = self._elvlc['E_obs'][1]
+        E_th = self._elvlc['E_th'][1]
+        E_2p = E_obs if E_obs > 0.0 else E_th
+        rest_wavelength = 1 / (E_2p.to(1/u.angstrom))
+
         y_interp = (rest_wavelength / wavelength)
         psi_interp = cubic_spline(y_interp)
+
+        pe_ratio = proton_electron_ratio(self.temperature, **self._instance_kwargs)
+        level_population = self.level_populations(electron_density, **self._instance_kwargs)
+
+        # N_j(X+m) = N_j(X+m)/N(X+m) * N(X+m)/N(X) * N(X)/N(H) * N(H)/Ne * Ne
+        level_density = level_population[:,:,1] * self.ioneq * self.abundance * pe_ratio * electron_density
 
         return 0.0 * u.erg * u.cm**3 / u.s / u.angstrom
