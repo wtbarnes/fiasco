@@ -209,10 +209,17 @@ if ON_RTD or ON_GHA:
         c.write(f)
 
 # -- Sphinx gallery -----------------------------------------------------------
+from sphinx_gallery.sorting import ExampleTitleSortKey, ExplicitOrder  # NOQA: E402
+
 extensions += ['sphinx_gallery.gen_gallery']
 sphinx_gallery_conf = {
-     'examples_dirs': '../examples',   # path to your example scripts
-     'gallery_dirs': 'generated/gallery',  # path to where to save gallery generated output
-     'filename_pattern': '^((?!skip_).)*$',
-     'default_thumb_file': '_static/fiasco-logo.png'
+    'subsection_order': ExplicitOrder([
+        '../examples/user_guide/',
+        '../examples/idl_comparisons/',
+    ]),
+    'within_subsection_order': ExampleTitleSortKey,
+    'examples_dirs': '../examples',   # path to your example scripts
+    'gallery_dirs': 'generated/gallery',  # path to where to save gallery generated output
+    'filename_pattern': '^((?!skip_).)*$',
+    'default_thumb_file': '_static/fiasco-logo.png'
 }
