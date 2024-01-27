@@ -71,7 +71,7 @@ docs =[
   "sphinx-automodapi",
   "sphinx-gallery",
   "aiapy",
-  "pydata-sphinx--theme",
+  "pydata-sphinx-theme",
   "sphinx-design",
   "sphinxcontrib-bibtex",
 ]
