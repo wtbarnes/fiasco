@@ -257,7 +257,7 @@ class HSeqParser(GenericParser):
     """
     filetype = 'hseq_2photon'
     dtypes = [int, float, int, float, float, float]
-    units = [None, u.dimensionless_unscaled, None, 1/u.s, 1/u.s, u.dimensionless_unscaled]
+    units = [None, u.dimensionless_unscaled, None, 1/u.s, u.dimensionless_unscaled, u.dimensionless_unscaled]
     headings = ['Z', 'y', 'Z_0', 'A', 'A_sum', 'psi']
     descriptions = ['atomic number', 'fraction of energy carried by one of the two photons',
                     'nominal atomic number', 'radiative decay rate', 'summed radiative decay rate',

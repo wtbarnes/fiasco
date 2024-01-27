@@ -1475,9 +1475,11 @@ Using Datasets:
 
         if self.hydrogenic:
             A_ji = self._hseq['A']
+            A_sum = self._hseq['A_sum']
             cubic_spline = CubicSpline(self._hseq['y'], self._hseq['psi'])
         if self.helium_like:
             A_ji = self._heseq['A']
+            A_sum = 1.0 * u.dimensionless_unscaled
             cubic_spline = CubicSpline(self._heseq['y'], self._heseq['psi'])
 
         # store the rest wavelength:
@@ -1487,13 +1489,22 @@ Using Datasets:
         E_2p = E_obs if E_obs > 0.0 else E_th
         rest_wavelength = 1 / (E_2p.to(1/u.angstrom))
 
-        y_interp = (rest_wavelength / wavelength)
+        # Chianti has this as where wavelength strictly greater than rest_wavelength,
+        # but interpolation returns 0 at rest_wavelength, so this can be safely relaxed
+        indices = np.where(wavelength >= rest_wavelength)
+
+        y_interp = (rest_wavelength / wavelength[indices])
         psi_interp = cubic_spline(y_interp)
+        energy_dist = (A_ji * y_interp * psi_interp) / (A_sum * wavelength[indices])
 
         pe_ratio = proton_electron_ratio(self.temperature, **self._instance_kwargs)
         level_population = self.level_populations(electron_density, **self._instance_kwargs)
 
         # N_j(X+m) = N_j(X+m)/N(X+m) * N(X+m)/N(X) * N(X)/N(H) * N(H)/Ne * Ne
-        level_density = level_population[:,:,1] * self.ioneq * self.abundance * pe_ratio * electron_density
+        level_density = level_population[:,0,1] * self.ioneq * self.abundance * pe_ratio * electron_density
+
+        matrix = energy_dist.reshape(len(energy_dist),1) * level_density.reshape(1,len(level_density))
+
+        #prefactor * matrix = u.erg / (u.s * u.angstrom * u.cm**2)
 
         return 0.0 * u.erg * u.cm**3 / u.s / u.angstrom
