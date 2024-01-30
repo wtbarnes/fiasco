@@ -168,6 +168,26 @@ Available Ions
         return free_bound
 
     @u.quantity_input
+    def two_photon(self, wavelength: u.angstrom, electron_density: u.cm**-3, **kwargs):
+        """
+        """
+        wavelength = np.atleast_1d(wavelength)
+        two_photon = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape),
+                                'erg cm^3 s^-1 Angstrom^-1')
+        for ion in self:
+            if ion.hydrogenic or ion.helium_like:
+                try:
+                    tp = ion.two_photon(wavelength, electron_density, **kwargs)
+                    abundance = ion.abundance
+                    ioneq = ion.ioneq
+                except MissingDatasetException as e:
+                    self.log.warning(f'{ion.ion_name} not included in two-photon emission. {e}')
+                    continue
+                else:
+                    two_photon += tp * abundance * ioneq[:, np.newaxis]
+        return two_photon
+
+    @u.quantity_input
     def spectrum(self, density: u.cm**(-3), emission_measure: u.cm**(-5), wavelength_range=None,
                  bin_width=None, kernel=None, **kwargs):
         """

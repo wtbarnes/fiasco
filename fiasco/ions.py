@@ -1471,7 +1471,10 @@ Using Datasets:
     def two_photon(self, wavelength: u.angstrom, electron_density: u.cm**(-3)) -> u.erg * u.cm**3 / u.s / u.angstrom:
         """
         """
+        wavelength = np.atleast_1d(wavelength)
+
         prefactor = (const.h * const.c) / (4*np.pi)
+        EM = 1 * u.cm**-5  # CHIANTI assumes a column EM with value of 1 if not specified
 
         if self.hydrogenic:
             A_ji = self._hseq['A']
@@ -1497,8 +1500,8 @@ Using Datasets:
         psi_interp = cubic_spline(y_interp)
         energy_dist = (A_ji * y_interp * psi_interp) / (A_sum * wavelength[indices])
 
-        pe_ratio = proton_electron_ratio(self.temperature, **self._instance_kwargs)
-        level_population = self.level_populations(electron_density, **self._instance_kwargs)
+        pe_ratio = proton_electron_ratio(self.temperature)
+        level_population = self.level_populations(electron_density)
 
         # N_j(X+m) = N_j(X+m)/N(X+m) * N(X+m)/N(X) * N(X)/N(H) * N(H)/Ne * Ne
         level_density = level_population[:,0,1] * self.ioneq * self.abundance * pe_ratio * electron_density
@@ -1507,4 +1510,4 @@ Using Datasets:
 
         #prefactor * matrix = u.erg / (u.s * u.angstrom * u.cm**2)
 
-        return 0.0 * u.erg * u.cm**3 / u.s / u.angstrom
+        return (prefactor * matrix / EM)
