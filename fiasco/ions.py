@@ -1472,6 +1472,8 @@ Using Datasets:
         """
         """
         wavelength = np.atleast_1d(wavelength)
+        temperature = np.atleast_1d(self.temperature)
+        electron_density = np.atleast_1d(electron_density)
 
         EM = 1 * u.cm**-5  # CHIANTI assumes a column EM with value of 1 if not specified
         prefactor = (const.h * const.c) / (4*np.pi * EM)
@@ -1503,7 +1505,7 @@ Using Datasets:
         level_population = self.level_populations(electron_density)[:,:,1]
 
         # N_j(X+m) = N_j(X+m)/N(X+m) * N(X+m)/N(X) * N(X)/N(H) * N(H)/Ne * Ne
-        level_density = level_population[:,0] * np.outer(self.ioneq * self.abundance * pe_ratio, electron_density)
+        level_density = level_population * np.outer(self.ioneq * self.abundance * pe_ratio, electron_density)
 
         matrix = np.outer(energy_dist, level_density).reshape(len(wavelength),len(temperature),len(electron_density))
 
