@@ -1469,7 +1469,13 @@ Using Datasets:
 
     @u.quantity_input
     def two_photon(self, wavelength: u.angstrom, electron_density: u.cm**(-3)) -> u.erg * u.cm**3 / u.s / u.angstrom:
-        """
+        r"""
+        Two-photon continuum emission of a hydrogenic or helium-like ion.
+
+        Parameters
+        ----------
+        wavelength : `~astropy.units.Quantity`
+        electron_density : `~astropy.units.Quantity`
         """
         wavelength = np.atleast_1d(wavelength)
         temperature = np.atleast_1d(self.temperature)
@@ -1478,6 +1484,9 @@ Using Datasets:
         EM = 1 * u.cm**-5  # CHIANTI assumes a column EM with value of 1 if not specified
         prefactor = (const.h * const.c) / (4*np.pi * EM)
 
+        if not self.hydrogenic and not self.helium_like:
+            return u.Quantity(np.zeros(wavelength.shape + self.temperature.shape + electron_density.shape),
+                              'erg cm^3 s^-1 Angstrom^-1')
         if self.hydrogenic:
             A_ji = self._hseq['A']
             A_sum = self._hseq['A_sum']
@@ -1508,7 +1517,5 @@ Using Datasets:
         level_density = level_population * np.outer(self.ioneq * self.abundance * pe_ratio, electron_density)
 
         matrix = np.outer(energy_dist, level_density).reshape(len(wavelength),len(temperature),len(electron_density))
-
-        #prefactor * matrix = u.erg / (u.s * u.angstrom * u.cm**2)
 
         return (prefactor * matrix)

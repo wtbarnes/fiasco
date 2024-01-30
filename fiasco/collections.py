@@ -169,7 +169,17 @@ Available Ions
 
     @u.quantity_input
     def two_photon(self, wavelength: u.angstrom, electron_density: u.cm**-3, **kwargs):
-        """
+        r"""
+        Compute the two-photon continuum emission.
+
+        Parameters
+        ----------
+        wavelength : `~astropy.units.Quantity`
+        electron_density: `~astropy.units.Quantity`
+
+        See Also
+        --------
+        fiasco.Ion.two_photon
         """
         wavelength = np.atleast_1d(wavelength)
         electron_density = np.atleast_1d(electron_density)
