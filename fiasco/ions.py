@@ -1473,8 +1473,8 @@ Using Datasets:
         """
         wavelength = np.atleast_1d(wavelength)
 
-        prefactor = (const.h * const.c) / (4*np.pi)
         EM = 1 * u.cm**-5  # CHIANTI assumes a column EM with value of 1 if not specified
+        prefactor = (const.h * const.c) / (4*np.pi * EM)
 
         if self.hydrogenic:
             A_ji = self._hseq['A']
@@ -1492,22 +1492,21 @@ Using Datasets:
         E_2p = E_obs if E_obs > 0.0 else E_th
         rest_wavelength = 1 / (E_2p.to(1/u.angstrom))
 
-        # Chianti has this as where wavelength strictly greater than rest_wavelength,
-        # but interpolation returns 0 at rest_wavelength, so this can be safely relaxed
-        indices = np.where(wavelength >= rest_wavelength)
-
-        y_interp = (rest_wavelength / wavelength[indices])
+        y_interp = (rest_wavelength / wavelength)
         psi_interp = cubic_spline(y_interp)
-        energy_dist = (A_ji * y_interp * psi_interp) / (A_sum * wavelength[indices])
+        indices = np.where(wavelength < rest_wavelength)
+        psi_interp[indices] = 0.0  # intensity below rest_wavelength is 0
+
+        energy_dist = (A_ji * y_interp * psi_interp) / (A_sum * wavelength)
 
         pe_ratio = proton_electron_ratio(self.temperature)
-        level_population = self.level_populations(electron_density)
+        level_population = self.level_populations(electron_density)[:,:,1]
 
         # N_j(X+m) = N_j(X+m)/N(X+m) * N(X+m)/N(X) * N(X)/N(H) * N(H)/Ne * Ne
-        level_density = level_population[:,0,1] * self.ioneq * self.abundance * pe_ratio * electron_density
+        level_density = level_population[:,0] * np.outer(self.ioneq * self.abundance * pe_ratio, electron_density)
 
-        matrix = energy_dist.reshape(len(energy_dist),1) * level_density.reshape(1,len(level_density))
+        matrix = np.outer(energy_dist, level_density).reshape(len(wavelength),len(temperature),len(electron_density))
 
         #prefactor * matrix = u.erg / (u.s * u.angstrom * u.cm**2)
 
-        return (prefactor * matrix / EM)
+        return (prefactor * matrix)
