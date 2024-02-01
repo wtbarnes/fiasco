@@ -96,6 +96,7 @@ filterwarnings =[
   "ignore:numpy.ndarray size changed",
   "ignore:The unit 'erg' has been deprecated in the VOUnit standard.*:astropy.units.core.UnitsWarning",
   "ignore:The unit 'Angstrom' has been deprecated in the VOUnit standard.*:astropy.units.core.UnitsWarning",
+  "ignore:Pyarrow will become a required dependency of pandas in the next major release of pandas*:DeprecationWarning",
 ]
 
 [tool.coverage.run]
