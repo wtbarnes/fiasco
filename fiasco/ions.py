@@ -1160,6 +1160,17 @@ Using Datasets:
             raise ValueError(f"Unrecognized fit type {self._drparams['fit_type']}")
 
     @cached_property
+    @needs_dataset('trparams')
+    @u.quantity_input
+    def _total_recombination_rate(self) -> u.cm**3 / u.s:
+        temperature_data = self._trparams['temperature'].to_value('K')
+        rate_data = self._trparams['recombination_rate'].to_value('cm3 s-1')
+        f_interp = interp1d(temperature_data, rate_data, fill_value='extrapolate', kind='cubic')
+        f_interp = PchipInterpolator(np.log10(temperature_data), np.log10(rate_data), extrapolate=True)
+        rate_interp = 10**f_interp(np.log10(self.temperature.to_value('K')))
+        return u.Quantity(rate_interp, 'cm3 s-1')
+
+    @cached_property
     @u.quantity_input
     def recombination_rate(self) -> u.cm**3 / u.s:
         r"""
@@ -1172,18 +1183,43 @@ Using Datasets:
 
             \alpha_{R} = \alpha_{RR} + \alpha_{DR}
 
+        .. warning::
+
+            For most ions, this total recombination rate is computed by summing the
+            outputs of the `radiative_recombination_rate` and `dielectronic_recombination_rate` methods.
+            However, for some ions, total recombination rate data is available in the
+            so-called ``.trparams`` files. For these ions, the output of this method
+            will *not* be equal to the sum of the `dielectronic_recombination_rate` and
+            `radiative_recombination_rate` method. As such, when computing the total
+            recombination rate, this method should always be used.
+
         See Also
         --------
         radiative_recombination_rate
         dielectronic_recombination_rate
         """
+        # NOTE: If the trparams data is available, then it is prioritized over the sum
+        # of the dielectronic and radiative recombination rates. This is also how the
+        # total recombination rates are computed in IDL. The reasoning here is that the
+        # total recombination rate data, if available, is more reliable than the sum of
+        # the radiative and dielectronic recombination rates. According to P. Young, there
+        # is some slight controversy over this within some communities, but CHIANTI has chosen
+        # to prioritize this data if it exists.
+        try:
+            tr_rate = self._total_recombination_rate
+        except MissingDatasetException:
+            self.log.debug(f'No total recombination data available for {self.ion_name}.')
+        else:
+            return tr_rate
         try:
             rr_rate = self.radiative_recombination_rate
         except MissingDatasetException:
+            self.log.debug(f'No radiative recombination data available for {self.ion_name}.')
             rr_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         try:
             dr_rate = self.dielectronic_recombination_rate
         except MissingDatasetException:
+            self.log.debug(f'No dielectronic recombination data available for {self.ion_name}.')
             dr_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         return rr_rate + dr_rate
 
