@@ -286,18 +286,28 @@ def test_intensity(ion, em):
     assert intens.shape == ion.temperature.shape + (1, ) + wave_shape
 
 
-def test_excitation_autoionization_rate(ion):
-    rate = ion.excitation_autoionization_rate
+@pytest.mark.parametrize(('rate_name','answer'), [
+    # NOTE: The expected values have not been tested for correctness and
+    # are only meant to indicate whether a value has changed or not.
+    ('direct_ionization_rate', 9.448935172152884e-13*u.cm**3 / u.s),
+    ('excitation_autoionization_rate', 1.14821255e-12 * u.cm**3 / u.s),
+    ('dielectronic_recombination_rate', 1.60593802e-11 * u.cm**3 / u.s),
+    ('radiative_recombination_rate', 1.6221634159408823e-12*u.cm**3 / u.s),
+])
+def test_rates(ion, rate_name, answer):
+    rate = getattr(ion, rate_name)
     assert rate.shape == ion.temperature.shape
-    # This value has not been tested for correctness
-    assert u.allclose(rate[0], 1.14821255e-12 * u.cm**3 / u.s)
+    assert u.allclose(rate[0], answer)
 
 
-def test_dielectronic_recombination_rate(ion):
-    rate = ion.dielectronic_recombination_rate
-    assert rate.shape == ion.temperature.shape
-    # This value has not been tested for correctness
-    assert u.allclose(rate[0], 1.60593802e-11 * u.cm**3 / u.s)
+def test_total_recombination_rate_priority(ion):
+    # This tests that in cases where the total recombination data in the trparams
+    # files is available that it is prioritized over the sum of the DR and RR rates.
+    # This is the case for this ion because Fe V has total recombination rate data
+    # available.
+    recomb_rate = ion.recombination_rate
+    tot_recomb_rate = ion._total_recombination_rate
+    assert np.all(recomb_rate == tot_recomb_rate)
 
 
 def test_free_free(ion):
