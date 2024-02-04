@@ -1467,6 +1467,7 @@ Using Datasets:
         cross_section[np.where(photon_energy < ionization_energy)] = 0.*cross_section.unit
         return cross_section
 
+    @needs_dataset('elvlc')
     @u.quantity_input
     def two_photon(self, wavelength: u.angstrom, electron_density: u.cm**(-3)) -> u.erg * u.cm**3 / u.s / u.angstrom:
         r"""
