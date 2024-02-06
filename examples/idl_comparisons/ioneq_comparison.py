@@ -37,7 +37,6 @@ def plot_idl_comparison(x, y_idl, y_python, fig, n_rows, i_row, quantity_name, t
     ax1.set_xlim(x[[0,-1]])
     ax1.set_ylim(y_python.max()*np.array([thresh,2]))
     ax1.set_ylabel(quantity_name)
-    ax1.legend()
     # Ratio
     ax2 = fig.add_subplot(n_rows, 3, i_row+2, sharex=ax1)
     ax2.plot(x, (y_python/y_idl).decompose())
@@ -64,7 +63,12 @@ def plot_idl_comparison(x, y_idl, y_python, fig, n_rows, i_row, quantity_name, t
 # Next, plot the comparison between the ionization fraction results
 # for a selected number of ions. In the case of fiasco, we will also
 # compute the ionization fraction in addition to reading the tabulated
-# values.
+# values. The regions highlighted in red denote places where the ionization
+# fraction is less than :math:`10^{-6}` times the peak of the ionization fraction.
+# In these regions, the comparison is between the two results is not as critical
+# as differences due to the interpolation schemes may show large deviations between
+# the two approaches. However, the ionization fraction in these regions does not
+# meaningfully contribute to any other derived quantities.
 ioneq_files = [
     'ioneq_1_1',
     'ioneq_6_1',
@@ -90,5 +94,6 @@ for i, name in enumerate(ioneq_files):
     axes = plot_idl_comparison(ion.temperature, idl_result['ioneq'], ion.ioneq,
                                fig, len(ioneq_files), 3*i, f'{ion.ion_name_roman}')
     axes[0].plot(element.temperature, ioneq[:, ion.charge_state],
-                 label='fiasco, from rates', color='C0', ls='--')
+                 label='fiasco (rates)', color='C1', ls='-')
+    axes[0].legend()
 plt.show()
