@@ -38,7 +38,7 @@ In the same way, the `fiasco` package serves up the CHIANTI atomic database.
         Short guides on how to accomplish specific tasks with fiasco
 
     .. grid-item-card:: Reference
-        :link: reference
+        :link: fiasco-reference
         :link-type: ref
         :text-align: center
 
