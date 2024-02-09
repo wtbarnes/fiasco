@@ -46,7 +46,7 @@ def run_idl_script(idl_env, script, input_args, save_vars, file_name, version, f
     file_name: `str`
         Name of the IDL results file
     version: `packaging.version.Version`, `str`
-        Version of IDL used to generate these test results
+        Version of CHIANTI used to generate these test results
     format_func: `dict`, optional
         Functions to use to format output from the IDL function.
         This is most useful for adding the necessary units to any of the outputs.
