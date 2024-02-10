@@ -1482,7 +1482,7 @@ Using Datasets:
         temperature = np.atleast_1d(self.temperature)
         electron_density = np.atleast_1d(electron_density)
 
-        EM = 1 * u.cm**-5  # CHIANTI assumes a column EM with value of 1 if not specified
+        EM = 1 * u.cm**-3  # CHIANTI assumes a volume EM with value of 1 if not specified
         prefactor = (const.h * const.c) / (4*np.pi * EM)
 
         if not self.hydrogenic and not self.helium_like:
@@ -1509,7 +1509,7 @@ Using Datasets:
         indices = np.where(wavelength < rest_wavelength)
         psi_interp[indices] = 0.0  # intensity below rest_wavelength is 0
 
-        energy_dist = (A_ji * y_interp * psi_interp) / (A_sum * wavelength)
+        energy_dist = (A_ji * rest_wavelength * psi_interp) / (A_sum * wavelength**3)
 
         pe_ratio = proton_electron_ratio(self.temperature)
         level_population = self.level_populations(electron_density)[:,:,1]
@@ -1517,6 +1517,7 @@ Using Datasets:
         # N_j(X+m) = N_j(X+m)/N(X+m) * N(X+m)/N(X) * N(X)/N(H) * N(H)/Ne * Ne
         level_density = level_population * np.outer(self.ioneq * self.abundance * pe_ratio, electron_density)
 
-        matrix = np.outer(energy_dist, level_density).reshape(len(wavelength),len(temperature),len(electron_density))
+        matrix = np.outer(energy_dist, level_density/electron_density).reshape(
+                        len(wavelength),len(temperature),len(electron_density))
 
         return (prefactor * matrix)
