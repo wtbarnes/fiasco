@@ -74,6 +74,8 @@ docs =[
   "pydata-sphinx-theme",
   "sphinx-design",
   "sphinxcontrib-bibtex",
+  "hissw",
+  "asdf",
 ]
 dev = ["fiasco[test,docs]"]
 

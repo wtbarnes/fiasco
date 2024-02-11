@@ -153,7 +153,7 @@ ON_GHA = os.environ.get('CI') == 'true'
 
 # On Read the Docs and CI, download the database and build a minimal HDF5 version
 if ON_RTD or ON_GHA:
-    from fiasco.util import build_hdf5_dbase, download_dbase
+    from fiasco.util import build_hdf5_dbase, download_dbase, get_test_file_list
     from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
     FIASCO_HOME = pathlib.Path.home() / '.fiasco'
     FIASCO_HOME.mkdir(exist_ok=True, parents=True)
@@ -163,43 +163,7 @@ if ON_RTD or ON_GHA:
     build_hdf5_dbase(
         ascii_dbase_root,
         hdf5_dbase_root,
-        files=[
-            'chianti.ip',
-            'chianti.ioneq',
-            'sun_coronal_1992_feldman_ext.abund',
-            'sun_coronal_1992_feldman.abund',
-            'c_1.diparams',
-            'c_2.diparams',
-            'c_2.drparams',
-            'c_2.rrparams',
-            'c_3.diparams',
-            'c_3.drparams',
-            'c_3.easplups',
-            'c_3.rrparams',
-            'c_4.diparams',
-            'c_4.drparams',
-            'c_4.easplups',
-            'c_4.rrparams',
-            'c_5.diparams',
-            'c_5.drparams',
-            'c_5.rrparams',
-            'c_6.diparams',
-            'c_6.drparams',
-            'c_6.rrparams',
-            'c_7.rrparams',
-            'fe_5.elvlc',
-            'fe_15.elvlc',
-            'fe_16.diparams',
-            'fe_16.drparams',
-            'fe_16.easplups',
-            'fe_16.rrparams',
-            'fe_18.elvlc',
-            'fe_18.wgfa',
-            'fe_18.scups',
-            'o_6.scups',
-            'o_6.elvlc',
-            'o_6.wgfa',
-        ]
+        files=get_test_file_list(),
     )
     with (FIASCO_HOME / 'fiascorc').open('w') as f:
         c = configparser.ConfigParser()
