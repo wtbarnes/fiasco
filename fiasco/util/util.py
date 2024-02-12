@@ -66,6 +66,8 @@ def setup_paths():
         paths['ascii_dbase_root'] = FIASCO_HOME / 'chianti_dbase'
     if 'hdf5_dbase_root' not in paths:
         paths['hdf5_dbase_root'] = FIASCO_HOME / 'chianti_dbase.h5'
+    paths['ascii_dbase_root'] = pathlib.Path(paths['ascii_dbase_root'])
+    paths['hdf5_dbase_root'] = pathlib.Path(paths['hdf5_dbase_root'])
 
     return paths
 
