@@ -1490,11 +1490,11 @@ Using Datasets:
                               'erg cm^3 s^-1 Angstrom^-1')
         if self.hydrogenic:
             A_ji = self._hseq['A']
-            A_sum = self._hseq['A_sum']
+            psi_norm = self._hseq['psi_norm']
             cubic_spline = CubicSpline(self._hseq['y'], self._hseq['psi'])
         if self.helium_like:
             A_ji = self._heseq['A']
-            A_sum = 1.0 * u.dimensionless_unscaled
+            psi_norm = 1.0 * u.dimensionless_unscaled
             cubic_spline = CubicSpline(self._heseq['y'], self._heseq['psi'])
 
         # store the rest wavelength:
@@ -1509,7 +1509,7 @@ Using Datasets:
         indices = np.where(wavelength < rest_wavelength)
         psi_interp[indices] = 0.0  # intensity below rest_wavelength is 0
 
-        energy_dist = (A_ji * rest_wavelength * psi_interp) / (A_sum * wavelength**3)
+        energy_dist = (A_ji * rest_wavelength * psi_interp) / (psi_norm * wavelength**3)
 
         pe_ratio = proton_electron_ratio(self.temperature)
         level_population = self.level_populations(electron_density)[:,:,1]
