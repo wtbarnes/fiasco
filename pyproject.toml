@@ -76,6 +76,7 @@ docs =[
   "sphinxcontrib-bibtex",
   "hissw",
   "asdf",
+  "asdf-astropy",
 ]
 dev = ["fiasco[test,docs]"]
 
