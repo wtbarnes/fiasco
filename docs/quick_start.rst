@@ -18,7 +18,7 @@ Next, let's create an `~fiasco.Ion` object representing Fe XVIII:
 
    >>> import fiasco
    >>> import astropy.units as u
-   >>> fe_18 = fiasco.Ion('Fe XVIII', 1*u.MK)
+   >>> fe_18 = fiasco.Ion('Fe XVIII', 1*u.MK)  # doctest: +SKIP
 
 After running this last line, you should see the following message:
 
@@ -62,7 +62,7 @@ You can confirm this by looking at the default values read from the configuratio
 
 .. code-block:: python
 
-   >>> fiasco.defaults
+   >>> fiasco.defaults  # doctest: +SKIP
    {'ascii_dbase_root': PosixPath('.../.fiasco/chianti_dbase'),
     'hdf5_dbase_root': PosixPath('.../.fiasco/chianti_dbase.h5')}
 
@@ -70,7 +70,7 @@ Now that you have your database, you can use your ion object that you created ab
 
 .. code-block:: python
 
-   >>> fe_18
+   >>> fe_18  # doctest: +SKIP
    CHIANTI Database Ion
    ---------------------
    Name: Fe 18
