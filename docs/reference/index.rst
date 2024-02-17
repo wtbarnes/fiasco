@@ -3,10 +3,17 @@
 Reference
 ==========
 
-.. toctree::
-  :maxdepth: 2
+.. _fiasco-reference-api:
 
-  code_ref/index
+API
+----
+
+.. toctree::
+  :maxdepth: 1
+
+  code_ref/fiasco
+  code_ref/io
+  code_ref/util
 
 .. _fiasco-reference-chianti-papers:
 
