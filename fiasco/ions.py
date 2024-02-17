@@ -1469,7 +1469,9 @@ Using Datasets:
 
     @needs_dataset('elvlc')
     @u.quantity_input
-    def two_photon(self, wavelength: u.angstrom, electron_density: u.cm**(-3)) -> u.erg * u.cm**3 / u.s / u.angstrom:
+    def two_photon(self, wavelength: u.angstrom,
+                    electron_density: u.cm**(-3),
+                    include_protons=True) -> u.erg * u.cm**3 / u.s / u.angstrom:
         r"""
         Two-photon continuum emission of a hydrogenic or helium-like ion.
 
@@ -1512,7 +1514,8 @@ Using Datasets:
         energy_dist = (A_ji * rest_wavelength * psi_interp) / (psi_norm * wavelength**3)
 
         pe_ratio = proton_electron_ratio(self.temperature)
-        level_population = self.level_populations(electron_density)[:,:,1]
+        level_population = self.level_populations(electron_density,
+                                                  include_protons=include_protons)[:,:,1]
 
         # N_j(X+m) = N_j(X+m)/N(X+m) * N(X+m)/N(X) * N(X)/N(H) * N(H)/Ne * Ne
         level_density = level_population * np.outer(self.ioneq * self.abundance * pe_ratio, electron_density)
