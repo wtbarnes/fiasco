@@ -1479,6 +1479,8 @@ Using Datasets:
         ----------
         wavelength : `~astropy.units.Quantity`
         electron_density : `~astropy.units.Quantity`
+        include_protons : `bool`, optional
+            If True, use proton excitation and de-excitation rates in the level population calculation.
         """
         wavelength = np.atleast_1d(wavelength)
         temperature = np.atleast_1d(self.temperature)
@@ -1494,20 +1496,22 @@ Using Datasets:
             A_ji = self._hseq['A']
             psi_norm = self._hseq['psi_norm']
             cubic_spline = CubicSpline(self._hseq['y'], self._hseq['psi'])
+            # Get the index of the 2S1/2 state for H-like:
+            level_index = np.where((self._elvlc['config'] == '2s') & (self._elvlc['J'] == 0.5))[0][0]
         if self.helium_like:
             A_ji = self._heseq['A']
             psi_norm = 1.0 * u.dimensionless_unscaled
             cubic_spline = CubicSpline(self._heseq['y'], self._heseq['psi'])
+            # Get the index of the 1s2s 1S0 state for He-like:
+            level_index = np.where((self._elvlc['config'] == '1s.2s') & (self._elvlc['J'] == 0))[0][0]
 
         # store the rest wavelength:
-        # for hydrogen-like, the 2S1/2 state, and for helium-like, the 1s2s 1S0 state
-        E_obs = self._elvlc['E_obs'][1]
-        E_th = self._elvlc['E_th'][1]
+        E_obs = self._elvlc['E_obs'][level_index]
+        E_th = self._elvlc['E_th'][level_index]
         E_2p = E_obs if E_obs > 0.0 else E_th
         rest_wavelength = 1 / (E_2p.to(1/u.angstrom))
 
-        y_interp = (rest_wavelength / wavelength)
-        psi_interp = cubic_spline(y_interp)
+        psi_interp = cubic_spline(rest_wavelength / wavelength)
         indices = np.where(wavelength < rest_wavelength)
         psi_interp[indices] = 0.0  # intensity below rest_wavelength is 0
 
@@ -1515,7 +1519,7 @@ Using Datasets:
 
         pe_ratio = proton_electron_ratio(self.temperature)
         level_population = self.level_populations(electron_density,
-                                                  include_protons=include_protons)[:,:,1]
+                                                  include_protons=include_protons)[:,:,level_index]
 
         # N_j(X+m) = N_j(X+m)/N(X+m) * N(X+m)/N(X) * N(X)/N(H) * N(H)/Ne * Ne
         level_density = level_population * np.outer(self.ioneq * self.abundance * pe_ratio, electron_density)
