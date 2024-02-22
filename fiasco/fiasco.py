@@ -15,10 +15,19 @@ from fiasco.io import DataIndexer
 __all__ = ['list_elements', 'list_ions', 'proton_electron_ratio']
 
 
-def list_elements(hdf5_dbase_root, sort=True):
+def list_elements(hdf5_dbase_root=None, sort=True):
     """
     List all available elements in the CHIANTI database.
+
+    Parameters
+    ----------
+    hdf5_dbase_root: path-like, optional
+        If not specified, will default to that specified in `fiasco.defaults`.
+    sort: `bool`, optional
+        If True, sort the list of elements by increasing atomic number.
     """
+    if hdf5_dbase_root is None:
+        hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
     elements = []
     root = DataIndexer.create_indexer(hdf5_dbase_root, '/')
     for f in root.fields:
@@ -31,10 +40,19 @@ def list_elements(hdf5_dbase_root, sort=True):
     return elements
 
 
-def list_ions(hdf5_dbase_root, sort=True):
+def list_ions(hdf5_dbase_root=None, sort=True):
     """
     List all available ions in the CHIANTI database
+
+    Parameters
+    ----------
+    hdf5_dbase_root: path-like, optional
+        If not specified, will default to that specified in `fiasco.defaults`.
+    sort: `bool`, optional
+        If True, sort the list of elements by increasing atomic number.
     """
+    if hdf5_dbase_root is None:
+        hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
     root = DataIndexer(hdf5_dbase_root, '/')
     # NOTE: get the list from the index if possible. This is ~30x faster
     try:

@@ -28,7 +28,7 @@ SUPPORTED_VERSIONS = [
 ]
 LATEST_VERSION = SUPPORTED_VERSIONS[-1]
 
-__all__ = ['check_database', 'download_dbase', 'build_hdf5_dbase']
+__all__ = ['check_database', 'download_dbase', 'get_test_file_list', 'build_hdf5_dbase']
 
 
 def check_database(hdf5_dbase_root, **kwargs):
@@ -126,6 +126,14 @@ def _get_hash_table(version):
     with open(file_path) as f:
         hash_table = json.load(f)
     return hash_table
+
+
+def get_test_file_list():
+    data_dir = pathlib.Path(get_pkg_data_path('data', package='fiasco.util'))
+    file_path = data_dir / 'test_file_list.json'
+    with open(file_path) as f:
+        hash_table = json.load(f)
+    return hash_table['test_files']
 
 
 def _check_hash(parser, hash_table):

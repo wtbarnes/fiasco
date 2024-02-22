@@ -70,10 +70,13 @@ docs =[
   "sphinx>=4.2",
   "sphinx-automodapi",
   "sphinx-gallery",
-  "towncrier",
   "aiapy",
-  "sphinx-book-theme",
+  "pydata-sphinx-theme",
+  "sphinx-design",
   "sphinxcontrib-bibtex",
+  "hissw",
+  "asdf",
+  "asdf-astropy",
 ]
 dev = ["fiasco[test,docs]"]
 
@@ -96,6 +99,8 @@ filterwarnings =[
   "ignore:numpy.ndarray size changed",
   "ignore:The unit 'erg' has been deprecated in the VOUnit standard.*:astropy.units.core.UnitsWarning",
   "ignore:The unit 'Angstrom' has been deprecated in the VOUnit standard.*:astropy.units.core.UnitsWarning",
+  # Can be removed when pandas 3.0.0 is released
+  "ignore:\\nPyarrow will become a required dependency of pandas in the next major release of pandas:DeprecationWarning",
 ]
 
 [tool.coverage.run]
@@ -173,44 +178,3 @@ extend-ignore = [
 
 [tool.ruff.pydocstyle]
 convention = "numpy"
-
-[tool.towncrier]
-    package = "fiasco"
-    filename = "CHANGELOG.rst"
-    directory = "changelog/"
-    issue_format = "`#{issue} <https://github.com/wtbarnes/fiasco/pull/{issue}>`__"
-
-    [[tool.towncrier.type]]
-        directory = "breaking"
-        name = "Backwards Incompatible Changes"
-        showcontent = true
-
-    [[tool.towncrier.type]]
-        directory = "api"
-        name = "API Changes"
-        showcontent = true
-
-    [[tool.towncrier.type]]
-      directory = "removal"
-      name = "Deprecations and Removals"
-      showcontent = true
-
-    [[tool.towncrier.type]]
-      directory = "feature"
-      name = "Features"
-      showcontent = true
-
-    [[tool.towncrier.type]]
-      directory = "bugfix"
-      name = "Bug Fixes"
-      showcontent = true
-
-    [[tool.towncrier.type]]
-      directory = "doc"
-      name = "Improved Documentation"
-      showcontent = true
-
-    [[tool.towncrier.type]]
-      directory = "trivial"
-      name = "Trivial/Internal Changes"
-      showcontent = true
