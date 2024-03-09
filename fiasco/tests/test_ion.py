@@ -423,3 +423,10 @@ def test_new_instance_abundance_preserved_string(ion):
     new_ion = ion._new_instance()
     assert u.allclose(new_ion.abundance, 2.818382931264455e-05)
     assert new_ion._dset_names['abundance'] == 'sun_photospheric_2007_grevesse'
+
+
+def test_has_dataset(ion):
+    # Fe 5 has energy level data
+    assert ion._has_dataset('elvlc')
+    # Fe 5 has no proton data
+    assert not ion._has_dataset('psplups')
