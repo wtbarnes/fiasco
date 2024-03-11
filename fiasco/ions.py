@@ -143,6 +143,17 @@ Using Datasets:
             kwargs['abundance'] = self.abundance
         return kwargs
 
+    def _has_dataset(self, dset_name):
+        # There are some cases where we need to check for the existence of a dataset
+        # within a function as opposed to checking for the existence of that dataset
+        # before entering the function using the decorator approach.
+        try:
+            needs_dataset(dset_name)(lambda _: None)(self)
+        except MissingDatasetException:
+            return False
+        else:
+            return True
+
     def next_ion(self):
         """
         Return an `~fiasco.Ion` instance with the next highest ionization stage.
@@ -1409,13 +1420,7 @@ Using Datasets:
         wavelength = np.atleast_1d(wavelength)
         prefactor = (2/np.sqrt(2*np.pi)/(const.h*(const.c**3) * (const.m_e * const.k_B)**(3/2)))
         recombining = self.next_ion()
-        try:
-            # NOTE: This checks whether the fblvl data is available for the
-            # recombining ion
-            needs_dataset('fblvl')(lambda _: None)(recombining)
-            omega_0 = recombining._fblvl['multiplicity'][0]
-        except MissingDatasetException:
-            omega_0 = 1.0
+        omega_0 = recombining._fblvl['multiplicity'][0] if recombining._has_dataset('fblvl') else 1.0
         E_photon = const.h * const.c / wavelength
         energy_temperature_factor = np.outer(self.temperature**(-3/2), E_photon**5)
         # Fill in observed energies with theoretical energies
