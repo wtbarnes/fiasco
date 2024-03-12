@@ -143,6 +143,17 @@ Using Datasets:
             kwargs['abundance'] = self.abundance
         return kwargs
 
+    def _has_dataset(self, dset_name):
+        # There are some cases where we need to check for the existence of a dataset
+        # within a function as opposed to checking for the existence of that dataset
+        # before entering the function using the decorator approach.
+        try:
+            needs_dataset(dset_name)(lambda _: None)(self)
+        except MissingDatasetException:
+            return False
+        else:
+            return True
+
     def next_ion(self):
         """
         Return an `~fiasco.Ion` instance with the next highest ionization stage.
@@ -1182,6 +1193,17 @@ Using Datasets:
             raise ValueError(f"Unrecognized fit type {self._drparams['fit_type']}")
 
     @cached_property
+    @needs_dataset('trparams')
+    @u.quantity_input
+    def _total_recombination_rate(self) -> u.cm**3 / u.s:
+        temperature_data = self._trparams['temperature'].to_value('K')
+        rate_data = self._trparams['recombination_rate'].to_value('cm3 s-1')
+        f_interp = interp1d(temperature_data, rate_data, fill_value='extrapolate', kind='cubic')
+        f_interp = PchipInterpolator(np.log10(temperature_data), np.log10(rate_data), extrapolate=True)
+        rate_interp = 10**f_interp(np.log10(self.temperature.to_value('K')))
+        return u.Quantity(rate_interp, 'cm3 s-1')
+
+    @cached_property
     @u.quantity_input
     def recombination_rate(self) -> u.cm**3 / u.s:
         r"""
@@ -1194,18 +1216,43 @@ Using Datasets:
 
             \alpha_{R} = \alpha_{RR} + \alpha_{DR}
 
+        .. warning::
+
+            For most ions, this total recombination rate is computed by summing the
+            outputs of the `radiative_recombination_rate` and `dielectronic_recombination_rate` methods.
+            However, for some ions, total recombination rate data is available in the
+            so-called ``.trparams`` files. For these ions, the output of this method
+            will *not* be equal to the sum of the `dielectronic_recombination_rate` and
+            `radiative_recombination_rate` method. As such, when computing the total
+            recombination rate, this method should always be used.
+
         See Also
         --------
         radiative_recombination_rate
         dielectronic_recombination_rate
         """
+        # NOTE: If the trparams data is available, then it is prioritized over the sum
+        # of the dielectronic and radiative recombination rates. This is also how the
+        # total recombination rates are computed in IDL. The reasoning here is that the
+        # total recombination rate data, if available, is more reliable than the sum of
+        # the radiative and dielectronic recombination rates. According to P. Young, there
+        # is some slight controversy over this within some communities, but CHIANTI has chosen
+        # to prioritize this data if it exists.
+        try:
+            tr_rate = self._total_recombination_rate
+        except MissingDatasetException:
+            self.log.debug(f'No total recombination data available for {self.ion_name}.')
+        else:
+            return tr_rate
         try:
             rr_rate = self.radiative_recombination_rate
         except MissingDatasetException:
+            self.log.debug(f'No radiative recombination data available for {self.ion_name}.')
             rr_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         try:
             dr_rate = self.dielectronic_recombination_rate
         except MissingDatasetException:
+            self.log.debug(f'No dielectronic recombination data available for {self.ion_name}.')
             dr_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         return rr_rate + dr_rate
 
@@ -1373,13 +1420,7 @@ Using Datasets:
         wavelength = np.atleast_1d(wavelength)
         prefactor = (2/np.sqrt(2*np.pi)/(const.h*(const.c**3) * (const.m_e * const.k_B)**(3/2)))
         recombining = self.next_ion()
-        try:
-            # NOTE: This checks whether the fblvl data is available for the
-            # recombining ion
-            needs_dataset('fblvl')(lambda _: None)(recombining)
-            omega_0 = recombining._fblvl['multiplicity'][0]
-        except MissingDatasetException:
-            omega_0 = 1.0
+        omega_0 = recombining._fblvl['multiplicity'][0] if recombining._has_dataset('fblvl') else 1.0
         E_photon = const.h * const.c / wavelength
         energy_temperature_factor = np.outer(self.temperature**(-3/2), E_photon**5)
         # Fill in observed energies with theoretical energies
@@ -1469,11 +1510,9 @@ Using Datasets:
 
     @needs_dataset('elvlc')
     @u.quantity_input
-    def two_photon(self,
-                    wavelength: u.angstrom,
+    def two_photon(self, wavelength: u.angstrom,
                     electron_density: u.cm**(-3),
-                    include_protons=True,
-                  ) -> u.erg * u.cm**3 / u.s / u.angstrom:
+                    include_protons=True) -> u.erg * u.cm**3 / u.s / u.angstrom:
         r"""
         Two-photon continuum emission of a hydrogenic or helium-like ion.
 
@@ -1488,20 +1527,18 @@ Using Datasets:
         temperature = np.atleast_1d(self.temperature)
         electron_density = np.atleast_1d(electron_density)
 
-        normalization = 1 * u.cm**(-6)
-        prefactor = (const.h * const.c) / (4 * np.pi * normalization)
+        EM = 1 * u.cm**-3  # CHIANTI assumes a volume EM with value of 1 if not specified
+        prefactor = (const.h * const.c) / (4*np.pi * EM)
 
         if not self.hydrogenic and not self.helium_like:
             return u.Quantity(np.zeros(wavelength.shape + self.temperature.shape + electron_density.shape),
                               'erg cm^3 s^-1 Angstrom^-1')
-
         if self.hydrogenic:
             A_ji = self._hseq['A']
             psi_norm = self._hseq['psi_norm']
             cubic_spline = CubicSpline(self._hseq['y'], self._hseq['psi'])
             # Get the index of the 2S1/2 state for H-like:
             level_index = np.where((self._elvlc['config'] == '2s') & (self._elvlc['J'] == 0.5))[0][0]
-
         if self.helium_like:
             A_ji = self._heseq['A']
             psi_norm = 1.0 * u.dimensionless_unscaled
@@ -1528,7 +1565,7 @@ Using Datasets:
         # N_j(X+m) = N_j(X+m)/N(X+m) * N(X+m)/N(X) * N(X)/N(H) * N(H)/Ne * Ne
         level_density = level_population * np.outer(self.ioneq * self.abundance * pe_ratio, electron_density)
 
-        matrix = np.outer(energy_dist, level_density).reshape(
+        matrix = np.outer(energy_dist, level_density/electron_density).reshape(
                         len(wavelength),len(temperature),len(electron_density))
 
         return (prefactor * matrix)
