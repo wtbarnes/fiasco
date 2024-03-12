@@ -1527,8 +1527,8 @@ Using Datasets:
         temperature = np.atleast_1d(self.temperature)
         electron_density = np.atleast_1d(electron_density)
 
-        EM = 1 * u.cm**-3  # CHIANTI assumes a volume EM with value of 1 if not specified
-        prefactor = (const.h * const.c) / (4*np.pi * EM)
+        normalization = 1 * u.cm**(-6)  
+        prefactor = (const.h * const.c) / (4*np.pi * normalization)
 
         if not self.hydrogenic and not self.helium_like:
             return u.Quantity(np.zeros(wavelength.shape + self.temperature.shape + electron_density.shape),
@@ -1565,7 +1565,7 @@ Using Datasets:
         # N_j(X+m) = N_j(X+m)/N(X+m) * N(X+m)/N(X) * N(X)/N(H) * N(H)/Ne * Ne
         level_density = level_population * np.outer(self.ioneq * self.abundance * pe_ratio, electron_density)
 
-        matrix = np.outer(energy_dist, level_density/electron_density).reshape(
+        matrix = np.outer(energy_dist, level_density).reshape(
                         len(wavelength),len(temperature),len(electron_density))
 
         return (prefactor * matrix)
