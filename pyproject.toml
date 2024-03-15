@@ -102,7 +102,7 @@ filterwarnings =[
   # Can be removed when pandas 3.0.0 is released
   "ignore:\\nPyarrow will become a required dependency of pandas in the next major release of pandas:DeprecationWarning",
   # Files created with previous versions of asdf-astropy issue a warning if you have a different version installed
-  "ignore:File * was created with extension * which is not currently installed:asdf.exceptions.AsdfWarning",
+  "ignore::asdf.exceptions.AsdfWarning",
 ]
 
 [tool.coverage.run]
