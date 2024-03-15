@@ -1516,6 +1516,11 @@ Using Datasets:
         r"""
         Two-photon continuum emission of a hydrogenic or helium-like ion.
 
+        .. note:: Does not include ionization equilibrium or abundance.
+                  Unlike the equivalent IDL routine, the output here is not
+                  expressed per steradian and as such the factor of
+                  :math:`1/4\pi` is not included.
+
         In hydrogen-like ions, the transition :math: `2S_{1/2} \rightarrow 1S_{1/2} + h\nu` cannot occur
         as an electric dipole transition, but only as a much slower magnetic dipole transition.
         The dominant transition then becomes :math: `2S_{1/2} \rightarrow 1S_{1/2} + h\nu_{1} + h\nu_{2}`.
@@ -1533,7 +1538,7 @@ Using Datasets:
 
         .. math::
 
-            C_{2p}(\lambda, T, n_{e}) = \frac{hc}{4\pi} \frac{n_{j}(X^{+m}) A_{ji} \lambda_{0} \psi(\frac{\lambda_{0}{\lambda})}{\psi_{\text{norm}}\lambda^{3}}
+            C_{2p}(\lambda, T, n_{e}) = hc \frac{n_{j}(X^{+m}) A_{ji} \lambda_{0} \psi(\frac{\lambda_{0}{\lambda})}{\psi_{\text{norm}}\lambda^{3}}
 
         where :math:`\lambda_{0}` is rest wavelength of the (disallowed) transition,
         :math:`A_{ji}` is the Einstein spontaneous emission coefficient,
@@ -1556,8 +1561,7 @@ Using Datasets:
         temperature = np.atleast_1d(self.temperature)
         electron_density = np.atleast_1d(electron_density)
 
-        normalization = 1 * u.cm**(-6)
-        prefactor = (const.h * const.c) / (4*np.pi * normalization)
+        prefactor = (const.h * const.c)
 
         if not self.hydrogenic and not self.helium_like:
             return u.Quantity(np.zeros(wavelength.shape + self.temperature.shape + electron_density.shape),
@@ -1587,12 +1591,11 @@ Using Datasets:
 
         energy_dist = (A_ji * rest_wavelength * psi_interp) / (psi_norm * wavelength**3)
 
-        pe_ratio = proton_electron_ratio(self.temperature)
         level_population = self.level_populations(electron_density,
                                                   include_protons=include_protons)[:,:,level_index]
 
         # N_j(X+m) = N_j(X+m)/N(X+m) * N(X+m)/N(X) * N(X)/N(H) * N(H)/Ne * Ne
-        level_density = level_population * np.outer(self.ioneq * self.abundance * pe_ratio, electron_density)
+        level_density = level_population / electron_density
 
         matrix = np.outer(energy_dist, level_density).reshape(
                         len(wavelength),len(temperature),len(electron_density))

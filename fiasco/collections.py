@@ -172,6 +172,20 @@ Available Ions
         r"""
         Compute the two-photon continuum emission.
 
+        .. note:: Both abundance and ionization equilibrium are included here.
+
+        The combined two-photon continuum is given by
+
+        .. math::
+
+            P_{2p}(\lambda,T,n_{e}) = \sum_{X,k}\mathrm{Ab}(X)f(X_{k})C_{2p, X_k}(\lambda,T,n_{e})
+
+        where :math:`\mathrm{Ab}(X)` is the abundance of element :math:`X`,
+        :math:`f(X_{k})` is the ionization equilibrium of the emitting ion :math:`X_{k}`,
+        and :math:`C_{fb, X_k}(\lambda,T)` is the two-photon emission of the
+        ion :math:`X_k` as computed by `fiasco.Ion.two_photon`.
+        The sum is taken over all ions in the collection.
+
         Parameters
         ----------
         wavelength : `~astropy.units.Quantity`
@@ -193,7 +207,7 @@ Available Ions
                     self.log.warning(f'{ion.ion_name} not included in two-photon emission. {e}')
                     continue
                 else:
-                    two_photon += tp
+                    two_photon += tp * ion.abundance * ion.ioneq[:, np.newaxis]
         return two_photon
 
     @u.quantity_input
