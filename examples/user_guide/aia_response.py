@@ -45,7 +45,7 @@ fe18 = fiasco.Ion('Fe 18', temperature)
 ############################################################
 # Compute the contribution function,
 #
-# .. math:: G(n,T,\lambda) = 0.83\mathrm{Ab}\frac{hc}{\lambda}N_{\lambda}A_{\lambda}f\frac{1}{n}
+# .. math:: G(n,T,\lambda) = \mathrm{Ab}\frac{hc}{\lambda}N_{\lambda}A_{\lambda}f\frac{1}{n}
 #
 # for each transition of Fe 18 at constant pressure of :math:`10^{15}`
 # K :math:`\mathrm{cm}^{-3}`. Note that we use the ``couple_density_to_temperature``
@@ -73,13 +73,10 @@ response_transitions = f(transitions) * response.unit
 # .. math:: K_c(T) = \int_0^{\infty}\mathrm{d}\lambda\,G(\lambda,T)R_c(\lambda)
 #
 # We divide by :math:`hc/\lambda` in order to
-# convert from units of energy to photons. The factor of :math:`0.83` is a
-# relative scaling factor for the abundance of H and is not included in the
-# temperature responses computed by
-# `aia_get_response.pro <https://sohoftp.nascom.nasa.gov/solarsoft/sdo/aia/idl/response/aia_get_response.pro>`_.
+# convert from units of energy to photons.
 # For more more information on the AIA wavelength response calculation,
 # see :cite:t:`boerner_initial_2012`.
-K = (g / energy * response_transitions).sum(axis=2) / (4*np.pi*u.steradian) / 0.83
+K = (g / energy * response_transitions).sum(axis=2) / (4*np.pi*u.steradian)
 K = K.squeeze().to('cm5 ct pix-1 s-1')
 
 ############################################################
