@@ -193,7 +193,7 @@ Using Datasets:
 
         .. note::
 
-            The cubic interpolation is performed in log-log spaceusing a Piecewise Cubic Hermite
+            The cubic interpolation is performed in log-log space using a Piecewise Cubic Hermite
             Interpolating Polynomial with `~scipy.interpolate.PchipInterpolator`. This helps to
             ensure smoothness while reducing oscillations in the interpolated ionization fractions.
 
@@ -723,7 +723,7 @@ Using Datasets:
         .. important::
 
             The ratio :math:`n_H/n_e`, which is often approximated as :math:`n_H/n_e\approx0.83`, is
-            not explicitly not included here. This means that when computing an intensity with the
+            explicitly not included here. This means that when computing an intensity with the
             result of this function, the accompanying emission measure is
             :math:`\mathrm{EM}=\mathrm{d}hn_Hn_e` rather than :math:`n_e^2`.
 
@@ -790,8 +790,8 @@ Using Datasets:
 
         .. note::
 
-            The H number density, :math:`n_H` is computed using ``density`` combined with the
-            function `~fiasco.proton_electron_ratio`.
+            The H number density, :math:`n_H`, is computed using ``density`` combined with the
+            output of `~fiasco.proton_electron_ratio`.
 
         Parameters
         ----------
