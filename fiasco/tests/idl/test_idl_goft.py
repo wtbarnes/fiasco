@@ -76,7 +76,8 @@ def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, ion_name, wav
                      ioneq_filename=idl_result['ioneq'])
     contribution_func = ion.contribution_function(idl_result['density'])
     idx = np.argmin(np.abs(ion.transitions.wavelength[~ion.transitions.is_twophoton] - idl_result['wavelength']))
-    goft_python = contribution_func[:, 0, idx]
+    # NOTE: Multiply by 0.83 because the fiasco calculation does not include the n_H/n_e ratio
+    goft_python = contribution_func[:, 0, idx] * 0.83
     # Find relevant range for comparison. The solutions may diverge many orders of magnitude below
     # the peak of the contribution function, but that is not relevant in assessing meaningful
     # differences between the IDL and Python approaches. Thus, we only assess the differences
