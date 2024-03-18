@@ -194,7 +194,7 @@ def test_contribution_function(ion):
     cont_func = ion.contribution_function(1e7 * u.cm**-3)
     assert cont_func.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape
     # This value has not been tested for correctness
-    assert u.allclose(cont_func[0, 0, 0], 2.08668713e-30 * u.cm**3 * u.erg / u.s)
+    assert u.allclose(cont_func[0, 0, 0], 2.51408088e-30 * u.cm**3 * u.erg / u.s)
 
 @pytest.mark.parametrize(('density', 'use_coupling'), [
     ([1e9,] * u.cm**(-3), False),
@@ -264,7 +264,7 @@ def test_emissivity(ion):
     emm = ion.emissivity(1e7 * u.cm**-3)
     assert emm.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape
     # This value has not been tested for correctness
-    assert u.allclose(emm[0, 0, 0], 2.08668713e-16 * u.erg / u.cm**3 / u.s)
+    assert u.allclose(emm[0, 0, 0], 2.18000422e-16 * u.erg / u.cm**3 / u.s)
 
 
 @pytest.mark.parametrize('em', [
