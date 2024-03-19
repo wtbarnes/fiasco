@@ -191,11 +191,11 @@ Using Datasets:
         ionization equilibrium outside of this temperature range, it is better to use the ionization
         and recombination rates.
 
-        Note
-        ----
-        The cubic interpolation is performed in log-log spaceusing a Piecewise Cubic Hermite
-        Interpolating Polynomial with `~scipy.interpolate.PchipInterpolator`. This helps to
-        ensure smoothness while reducing oscillations in the interpolated ionization fractions.
+        .. note::
+
+            The cubic interpolation is performed in log-log space using a Piecewise Cubic Hermite
+            Interpolating Polynomial with `~scipy.interpolate.PchipInterpolator`. This helps to
+            ensure smoothness while reducing oscillations in the interpolated ionization fractions.
 
         See Also
         --------
@@ -709,7 +709,7 @@ Using Datasets:
 
         .. math::
 
-           G_{ij} = \frac{n_H}{n_e}\mathrm{Ab}(X)f_{X,k}N_jA_{ij}\Delta E_{ij}\frac{1}{n_e},
+           G_{ij} = mathrm{Ab}(X)f_{X,k}N_jA_{ij}\Delta E_{ij}\frac{1}{n_e},
 
         Note that the contribution function is often defined in differing ways by different authors.
         The contribution function is defined as above in :cite:t:`young_chianti_2016`.
@@ -719,6 +719,13 @@ Using Datasets:
         .. code-block:: python
 
            ion.transitions.wavelength[~ion.transitions.is_twophoton]
+
+        .. important::
+
+            The ratio :math:`n_H/n_e`, which is often approximated as :math:`n_H/n_e\approx0.83`, is
+            explicitly not included here. This means that when computing an intensity with the
+            result of this function, the accompanying emission measure is
+            :math:`\mathrm{EM}=\mathrm{d}hn_Hn_e` rather than :math:`n_e^2`.
 
         Parameters
         ----------
@@ -753,7 +760,7 @@ Using Datasets:
         else:
             term = np.outer(self.ioneq, 1./density)
             term = term[:, :, np.newaxis]
-        term *= self.abundance * 0.83
+        term *= self.abundance
         # Exclude two-photon transitions
         upper_level = self.transitions.upper_level[~self.transitions.is_twophoton]
         wavelength = self.transitions.wavelength[~self.transitions.is_twophoton]
@@ -772,19 +779,24 @@ Using Datasets:
 
         .. math::
 
-           \epsilon(n_e,T) = G(n_e,T)n_e^2
+           \epsilon(n_e,T) = G(n_e,T)n_Hn_e
 
-        where :math:`G` is the contribution function, :math:`n_e` is the electron
-        density, and :math:`T` is the temperature.
+        where :math:`G` is the contribution function, :math:`n_H` is the H (or proton) density,
+        :math:`n_e` is the electron density, and :math:`T` is the temperature.
         Note that, like the contribution function, emissivity is often defined in
         in differing ways by different authors.
         Here, we use the definition of the emissivity as given by Eq. 3 of
         :cite:t:`young_chianti_2016`.
 
+        .. note::
+
+            The H number density, :math:`n_H`, is computed using ``density`` combined with the
+            output of `~fiasco.proton_electron_ratio`.
+
         Parameters
         ----------
         density : `~astropy.units.Quantity`
-            Electron number density
+            Electron number density.
         couple_density_to_temperature: `bool`, optional
             If True, the density will vary along the same axis as temperature
             in the computed level populations. The number of densities must be the same as the number of temperatures. This is useful, for
@@ -808,6 +820,8 @@ Using Datasets:
         contribution_function : Calculate contribution function, :math:`G(n,T)`
         """
         density = np.atleast_1d(density)
+        pe_ratio = proton_electron_ratio(self.temperature, **self._instance_kwargs)
+        pe_ratio = pe_ratio[:, np.newaxis, np.newaxis]
         g = self.contribution_function(density, **kwargs)
         density_squared = density**2
         couple_density_to_temperature = kwargs.get('couple_density_to_temperature', False)
@@ -815,7 +829,7 @@ Using Datasets:
             density_squared = density_squared[:, np.newaxis, np.newaxis]
         else:
             density_squared = density_squared[np.newaxis, :, np.newaxis]
-        return g * density_squared
+        return g * pe_ratio * density_squared
 
     @u.quantity_input
     def intensity(self,
@@ -828,7 +842,7 @@ Using Datasets:
 
         .. math::
 
-           I = \frac{1}{4\pi}\int\mathrm{d}T,G(n,T)n^2\frac{dh}{dT}
+           I = \frac{1}{4\pi}\int\mathrm{d}T,G(n,T)n_Hn_e\frac{dh}{dT}
 
         which, in the isothermal approximation, can be simplified to,
 
@@ -840,7 +854,7 @@ Using Datasets:
 
         .. math::
 
-           \mathrm{EM}(T) = \int\mathrm{d}h\,n^2
+           \mathrm{EM}(T) = \int\mathrm{d}h\,n_Hn_e
 
         is the column emission measure.
 
@@ -850,7 +864,8 @@ Using Datasets:
             Electron number density
         emission_measure : `~astropy.units.Quantity`
             Column emission measure. Must be either a scalar, an array of length 1, or
-            an array with the same length as ``temperature``.
+            an array with the same length as ``temperature``. Note that it is assumed
+            that the emission measure is the product of the H and electron density.
         couple_density_to_temperature: `bool`, optional
             If True, the density will vary along the same axis as temperature.
             The number of densities must be the same as the number of temperatures.
@@ -1216,7 +1231,7 @@ Using Datasets:
 
             \alpha_{R} = \alpha_{RR} + \alpha_{DR}
 
-        .. warning::
+        .. important::
 
             For most ions, this total recombination rate is computed by summing the
             outputs of the `radiative_recombination_rate` and `dielectronic_recombination_rate` methods.
@@ -1260,6 +1275,10 @@ Using Datasets:
     def free_free(self, wavelength: u.angstrom) -> u.erg * u.cm**3 / u.s / u.angstrom:
         r"""
         Free-free continuum emission as a function of temperature and wavelength.
+
+        .. note::
+
+            This does not include ionization fraction or abundance factors.
 
         Free-free emission, also known as *bremsstrahlung* (or “braking radiation”),
         is produced when an ion interacts with a free electron, reduces the momentum
@@ -1382,10 +1401,11 @@ Using Datasets:
         r"""
         Free-bound continuum emission of the recombined ion.
 
-        .. note:: Does not include ionization equilibrium or abundance.
-                  Unlike the equivalent IDL routine, the output here is not
-                  expressed per steradian and as such the factor of
-                  :math:`1/4\pi` is not included.
+        .. note::
+
+            This does not include the ionization fraction or abundance factors.
+            Unlike the equivalent IDL routine, the output here is not
+            expressed per steradian and as such the factor of :math:`1/4\pi` is not included.
 
         When an electron is captured by an ion of charge :math:`z+1`
         (the recombining ion), it creates a an ion of charge :math:`z`

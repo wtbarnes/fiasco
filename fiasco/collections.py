@@ -84,7 +84,7 @@ Available Ions
         r"""
         Compute combined free-free continuum emission (bremsstrahlung).
 
-        .. note:: Both abundance and ionization equilibrium are included here
+        .. note:: Both abundance and ionization fraction are included here
 
         The combined free-free continuum is given by,
 
@@ -126,7 +126,7 @@ Available Ions
         r"""
         Compute combined free-bound continuum emission.
 
-        .. note:: Both abundance and ionization equilibrium are included here.
+        .. note:: Both abundance and ionization fraction are included here.
 
         The combined free-bound continuum is given by,
 

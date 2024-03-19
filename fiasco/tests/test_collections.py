@@ -107,10 +107,10 @@ def test_free_bound(another_collection, wavelength):
     assert u.allclose(fb[index_t, index_w], 3.057781475607237e-36 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
 
-def test_radiative_los(collection):
+def test_radiative_loss(collection):
     rl = collection.radiative_loss(1e9*u.cm**(-3))
     # This value has not been checked for correctness
-    assert u.allclose(rl[0,0], 3.2389535764824023e-24*u.Unit('erg cm3 s-1'))
+    assert u.allclose(rl[0,0], 3.90235371e-24*u.Unit('erg cm3 s-1'))
 
 
 def test_spectrum(hdf5_dbase_root):
