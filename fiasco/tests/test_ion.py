@@ -323,6 +323,11 @@ def test_free_bound(ion):
     # This value has not been tested for correctness
     assert u.allclose(emission[0, 0], 9.7902609e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
+def test_two_photon(c6):
+    emission = c6.two_photon(200 * u.Angstrom, electron_density = 1e10* u.cm**(-3))
+    assert emission.shape == (1, ) + c6.temperature.shape + (1, )
+    # This value has not been tested for correctness
+    assert u.allclose(emission[0, 0, 0], 5.3236689e-51 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
 def test_free_bound_no_recombining(h1):
     # This is test the case where there is no data available for the recombining

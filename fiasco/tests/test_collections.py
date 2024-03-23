@@ -106,6 +106,14 @@ def test_free_bound(another_collection, wavelength):
     index_t = 24  # This is approximately where the ioneq for Fe V peaks
     assert u.allclose(fb[index_t, index_w], 3.057781475607237e-36 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
+@pytest.mark.parametrize('wavelength', [wavelength, wavelength[450]])
+def test_two_photon(collection, wavelength):
+    tp = collection.two_photon(wavelength, electron_density = 1e10 * u.cm**(-3))
+    assert tp.shape == wavelength.shape + temperature.shape + (1, ) if wavelength.shape else (1, )+temperature.shape+(1, )
+    index_w = 450 if wavelength.shape else 0
+    index_t = 0  # Both H I and He II peak in ioneq at low temperatures
+    # This value has not been checked for correctness
+    assert u.allclose(tp[index_w, index_t, 0], 1.46183398e-69 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
 def test_radiative_loss(collection):
     rl = collection.radiative_loss(1e9*u.cm**(-3))
