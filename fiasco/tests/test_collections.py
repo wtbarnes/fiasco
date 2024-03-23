@@ -109,7 +109,10 @@ def test_free_bound(another_collection, wavelength):
 @pytest.mark.parametrize('wavelength', [wavelength, wavelength[450]])
 def test_two_photon(collection, wavelength):
     tp = collection.two_photon(wavelength, electron_density = 1e10 * u.cm**(-3))
-    assert tp.shape == wavelength.shape + temperature.shape + (1, ) if wavelength.shape else (1, )+temperature.shape+(1, )
+    if wavelength.shape:
+        assert tp.shape == wavelength.shape + temperature.shape + (1, )
+    else:
+        assert tp.shape == (1, ) + temperature.shape + (1, )
     index_w = 450 if wavelength.shape else 0
     index_t = 0  # Both H I and He II peak in ioneq at low temperatures
     # This value has not been checked for correctness
