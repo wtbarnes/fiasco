@@ -1545,10 +1545,10 @@ Using Datasets:
         as an electric dipole transition, but only as a much slower magnetic dipole transition.
         The dominant transition then becomes :math: `2S_{1/2} \rightarrow 1S_{1/2} + h\nu_{1} + h\nu_{2}`.
 
-        In helium-like ions, the transition from :math: `1s2s ^{1}S_{0} \rightarrow 1s^{2} ^{1}S_{0} + h\nu`
+        In helium-like ions, the transition from :math: `1s2s ^{1}S_{0} \rightarrow 1s^{2}\ ^{1}S_{0} + h\nu`
         is forbidden under quantum selection rules since :math: `\Delta J = 0`.
         Similarly, the dominant transition becomes
-        :math: `1s2s ^{1}S_{0} \rightarrow 1s^{2} ^{1}S_{0} + h\nu_{1} + h\nu_{2}`.
+        :math: `1s2s ^{1}S_{0} \rightarrow 1s^{2}\ ^{1}S_{0} + h\nu_{1} + h\nu_{2}`.
 
         In both cases, the energy of the two photons emitted equals the energy difference of the two levels.
 
@@ -1558,14 +1558,14 @@ Using Datasets:
 
         .. math::
 
-            C_{2p}(\lambda, T, n_{e}) = hc \frac{n_{j}(X^{+m}) A_{ji} \lambda_{0} \psi(\frac{\lambda_{0}{\lambda})}{\psi_{\text{norm}}\lambda^{3}}
+            C_{2p}(\lambda, T, n_{e}) = hc \frac{n_{j}(X^{+m}) A_{ji} \lambda_{0} \psi(\frac{\lambda_{0}}{\lambda})}{\psi_{\text{norm}}\lambda^{3}}
 
         where :math:`\lambda_{0}` is rest wavelength of the (disallowed) transition,
         :math:`A_{ji}` is the Einstein spontaneous emission coefficient,
         :math:`\psi` is so-called spectral distribution function, given approximately by
         :math:`\psi(y) \approx 2.623 \sqrt{\cos{\Big(\pi(y-\frac{1}{2})\Big)}}` :cite:p:`gronenschild_twophoton_1978`,
         :math: `\psi_{\text{norm}}` is a normalization factor for hydrogen-like ions such
-        that :math: `\frac{1}{\psi_{\text{norm}}} \int_{0}^{1} \psi(y) dy = 2`,
+        that :math: `\frac{1}{\psi_{\text{norm}}} \int_{0}^{1} \psi(y) dy = 2` (and 1 for helium-like ions),
         and :math:`n_{j}(X^{+m})` is the density of ions m of element X in excited state j, given by
         :math:`n_{j}(X^{+m}) = \frac{n_{j}(X^{+m})}{n(X^{+m})} \frac{n(X^{+m})}{n(X)} \frac{n(X)}{n_{H}} \frac{n_{H}}{n_{e}} n_{e}`.
 
