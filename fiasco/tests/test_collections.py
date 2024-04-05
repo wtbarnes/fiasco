@@ -114,9 +114,9 @@ def test_two_photon(collection, wavelength):
     else:
         assert tp.shape == (1, ) + temperature.shape + (1, )
     index_w = 450 if wavelength.shape else 0
-    index_t = 0  # Both H I and He II peak in ioneq at low temperatures
+    index_t = 30
     # This value has not been checked for correctness
-    assert u.allclose(tp[index_w, index_t, 0], 1.46183398e-69 * u.Unit('erg cm3 s-1 Angstrom-1'))
+    assert u.allclose(tp[index_w, index_t, 0], 3.48580645e-27 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
 def test_radiative_loss(collection):
     rl = collection.radiative_loss(1e9*u.cm**(-3))
