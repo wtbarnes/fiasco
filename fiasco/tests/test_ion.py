@@ -33,6 +33,16 @@ def fe10(hdf5_dbase_root):
 
 
 @pytest.fixture
+def c4(hdf5_dbase_root):
+    return fiasco.Ion('C IV', temperature, hdf5_dbase_root=hdf5_dbase_root)
+
+
+@pytest.fixture
+def c5(hdf5_dbase_root):
+    return fiasco.Ion('C V', temperature, hdf5_dbase_root=hdf5_dbase_root)
+
+
+@pytest.fixture
 def c6(hdf5_dbase_root):
     return fiasco.Ion('C VI', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
@@ -323,11 +333,8 @@ def test_free_bound(ion):
     # This value has not been tested for correctness
     assert u.allclose(emission[0, 0], 9.7902609e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
-def test_two_photon(temperature, hdf5_dbase_root):
-    # test both H-like and He-like ions, and one that doesn't have two-photon emission:
-    c4 = fiasco.Ion('C IV', temperature, hdf5_dbase_root=hdf5_dbase_root)
-    c5 = fiasco.Ion('C V', temperature, hdf5_dbase_root=hdf5_dbase_root)
-    c6 = fiasco.Ion('C VI', temperature, hdf5_dbase_root=hdf5_dbase_root)
+def test_two_photon(c4, c5, c6):
+    # test both H-like and He-like ions, and one that doesn't have two-photon emission
     c4_emission = c4.two_photon(200 * u.Angstrom, electron_density = 1e10* u.cm**(-3))
     c5_emission = c5.two_photon(200 * u.Angstrom, electron_density = 1e10* u.cm**(-3))
     c6_emission = c6.two_photon(200 * u.Angstrom, electron_density = 1e10* u.cm**(-3))
