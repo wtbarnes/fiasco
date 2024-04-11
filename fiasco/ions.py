@@ -1532,7 +1532,7 @@ Using Datasets:
     @u.quantity_input
     def two_photon(self, wavelength: u.angstrom,
                     electron_density: u.cm**(-3),
-                    include_protons=True) -> u.erg * u.cm**3 / u.s / u.angstrom:
+                    include_protons=False) -> u.erg * u.cm**3 / u.s / u.angstrom:
         r"""
         Two-photon continuum emission of a hydrogenic or helium-like ion.
 
