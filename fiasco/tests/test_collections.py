@@ -107,7 +107,9 @@ def test_free_bound(another_collection, wavelength):
     assert u.allclose(fb[index_t, index_w], 3.057781475607237e-36 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
 @pytest.mark.parametrize('wavelength', [wavelength, wavelength[450]])
-def test_two_photon(collection, wavelength):
+def test_two_photon(collection, wavelength, hdf5_dbase_root):
+    # add Li III to the test to include an ion that throws a MissingDatasetException
+    collection = collection + fiasco.Ion('Li III', collection.temperature, hdf5_dbase_root=hdf5_dbase_root)
     tp = collection.two_photon(wavelength, electron_density = 1e10 * u.cm**(-3))
     if wavelength.shape:
         assert tp.shape == wavelength.shape + temperature.shape + (1, )
