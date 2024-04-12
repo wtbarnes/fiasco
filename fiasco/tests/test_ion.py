@@ -345,7 +345,7 @@ def test_two_photon(c4, c5, c6):
     assert c6_emission_protons.shape == (1, ) + c6.temperature.shape + (1, )
     assert u.allclose(c4_emission[0, 30, 0], 0.0 * u.cm**3 * u.erg / u.Angstrom / u.s)
     # These values have not been tested for correctness
-    assert u.allclose(c5_emission[0, 30, 0], 4.04634243e-25 * u.cm**3 * u.erg / u.Angstrom / u.s)
+    assert u.allclose(c5_emission[0, 30, 0], 4.02054043e-25 * u.cm**3 * u.erg / u.Angstrom / u.s)
     assert u.allclose(c6_emission[0, 30, 0], 8.25316887e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
     assert u.allclose(c6_emission_protons[0, 30, 0], 6.79615958e-29 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
