@@ -333,6 +333,8 @@ def test_free_bound(ion):
     # This value has not been tested for correctness
     assert u.allclose(emission[0, 0], 9.7902609e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
+# The two-photon test currently fails for dbase_version >= 9 because it is missing c_5.reclvl
+@pytest.mark.requires_dbase_version('<=','8.0.7')
 def test_two_photon(c4, c5, c6):
     # test both H-like and He-like ions, and one that doesn't have two-photon emission
     c4_emission = c4.two_photon(200 * u.Angstrom, electron_density = 1e10* u.cm**(-3))
