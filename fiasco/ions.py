@@ -1530,9 +1530,10 @@ Using Datasets:
 
     @needs_dataset('elvlc')
     @u.quantity_input
-    def two_photon(self, wavelength: u.angstrom,
-                    electron_density: u.cm**(-3),
-                    include_protons=False) -> u.erg * u.cm**3 / u.s / u.angstrom:
+    def two_photon(self,
+                   wavelength: u.angstrom,
+                   electron_density: u.cm**(-3),
+                   include_protons=False) -> u.Unit('erg cm3 s-1 Angstrom-1'):
         r"""
         Two-photon continuum emission of a hydrogenic or helium-like ion.
 
@@ -1541,17 +1542,16 @@ Using Datasets:
                   expressed per steradian and as such the factor of
                   :math:`1/4\pi` is not included.
 
-        In hydrogen-like ions, the transition :math: `2S_{1/2} \rightarrow 1S_{1/2} + h\nu` cannot occur
+        In hydrogen-like ions, the transition :math:`2S_{1/2} \rightarrow 1S_{1/2} + h\nu` cannot occur
         as an electric dipole transition, but only as a much slower magnetic dipole transition.
-        The dominant transition then becomes :math: `2S_{1/2} \rightarrow 1S_{1/2} + h\nu_{1} + h\nu_{2}`.
+        The dominant transition then becomes :math:`2S_{1/2} \rightarrow 1S_{1/2} + h\nu_{1} + h\nu_{2}`.
 
-        In helium-like ions, the transition from :math: `1s2s ^{1}S_{0} \rightarrow 1s^{2}\ ^{1}S_{0} + h\nu`
-        is forbidden under quantum selection rules since :math: `\Delta J = 0`.
+        In helium-like ions, the transition from :math:`1s2s ^{1}S_{0} \rightarrow 1s^{2}\ ^{1}S_{0} + h\nu`
+        is forbidden under quantum selection rules since :math:`\Delta J = 0`.
         Similarly, the dominant transition becomes
-        :math: `1s2s ^{1}S_{0} \rightarrow 1s^{2}\ ^{1}S_{0} + h\nu_{1} + h\nu_{2}`.
+        :math:`1s2s ^{1}S_{0} \rightarrow 1s^{2}\ ^{1}S_{0} + h\nu_{1} + h\nu_{2}`.
 
         In both cases, the energy of the two photons emitted equals the energy difference of the two levels.
-
         See the introduction of :cite:t:`drake_1986` for a concise description of the process.
 
         The emission is given by
@@ -1564,8 +1564,8 @@ Using Datasets:
         :math:`A_{ji}` is the Einstein spontaneous emission coefficient,
         :math:`\psi` is so-called spectral distribution function, given approximately by
         :math:`\psi(y) \approx 2.623 \sqrt{\cos{\Big(\pi(y-\frac{1}{2})\Big)}}` :cite:p:`gronenschild_twophoton_1978`,
-        :math: `\psi_{\text{norm}}` is a normalization factor for hydrogen-like ions such
-        that :math: `\frac{1}{\psi_{\text{norm}}} \int_{0}^{1} \psi(y) dy = 2` (and 1 for helium-like ions),
+        :math:`\psi_{\text{norm}}` is a normalization factor for hydrogen-like ions such
+        that :math:`\frac{1}{\psi_{\text{norm}}} \int_{0}^{1} \psi(y) dy = 2` (and 1 for helium-like ions),
         and :math:`n_{j}(X^{+m})` is the density of ions m of element X in excited state j, given by
         :math:`n_{j}(X^{+m}) = \frac{n_{j}(X^{+m})}{n(X^{+m})} \frac{n(X^{+m})}{n(X)} \frac{n(X)}{n_{H}} \frac{n_{H}}{n_{e}} n_{e}`.
 
@@ -1576,48 +1576,40 @@ Using Datasets:
         include_protons : `bool`, optional
             If True, use proton excitation and de-excitation rates in the level population calculation.
         """
-
         wavelength = np.atleast_1d(wavelength)
-        temperature = np.atleast_1d(self.temperature)
         electron_density = np.atleast_1d(electron_density)
 
-        prefactor = (const.h * const.c)
-
-        if not self.hydrogenic and not self.helium_like:
-            return u.Quantity(np.zeros(wavelength.shape + self.temperature.shape + electron_density.shape),
-                              'erg cm^3 s^-1 Angstrom^-1')
+        final_shape = wavelength.shape + self.temperature.shape + electron_density.shape
         if self.hydrogenic:
             A_ji = self._hseq['A']
             psi_norm = self._hseq['psi_norm']
             cubic_spline = CubicSpline(self._hseq['y'], self._hseq['psi'])
-            # Get the index of the 2S1/2 state for H-like:
-            level_index = np.where((self._elvlc['config'] == '2s') & (self._elvlc['J'] == 0.5))[0][0]
-        if self.helium_like:
+            config = '2s'  # Get the index of the 2S1/2 state for H-like
+            J = 0.5
+        elif self.helium_like:
             A_ji = self._heseq['A']
             psi_norm = 1.0 * u.dimensionless_unscaled
             cubic_spline = CubicSpline(self._heseq['y'], self._heseq['psi'])
-            # Get the index of the 1s2s 1S0 state for He-like:
-            level_index = np.where((self._elvlc['config'] == '1s.2s') & (self._elvlc['J'] == 0))[0][0]
+            config = '1s.2s'  # Get the index of the 1s2s 1S0 state for He-like:
+            J = 0
+        else:
+            return u.Quantity(np.zeros(final_shape),  'erg cm^3 s^-1 Angstrom^-1')
+        level_index = np.where((self._elvlc['config'] == config) & (self._elvlc['J'] == J))[0][0]
 
-        # store the rest wavelength:
         E_obs = self._elvlc['E_obs'][level_index]
         E_th = self._elvlc['E_th'][level_index]
         E_2p = E_obs if E_obs > 0.0 else E_th
-        rest_wavelength = 1 / (E_2p.to(1/u.angstrom))
+        rest_wavelength = 1 / E_2p
 
-        psi_interp = cubic_spline(rest_wavelength / wavelength)
-        indices = np.where(wavelength < rest_wavelength)
-        psi_interp[indices] = 0.0  # intensity below rest_wavelength is 0
+        psi_interp = cubic_spline((rest_wavelength / wavelength).decompose())
+        psi_interp = np.where(wavelength < rest_wavelength, 0.0, psi_interp)
 
         energy_dist = (A_ji * rest_wavelength * psi_interp) / (psi_norm * wavelength**3)
 
-        level_population = self.level_populations(electron_density,
-                                                  include_protons=include_protons)[:,:,level_index]
+        level_population = self.level_populations(electron_density, include_protons=include_protons)
+        level_population = level_population[..., level_index]
 
-        # N_j(X+m) = N_j(X+m)/N(X+m) * N(X+m)/N(X) * N(X)/N(H) * N(H)/Ne * Ne
         level_density = level_population / electron_density
+        matrix = np.outer(energy_dist, level_density).reshape(*final_shape)
 
-        matrix = np.outer(energy_dist, level_density).reshape(
-                        len(wavelength),len(temperature),len(electron_density))
-
-        return (prefactor * matrix)
+        return const.h * const.c * matrix

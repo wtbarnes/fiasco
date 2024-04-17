@@ -200,14 +200,13 @@ Available Ions
         two_photon = u.Quantity(np.zeros(wavelength.shape + self.temperature.shape + electron_density.shape),
                                 'erg cm^3 s^-1 Angstrom^-1')
         for ion in self:
-            if ion.hydrogenic or ion.helium_like:
-                try:
-                    tp = ion.two_photon(wavelength, electron_density, **kwargs)
-                except MissingDatasetException as e:
-                    self.log.warning(f'{ion.ion_name} not included in two-photon emission. {e}')
-                    continue
-                else:
-                    two_photon += tp * ion.abundance * ion.ioneq[:, np.newaxis]
+            try:
+                tp = ion.two_photon(wavelength, electron_density, **kwargs)
+            except MissingDatasetException as e:
+                self.log.warning(f'{ion.ion_name} not included in two-photon emission. {e}')
+                continue
+            else:
+                two_photon += tp * ion.abundance * ion.ioneq[:, np.newaxis]
         return two_photon
 
     @u.quantity_input
