@@ -1594,7 +1594,7 @@ Using Datasets:
             J = 0
         else:
             return u.Quantity(np.zeros(final_shape),  'erg cm^3 s^-1 Angstrom^-1')
-        level_index = np.where((self._elvlc['config'] == config) & (np.allclose(self._elvlc['J'], J)) )[0][0]
+        level_index = np.where((self._elvlc['config'] == config) & (np.isclose(self._elvlc['J'], J)) )[0][0]
 
         E_obs = self._elvlc['E_obs'][level_index]
         E_th = self._elvlc['E_th'][level_index]
