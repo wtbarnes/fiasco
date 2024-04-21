@@ -106,6 +106,19 @@ def test_free_bound(another_collection, wavelength):
     index_t = 24  # This is approximately where the ioneq for Fe V peaks
     assert u.allclose(fb[index_t, index_w], 3.057781475607237e-36 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
+@pytest.mark.parametrize('wavelength', [wavelength, wavelength[450]])
+def test_two_photon(collection, wavelength, hdf5_dbase_root):
+    # add Li III to the test to include an ion that throws a MissingDatasetException
+    collection = collection + fiasco.Ion('Li III', collection.temperature, hdf5_dbase_root=hdf5_dbase_root)
+    tp = collection.two_photon(wavelength, electron_density = 1e10 * u.cm**(-3))
+    if wavelength.shape:
+        assert tp.shape == wavelength.shape + temperature.shape + (1, )
+    else:
+        assert tp.shape == (1, ) + temperature.shape + (1, )
+    index_w = 450 if wavelength.shape else 0
+    index_t = 30
+    # This value has not been checked for correctness
+    assert u.allclose(tp[index_w, index_t, 0], 3.48580645e-27 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
 def test_radiative_loss(collection):
     rl = collection.radiative_loss(1e9*u.cm**(-3))

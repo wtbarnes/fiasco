@@ -252,15 +252,22 @@ From Itoh, N., et al., ApJS, 2000, 128, 125"""
 
 
 class HSeqParser(GenericParser):
-    """
+    r"""
     Parameters for calculating two-photon continuum for hydrogen-like ions
+
+    Notes
+    -----
+    * The parameter :math: `\psi_{\text{norm}}` (called :math: `A_{\text{sum}}` in CHIANTI) is a normalization factor of
+    the integral of the spectral distribution function :math:`\psi(y)` from 0 to 1, such
+    that :math: `\frac{1}{\psi_{\text{norm}}} \int_{0}^{1} \psi(y) dy = 2`.  This normalization is only used For
+    hydrogenic ions.
     """
     filetype = 'hseq_2photon'
     dtypes = [int, float, int, float, float, float]
-    units = [None, u.dimensionless_unscaled, None, 1/u.s, 1/u.s, u.dimensionless_unscaled]
-    headings = ['Z', 'y', 'Z_0', 'A', 'A_sum', 'psi']
+    units = [None, u.dimensionless_unscaled, None, 1/u.s, u.dimensionless_unscaled, u.dimensionless_unscaled]
+    headings = ['Z', 'y', 'Z_0', 'A', 'psi_norm', 'psi']
     descriptions = ['atomic number', 'fraction of energy carried by one of the two photons',
-                    'nominal atomic number', 'radiative decay rate', 'summed radiative decay rate',
+                    'nominal atomic number', 'radiative decay rate', 'normalization of the integral of psi from 0 to 1',
                     'spectral distribution function']
 
     def __init__(self, filename, **kwargs):

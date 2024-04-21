@@ -6,7 +6,7 @@ import astropy.units as u
 import numpy as np
 
 from functools import cached_property
-from scipy.interpolate import interp1d, PchipInterpolator, splev, splrep
+from scipy.interpolate import CubicSpline, interp1d, PchipInterpolator, splev, splrep
 from scipy.ndimage import map_coordinates
 
 from fiasco import proton_electron_ratio
@@ -1418,7 +1418,7 @@ Using Datasets:
             C_{fb}(\lambda, T) = \frac{2}{hc^3(k_B m_e)^{3/2}\sqrt{2\pi}}\frac{E^5}{T^{3/2}}\sum_i\frac{\omega_i}{\omega_0}\sigma_i^{\mathrm{bf}}\exp{\left(-\frac{E-I_i}{k_BT}\right)}
 
         where :math:`E` is the energy of the outgoing photon,
-        :math:`\omega_i,\omega_0` are the statastical weights of the
+        :math:`\omega_i,\omega_0` are the statistical weights of the
         :math:`i`-th level of the recombined ion and the ground level of the recombining ion, respectively,
         :math:`\sigma_i^{\mathrm{bf}}` is the free-bound cross-section,
         and :math:`I_i` is the energy required to ionize the recombined ion from level :math:`i`.
@@ -1527,3 +1527,90 @@ Using Datasets:
         cross_section = prefactor * ionization_energy**2 * photon_energy**(-3) * gaunt_factor / n
         cross_section[np.where(photon_energy < ionization_energy)] = 0.*cross_section.unit
         return cross_section
+
+    @needs_dataset('elvlc')
+    @u.quantity_input
+    def two_photon(self,
+                   wavelength: u.angstrom,
+                   electron_density: u.cm**(-3),
+                   include_protons=False) -> u.Unit('erg cm3 s-1 Angstrom-1'):
+        r"""
+        Two-photon continuum emission of a hydrogenic or helium-like ion.
+
+        .. note:: Does not include ionization equilibrium or abundance.
+                  Unlike the equivalent IDL routine, the output here is not
+                  expressed per steradian and as such the factor of
+                  :math:`1/4\pi` is not included.
+
+        In hydrogen-like ions, the transition :math:`2S_{1/2} \rightarrow 1S_{1/2} + h\nu` cannot occur
+        as an electric dipole transition, but only as a much slower magnetic dipole transition.
+        The dominant transition then becomes :math:`2S_{1/2} \rightarrow 1S_{1/2} + h\nu_{1} + h\nu_{2}`.
+
+        In helium-like ions, the transition from :math:`1s2s ^{1}S_{0} \rightarrow 1s^{2}\ ^{1}S_{0} + h\nu`
+        is forbidden under quantum selection rules since :math:`\Delta J = 0`.
+        Similarly, the dominant transition becomes
+        :math:`1s2s ^{1}S_{0} \rightarrow 1s^{2}\ ^{1}S_{0} + h\nu_{1} + h\nu_{2}`.
+
+        In both cases, the energy of the two photons emitted equals the energy difference of the two levels.
+        As a consequence, no photons can be emitted beneath the rest wavelength for a given transition.
+        See the introduction of :cite:t:`drake_1986` for a concise description of the process.
+
+        The emission is given by
+
+        .. math::
+
+            C_{2p}(\lambda, T, n_{e}) = hc \frac{n_{j}(X^{+m}) A_{ji} \lambda_{0} \psi(\frac{\lambda_{0}}{\lambda})}{\psi_{\text{norm}}\lambda^{3}}
+
+        where :math:`\lambda_{0}` is rest wavelength of the (disallowed) transition,
+        :math:`A_{ji}` is the Einstein spontaneous emission coefficient,
+        :math:`\psi` is so-called spectral distribution function, given approximately by
+        :math:`\psi(y) \approx 2.623 \sqrt{\cos{\Big(\pi(y-\frac{1}{2})\Big)}}` :cite:p:`gronenschild_twophoton_1978`,
+        :math:`\psi_{\text{norm}}` is a normalization factor for hydrogen-like ions such
+        that :math:`\frac{1}{\psi_{\text{norm}}} \int_{0}^{1} \psi(y) dy = 2` (and 1 for helium-like ions),
+        and :math:`n_{j}(X^{+m})` is the density of ions m of element X in excited state j, given by
+        :math:`n_{j}(X^{+m}) = \frac{n_{j}(X^{+m})}{n(X^{+m})} \frac{n(X^{+m})}{n(X)} \frac{n(X)}{n_{H}} \frac{n_{H}}{n_{e}} n_{e}`.
+
+        Parameters
+        ----------
+        wavelength : `~astropy.units.Quantity`
+        electron_density : `~astropy.units.Quantity`
+        include_protons : `bool`, optional
+            If True, use proton excitation and de-excitation rates in the level population calculation.
+        """
+        wavelength = np.atleast_1d(wavelength)
+        electron_density = np.atleast_1d(electron_density)
+
+        final_shape = wavelength.shape + self.temperature.shape + electron_density.shape
+        if self.hydrogenic:
+            A_ji = self._hseq['A']
+            psi_norm = self._hseq['psi_norm']
+            cubic_spline = CubicSpline(self._hseq['y'], self._hseq['psi'])
+            config = '2s'  # Get the index of the 2S1/2 state for H-like
+            J = 0.5
+        elif self.helium_like:
+            A_ji = self._heseq['A']
+            psi_norm = 1.0 * u.dimensionless_unscaled
+            cubic_spline = CubicSpline(self._heseq['y'], self._heseq['psi'])
+            config = '1s.2s'  # Get the index of the 1s2s 1S0 state for He-like:
+            J = 0
+        else:
+            return u.Quantity(np.zeros(final_shape),  'erg cm^3 s^-1 Angstrom^-1')
+        level_index = np.where((self._elvlc['config'] == config) & (np.isclose(self._elvlc['J'], J)) )[0][0]
+
+        E_obs = self._elvlc['E_obs'][level_index]
+        E_th = self._elvlc['E_th'][level_index]
+        E_2p = E_obs if E_obs > 0.0 else E_th
+        rest_wavelength = 1 / E_2p
+
+        psi_interp = cubic_spline((rest_wavelength / wavelength).decompose())
+        psi_interp = np.where(wavelength < rest_wavelength, 0.0, psi_interp)
+
+        energy_dist = (A_ji * rest_wavelength * psi_interp) / (psi_norm * wavelength**3)
+
+        level_population = self.level_populations(electron_density, include_protons=include_protons)
+        level_population = level_population[..., level_index]
+
+        level_density = level_population / electron_density
+        matrix = np.outer(energy_dist, level_density).reshape(*final_shape)
+
+        return const.h * const.c * matrix

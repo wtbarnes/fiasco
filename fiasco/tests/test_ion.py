@@ -33,6 +33,16 @@ def fe10(hdf5_dbase_root):
 
 
 @pytest.fixture
+def c4(hdf5_dbase_root):
+    return fiasco.Ion('C IV', temperature, hdf5_dbase_root=hdf5_dbase_root)
+
+
+@pytest.fixture
+def c5(hdf5_dbase_root):
+    return fiasco.Ion('C V', temperature, hdf5_dbase_root=hdf5_dbase_root)
+
+
+@pytest.fixture
 def c6(hdf5_dbase_root):
     return fiasco.Ion('C VI', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
@@ -323,6 +333,23 @@ def test_free_bound(ion):
     # This value has not been tested for correctness
     assert u.allclose(emission[0, 0], 9.7902609e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
+# The two-photon test currently fails for dbase_version >= 9 because it is missing c_5.reclvl
+@pytest.mark.requires_dbase_version('<=','8.0.7')
+def test_two_photon(c4, c5, c6):
+    # test both H-like and He-like ions, and one that doesn't have two-photon emission
+    c4_emission = c4.two_photon(200 * u.Angstrom, electron_density = 1e10* u.cm**(-3))
+    c5_emission = c5.two_photon(200 * u.Angstrom, electron_density = 1e10* u.cm**(-3))
+    c6_emission = c6.two_photon(200 * u.Angstrom, electron_density = 1e10* u.cm**(-3))
+    c6_emission_protons = c6.two_photon(200 * u.Angstrom, electron_density = 1e10* u.cm**(-3), include_protons=True)
+    assert c4_emission.shape == (1, ) + c4.temperature.shape + (1, )
+    assert c5_emission.shape == (1, ) + c5.temperature.shape + (1, )
+    assert c6_emission.shape == (1, ) + c6.temperature.shape + (1, )
+    assert c6_emission_protons.shape == (1, ) + c6.temperature.shape + (1, )
+    assert u.allclose(c4_emission[0, 30, 0], 0.0 * u.cm**3 * u.erg / u.Angstrom / u.s)
+    # These values have not been tested for correctness
+    assert u.allclose(c5_emission[0, 30, 0], 4.04634243e-25 * u.cm**3 * u.erg / u.Angstrom / u.s)
+    assert u.allclose(c6_emission[0, 30, 0], 8.25316887e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
+    assert u.allclose(c6_emission_protons[0, 30, 0], 6.79615958e-29 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
 def test_free_bound_no_recombining(h1):
     # This is test the case where there is no data available for the recombining

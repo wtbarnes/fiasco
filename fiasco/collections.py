@@ -168,6 +168,48 @@ Available Ions
         return free_bound
 
     @u.quantity_input
+    def two_photon(self, wavelength: u.angstrom, electron_density: u.cm**-3, **kwargs):
+        r"""
+        Compute the two-photon continuum emission.
+
+        .. note:: Both abundance and ionization equilibrium are included here.
+
+        The combined two-photon continuum is given by
+
+        .. math::
+
+            P_{2p}(\lambda,T,n_{e}) = \sum_{X,k}\mathrm{Ab}(X)f(X_{k})C_{2p, X_k}(\lambda,T,n_{e})
+
+        where :math:`\mathrm{Ab}(X)` is the abundance of element :math:`X`,
+        :math:`f(X_{k})` is the ionization equilibrium of the emitting ion :math:`X_{k}`,
+        and :math:`C_{fb, X_k}(\lambda,T)` is the two-photon emission of the
+        ion :math:`X_k` as computed by `fiasco.Ion.two_photon`.
+        The sum is taken over all ions in the collection.
+
+        Parameters
+        ----------
+        wavelength : `~astropy.units.Quantity`
+        electron_density: `~astropy.units.Quantity`
+
+        See Also
+        --------
+        fiasco.Ion.two_photon
+        """
+        wavelength = np.atleast_1d(wavelength)
+        electron_density = np.atleast_1d(electron_density)
+        two_photon = u.Quantity(np.zeros(wavelength.shape + self.temperature.shape + electron_density.shape),
+                                'erg cm^3 s^-1 Angstrom^-1')
+        for ion in self:
+            try:
+                tp = ion.two_photon(wavelength, electron_density, **kwargs)
+            except MissingDatasetException as e:
+                self.log.warning(f'{ion.ion_name} not included in two-photon emission. {e}')
+                continue
+            else:
+                two_photon += tp * ion.abundance * ion.ioneq[:, np.newaxis]
+        return two_photon
+
+    @u.quantity_input
     def spectrum(self, density: u.cm**(-3), emission_measure: u.cm**(-5), wavelength_range=None,
                  bin_width=None, kernel=None, **kwargs):
         """
