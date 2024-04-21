@@ -1552,6 +1552,7 @@ Using Datasets:
         :math:`1s2s ^{1}S_{0} \rightarrow 1s^{2}\ ^{1}S_{0} + h\nu_{1} + h\nu_{2}`.
 
         In both cases, the energy of the two photons emitted equals the energy difference of the two levels.
+        As a consequence, no photons can be emitted beneath the rest wavelength for a given transition.
         See the introduction of :cite:t:`drake_1986` for a concise description of the process.
 
         The emission is given by
