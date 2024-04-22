@@ -136,9 +136,9 @@ class ScupsParser(GenericIonParser):
 class SplupsParser(GenericIonParser):
     """
     Spline fits to scaled collisions strengths (denoted by upsilon) between energy levels as described
-    in :cite:t:`burgess_analysis_1992`.  These files were used in CHIANTI versions prior to 8.0, and 
-    were replaced by ``.scups`` files in versions after that.  
-    
+    in :cite:t:`burgess_analysis_1992`.  These files were used in CHIANTI versions prior to 8.0, and
+    were replaced by ``.scups`` files in versions after that.
+
     Notes
     -----
     * The number of spline points for the rates depends on the fit type, 5 points for type 6
@@ -158,15 +158,15 @@ class SplupsParser(GenericIonParser):
         u.dimensionless_unscaled,
     ]
     headings = [
-        'Z', 
-        'ion', 
-        'lower_level', 
-        'upper_level', 
-        'bt_type', 
-        'gf', 
-        'delta_energy', 
-        'bt_c', 
-        'bt_rate',
+        'Z',
+        'ion',
+        'lower_level',
+        'upper_level',
+        'bt_type',
+        'gf',
+        'delta_energy',
+        'bt_c',
+        'bt_upsilon',
     ]
     descriptions = [
         'atomic number',
