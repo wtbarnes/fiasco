@@ -24,6 +24,8 @@ import fiasco.io
     'al_3.diparams',
     pytest.param('fe_23.auto', marks=pytest.mark.requires_dbase_version('>=', '9')),
     pytest.param('fe_23.rrlvl', marks=pytest.mark.requires_dbase_version('>=', '9')),
+    pytest.param('c_5.splups', marks=pytest.mark.requires_dbase_version('<', '8')),
+    pytest.param('c_6.splups', marks=pytest.mark.requires_dbase_version('<', '8')),
 ])
 def test_ion_sources(ascii_dbase_root, filename,):
     parser = fiasco.io.Parser(filename, ascii_dbase_root=ascii_dbase_root)
