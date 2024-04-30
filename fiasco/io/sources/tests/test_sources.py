@@ -11,7 +11,7 @@ import fiasco.io
 @pytest.mark.parametrize('filename', [
     'h_1.elvlc',
     'h_1.fblvl',
-    pytest.param('h_1.scups', marks=pytest.mark.requires_dbase_version('>=', '8')),
+    pytest.param('h_1.scups', marks=pytest.mark.requires_dbase_version('>= 8')),
     'c_2.psplups',
     'be_2.easplom',
     'al_3.easplups',
@@ -22,10 +22,10 @@ import fiasco.io
     'fe_2.trparams',
     'fe_12.drparams',
     'al_3.diparams',
-    pytest.param('fe_23.auto', marks=pytest.mark.requires_dbase_version('>=', '9')),
-    pytest.param('fe_23.rrlvl', marks=pytest.mark.requires_dbase_version('>=', '9')),
-    pytest.param('c_5.splups', marks=pytest.mark.requires_dbase_version('<', '8')),
-    pytest.param('c_6.splups', marks=pytest.mark.requires_dbase_version('<', '8')),
+    pytest.param('fe_23.auto', marks=pytest.mark.requires_dbase_version('>= 9')),
+    pytest.param('fe_23.rrlvl', marks=pytest.mark.requires_dbase_version('>= 9')),
+    pytest.param('c_5.splups', marks=pytest.mark.requires_dbase_version('< 8')),
+    pytest.param('c_6.splups', marks=pytest.mark.requires_dbase_version('< 8')),
 ])
 def test_ion_sources(ascii_dbase_root, filename,):
     parser = fiasco.io.Parser(filename, ascii_dbase_root=ascii_dbase_root)
