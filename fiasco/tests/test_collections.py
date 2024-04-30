@@ -106,6 +106,7 @@ def test_free_bound(another_collection, wavelength):
     index_t = 24  # This is approximately where the ioneq for Fe V peaks
     assert u.allclose(fb[index_t, index_w], 3.057781475607237e-36 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
+@pytest.mark.requires_dbase_version('>=','8')
 @pytest.mark.parametrize('wavelength', [wavelength, wavelength[450]])
 def test_two_photon(collection, wavelength, hdf5_dbase_root):
     # add Li III to the test to include an ion that throws a MissingDatasetException
@@ -120,12 +121,13 @@ def test_two_photon(collection, wavelength, hdf5_dbase_root):
     # This value has not been checked for correctness
     assert u.allclose(tp[index_w, index_t, 0], 3.48580645e-27 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
+@pytest.mark.requires_dbase_version('>=','8')
 def test_radiative_loss(collection):
     rl = collection.radiative_loss(1e9*u.cm**(-3))
     # This value has not been checked for correctness
     assert u.allclose(rl[0,0], 3.90235371e-24*u.Unit('erg cm3 s-1'))
 
-
+@pytest.mark.requires_dbase_version('>=','8')
 def test_spectrum(hdf5_dbase_root):
     i1 = fiasco.Ion('H 1', 1 * u.MK, hdf5_dbase_root=hdf5_dbase_root)
     i2 = fiasco.Ion('Fe 5', 1 * u.MK, hdf5_dbase_root=hdf5_dbase_root)

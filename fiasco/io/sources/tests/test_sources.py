@@ -11,7 +11,7 @@ import fiasco.io
 @pytest.mark.parametrize('filename', [
     'h_1.elvlc',
     'h_1.fblvl',
-    'h_1.scups',
+    pytest.param('h_1.scups', marks=pytest.mark.requires_dbase_version('>=', '8')),
     'c_2.psplups',
     'be_2.easplom',
     'al_3.easplups',

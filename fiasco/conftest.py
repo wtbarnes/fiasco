@@ -86,9 +86,9 @@ def requires_dbase_version(request, dbase_version):
     # See this SO answer: https://stackoverflow.com/a/28198398
     if marker := request.node.get_closest_marker('requires_dbase_version'):
         # NOTE: This has to have a space between the operator and the target
-        if  len(marker.args) != 2:
+        condition_array = np.atleast_2d(marker.args)
+        if  condition_array.shape[1] != 2:
             raise ValueError("Arguments must contain a condition and a version number, e.g. '<', '8.0.7'")
-        operator, target_version = marker.args
         op_dict = {'<': np.less,
                    '<=': np.less_equal,
                    '>': np.greater,
@@ -96,13 +96,15 @@ def requires_dbase_version(request, dbase_version):
                    '=': np.equal,
                    '==': np.equal,
                    '!=': np.not_equal}
-        if operator not in op_dict:
-            raise ValueError(f'''{operator} is not a supported comparison operation.
-                                 Must be one of {list(op_dict.keys())}.''')
-        target_version = Version(target_version)
-        allowed_dbase_version = op_dict[operator](dbase_version, target_version)
-        if not allowed_dbase_version:
-            pytest.skip(f'Skip because database version {dbase_version} is not {operator} {target_version}.')
+        for i in range(condition_array.shape[0]):
+            operator, target_version = condition_array[0]
+            if operator not in op_dict:
+                raise ValueError(f'''{operator} is not a supported comparison operation.
+                                    Must be one of {list(op_dict.keys())}.''')
+            target_version = Version(target_version)
+            allowed_dbase_version = op_dict[operator](dbase_version, target_version)
+            if not allowed_dbase_version:
+                pytest.skip(f'Skip because database version {dbase_version} is not {operator} {target_version}.')
 
 
 def pytest_configure(config):
