@@ -85,6 +85,7 @@ def test_level_indexing(ion):
     assert levels[2].__repr__() == fiasco.Level(10, ion._elvlc).__repr__()
 
 
+@pytest.mark.requires_dbase_version('>= 8')
 def test_level(ion):
     level = ion[0]
     assert isinstance(level, fiasco.Level)
@@ -157,6 +158,7 @@ def test_abundance(ion):
     assert u.allclose(ion.abundance, 0.0001258925411794166)
 
 
+@pytest.mark.requires_dbase_version('>= 8')
 def test_proton_collision(fe10):
     rate = fe10.proton_collision_excitation_rate
     assert u.allclose(rate[0, 0], 4.69587161e-13 * u.cm**3 / u.s)
@@ -184,6 +186,7 @@ def test_missing_ip(hdf5_dbase_root):
         _ = ion.ip
 
 
+@pytest.mark.requires_dbase_version('>= 8')
 def test_level_populations(ion):
     pop = ion.level_populations(1e8 * u.cm**-3)
     assert pop.shape == ion.temperature.shape + (1,) + ion._elvlc['level'].shape
@@ -193,6 +196,7 @@ def test_level_populations(ion):
     assert u.allclose(pop.squeeze().sum(axis=1), 1, atol=None, rtol=1e-15)
 
 
+@pytest.mark.requires_dbase_version('>= 8')
 def test_level_populations_proton_data_toggle(ion):
     # Fe V has no psplups data so the toggle should have no effect
     lp_protons = ion.level_populations(1e9*u.cm**(-3), include_protons=True)
@@ -200,12 +204,14 @@ def test_level_populations_proton_data_toggle(ion):
     assert u.allclose(lp_protons, lp_no_protons, atol=0, rtol=0)
 
 
+@pytest.mark.requires_dbase_version('>= 8')
 def test_contribution_function(ion):
     cont_func = ion.contribution_function(1e7 * u.cm**-3)
     assert cont_func.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape
     # This value has not been tested for correctness
     assert u.allclose(cont_func[0, 0, 0], 2.51408088e-30 * u.cm**3 * u.erg / u.s)
 
+@pytest.mark.requires_dbase_version('>= 8')
 @pytest.mark.parametrize(('density', 'use_coupling'), [
     ([1e9,] * u.cm**(-3), False),
     ([1e8, 1e9, 1e10] * u.cm**(-3), False),
@@ -231,6 +237,7 @@ def test_emissivity_shape(c6, density, use_coupling):
     assert emiss.shape == c6.temperature.shape + density_shape + wavelength.shape
 
 
+@pytest.mark.requires_dbase_version('>= 8')
 def test_coupling_unequal_dimensions_exception(ion):
     with pytest.raises(ValueError, match='Temperature and density must be of equal length'):
         _ = ion.level_populations([1e7, 1e8]*u.cm**(-3), couple_density_to_temperature=True)
@@ -247,12 +254,13 @@ def pops_no_correction(fe20):
                                   include_level_resolved_rate_correction=False).squeeze()
 
 
+@pytest.mark.requires_dbase_version('>= 8')
 def test_level_populations_normalized(pops_no_correction, pops_with_correction):
     assert u.allclose(pops_with_correction.sum(axis=1), 1, atol=None, rtol=1e-15)
     assert u.allclose(pops_no_correction.sum(axis=1), 1, atol=None, rtol=1e-15)
 
 
-@pytest.mark.requires_dbase_version('<=','8.0.7')
+@pytest.mark.requires_dbase_version('>= 8', '<= 8.0.7')
 def test_level_populations_correction(fe20, pops_no_correction, pops_with_correction):
     # Test level-resolved correction applied to correct levels
     i_corrected = np.unique(np.concatenate([fe20._cilvl['upper_level'], fe20._reclvl['upper_level']]))
@@ -270,6 +278,7 @@ def test_level_populations_correction(fe20, pops_no_correction, pops_with_correc
                       atol=0.0, rtol=1e-5)
 
 
+@pytest.mark.requires_dbase_version('>= 8')
 def test_emissivity(ion):
     emm = ion.emissivity(1e7 * u.cm**-3)
     assert emm.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape
@@ -277,6 +286,7 @@ def test_emissivity(ion):
     assert u.allclose(emm[0, 0, 0], 2.18000422e-16 * u.erg / u.cm**3 / u.s)
 
 
+@pytest.mark.requires_dbase_version('>= 8')
 @pytest.mark.parametrize('em', [
     1e29 * u.cm**-5,
     [1e29] * u.cm**-5,
@@ -334,7 +344,7 @@ def test_free_bound(ion):
     assert u.allclose(emission[0, 0], 9.7902609e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
 # The two-photon test currently fails for dbase_version >= 9 because it is missing c_5.reclvl
-@pytest.mark.requires_dbase_version('<=','8.0.7')
+@pytest.mark.requires_dbase_version('>= 8','<= 8.0.7')
 def test_two_photon(c4, c5, c6):
     # test both H-like and He-like ions, and one that doesn't have two-photon emission
     c4_emission = c4.two_photon(200 * u.Angstrom, electron_density = 1e10* u.cm**(-3))
@@ -374,6 +384,7 @@ def test_radd_ions(ion, another_ion):
     assert collection[0] == another_ion
 
 
+@pytest.mark.requires_dbase_version('>= 8')
 def test_transitions(ion):
     trans = ion.transitions
     assert isinstance(trans, fiasco.Transitions)

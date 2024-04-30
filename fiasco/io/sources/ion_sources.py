@@ -11,6 +11,7 @@ __all__ = [
     'ElvlcParser',
     'FblvlParser',
     'ScupsParser',
+    'SplupsParser',
     'PsplupsParser',
     'EasplomParser',
     'EasplupsParser',
@@ -130,6 +131,70 @@ class ScupsParser(GenericIonParser):
 
         df = super().postprocessor(df)
         return df
+
+
+class SplupsParser(GenericIonParser):
+    """
+    Spline fits to scaled collisions strengths (denoted by upsilon) between energy levels as described
+    in :cite:t:`burgess_analysis_1992`.  These files were used in CHIANTI versions prior to 8.0, and
+    were replaced by ``.scups`` files in versions after that.
+
+    Notes
+    -----
+    * The number of spline points for the rates depends on the fit type, 5 points for type 6
+      fits and 9 points for type 2.
+    """
+    filetype = 'splups'
+    dtypes = [int, int, int, int, int, float, float, float, 'object']
+    units = [
+        None,
+        None,
+        None,
+        None,
+        None,
+        u.dimensionless_unscaled,
+        u.Ry,
+        u.dimensionless_unscaled,
+        u.dimensionless_unscaled,
+    ]
+    headings = [
+        'Z',
+        'ion',
+        'lower_level',
+        'upper_level',
+        'bt_type',
+        'gf',
+        'delta_energy',
+        'bt_c',
+        'bt_upsilon',
+    ]
+    descriptions = [
+        'atomic number',
+        'ionization state',
+        'lower level index',
+        'upper level index',
+        'Burgess-Tully scaling type',
+        'oscillator strength',
+        'delta energy',
+        'Burgess-Tully scaling parameter',
+        'Burgess-Tully scaled effective collision strengths',
+    ]
+
+    def preprocessor(self, table, line, index):
+        n_spline =  9  # Max number of spline points
+        fformat = fortranformat.FortranRecordReader(f'(5I3,{3+n_spline}E10.3)')
+        line = fformat.read(line)
+        # NOTE: The first eight entries are fixed. The last entry is the scaled
+        # spline fit to the array and can vary in length.
+        # NOTE: Some spline fits only have 5 points and the scaling type is not
+        # a reliable way to determine this so we have to filter these manually.
+        # When fortranformat has missing entries, it fills them in as None. We
+        # remove them here to avoid the undefined behavior of None in a ragged
+        # array within an astropy Table.
+        spline_fit = line[8:]
+        spline_fit = [sf for sf in spline_fit if sf is not None]
+        row = line[:8] + [np.array(spline_fit)]
+        table.append(row)
 
 
 class PsplupsParser(ScupsParser):

@@ -82,13 +82,12 @@ def dbase_version(ascii_dbase_root):
 
 @pytest.fixture(autouse=True)
 def requires_dbase_version(request, dbase_version):
+    """
+    Skip a test if not all version requirements are met. Multiple requirements are joined by AND.
+    """
     # NOTE: Fixtures that depend on other fixtures are awkward to implement.
     # See this SO answer: https://stackoverflow.com/a/28198398
     if marker := request.node.get_closest_marker('requires_dbase_version'):
-        # NOTE: This has to have a space between the operator and the target
-        if  len(marker.args) != 2:
-            raise ValueError("Arguments must contain a condition and a version number, e.g. '<', '8.0.7'")
-        operator, target_version = marker.args
         op_dict = {'<': np.less,
                    '<=': np.less_equal,
                    '>': np.greater,
@@ -96,13 +95,23 @@ def requires_dbase_version(request, dbase_version):
                    '=': np.equal,
                    '==': np.equal,
                    '!=': np.not_equal}
-        if operator not in op_dict:
-            raise ValueError(f'''{operator} is not a supported comparison operation.
-                                 Must be one of {list(op_dict.keys())}.''')
-        target_version = Version(target_version)
-        allowed_dbase_version = op_dict[operator](dbase_version, target_version)
-        if not allowed_dbase_version:
-            pytest.skip(f'Skip because database version {dbase_version} is not {operator} {target_version}.')
+
+        def _evaluate_condtion(condition_string):
+            condition_array = condition_string.split()
+            if  len(condition_array) != 2:
+                raise ValueError("Arguments must contain a condition and a version number with a space, e.g. '< 8.0.7'")
+            operator, target_version = condition_array
+            if operator not in op_dict:
+                raise ValueError(f'''{operator} is not a supported comparison operation.
+                                    Must be one of {list(op_dict.keys())}.''')
+            target_version = Version(target_version)
+            allowed_dbase_version = op_dict[operator](dbase_version, target_version)
+            return allowed_dbase_version, operator, target_version
+
+        conditions = np.atleast_1d(marker.args)
+        for is_met, operator, target_version in list(map(_evaluate_condtion, conditions)):
+            if not is_met:
+                pytest.skip(f'Skipping because database version {dbase_version} is not {operator} {target_version}.')
 
 
 def pytest_configure(config):
