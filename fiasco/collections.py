@@ -306,9 +306,25 @@ Available Ions
         return wavelength, spectrum
 
     @u.quantity_input
-    def radiative_loss(self, density: u.cm**(-3), **kwargs):
-        """
+    def radiative_loss(
+        self, density: u.cm**(-3), wavelength_range: u.angstrom = [1, 5000]*u.angstrom, **kwargs
+        ) -> u.erg * u.cm**3 / u.s:
+        r"""
         Calculate radiative loss curve which includes multiple ions
+
+        Parameters
+        ----------
+        density : `~astropy.units.Quantity`
+            Electron number density
+        wavelength_range : `~astropy.units.Quantity`, optional
+            Tuple of bounds on wavelength to include transitions.
+            Default from 1 to 5000 $\AA$
+
+        Returns
+        -------
+        rad_loss : `~astropy.units.Quantity`
+            The bolometric radiative loss rate per unit emission measure
+
         """
         density = np.atleast_1d(density)
         rad_loss = u.Quantity(np.zeros(self.temperature.shape + density.shape), 'erg cm^3 s^-1')
