@@ -122,7 +122,7 @@ def test_two_photon(collection, wavelength, hdf5_dbase_root):
     assert u.allclose(tp[index_w, index_t, 0], 3.48580645e-27 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
 @pytest.mark.requires_dbase_version('>= 8')
-def test_radiative_loss(collection):
+def test_radiative_loss(collection, hdf5_dbase_root):
     # add Li III to the test to include an ion that throws a MissingDatasetException
     collection = collection + fiasco.Ion('Li III', collection.temperature, hdf5_dbase_root=hdf5_dbase_root)
     rl = collection.radiative_loss(1e9*u.cm**(-3))
