@@ -227,7 +227,7 @@ Available Ions
         wavelength_range : `~astropy.units.Quantity`, optional
             Tuple of bounds on which transitions to include. Default includes all
         bin_width : `~astropy.units.Quantity`, optional
-            Wavelength resolution to bin intensity values. Default to 1/10 of range
+            Wavelength resolution to bin intensity values. Default to 1/100 of range
         kernel : `~astropy.convolution.kernels.Model1DKernel`, optional
             Convolution kernel for computing spectrum. Default is gaussian kernel with thermal width
 
@@ -307,18 +307,21 @@ Available Ions
 
     @u.quantity_input
     def radiative_loss(
-        self, density: u.cm**(-3), wavelength_range: u.angstrom = [1, 5000]*u.angstrom, **kwargs
-        ) -> u.erg * u.cm**3 / u.s:
+        self, density: u.cm**(-3), wavelength_range: u.angstrom = [0, 5000]*u.angstrom, bin_width=None, **kwargs
+        ) -> u.Unit('erg cm3 s-1'):
         r"""
-        Calculate radiative loss curve which includes multiple ions
+        Calculate radiative loss rate curve integrating bound-bound, free-bound,
+        free-free, and two_photon emission over wavelength.
 
         Parameters
         ----------
         density : `~astropy.units.Quantity`
             Electron number density
         wavelength_range : `~astropy.units.Quantity`, optional
-            Tuple of bounds on wavelength to include transitions.
-            Default from 1 to 5000 $\AA$
+            Tuple of bounds on wavelength to include in the calculation.
+            Default from 0 to 5000 $\AA$
+        bin_width : `~astropy.units.Quantity`
+            The width of wavelength bins to use in the integration
 
         Returns
         -------
@@ -331,9 +334,26 @@ Available Ions
         for ion in self:
             try:
                 g = ion.contribution_function(density, **kwargs)
-            except MissingDatasetException:
-                # TODO: log the mission ion
+            except MissingDatasetException as e:
+                self.log.warning(f'{ion.ion_name} not included in the bound-bound emission. {e}')
                 continue
             rad_loss += g.sum(axis=2)
+
+        # Setup bins
+        if bin_width is None:
+            bin_width = np.diff(wavelength_range)[0]/100.
+        num_bins = int((np.diff(wavelength_range)[0]/bin_width).value)
+        wavelength_edges = np.linspace(*wavelength_range.value, num_bins+1)
+
+        wavelength = (wavelength_edges[1:] + wavelength_edges[:-1])/2. * wavelength_range.unit
+
+        # Note: currently assumes fixed bin width.
+        ff = self.free_free(wavelength, **kwargs).sum(axis=1) * bin_width
+        fb = self.free_bound(wavelength, **kwargs).sum(axis=1) * bin_width
+        tp = self.two_photon(wavelength, density, **kwargs).sum(axis=0) * bin_width
+
+        rad_loss += tp
+        for i in range(len(density)):
+            rad_loss[:,i] += ff+fb
 
         return rad_loss
