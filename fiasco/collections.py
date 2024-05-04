@@ -320,8 +320,8 @@ Available Ions
         wavelength_range : `~astropy.units.Quantity`, optional
             Tuple of bounds on wavelength to include in the calculation.
             Default from 0 to 5000 $\AA$
-        bin_width : `~astropy.units.Quantity`
-            The width of wavelength bins to use in the integration
+        bin_width : `~astropy.units.Quantity`, optional
+            Wavelength resolution to bin intensity values. Default to 1/100 of range
 
         Returns
         -------
