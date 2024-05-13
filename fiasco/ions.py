@@ -709,7 +709,7 @@ Using Datasets:
 
         .. math::
 
-           G_{ij} = mathrm{Ab}(X)f_{X,k}N_jA_{ij}\Delta E_{ij}\frac{1}{n_e},
+           G_{ij} = \mathrm{Ab}(X)f_{X,k}N_jA_{ij}\Delta E_{ij}\frac{1}{n_e},
 
         Note that the contribution function is often defined in differing ways by different authors.
         The contribution function is defined as above in :cite:t:`young_chianti_2016`.
