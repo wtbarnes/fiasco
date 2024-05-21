@@ -1,11 +1,11 @@
 """
-A Python interface to the CHIANTI atomic database
+fiasco: A Python interface to the CHIANTI atomic database
 """
-from fiasco.collections import *
-from fiasco.elements import *
-from fiasco.fiasco import *
-from fiasco.ions import *
-from fiasco.levels import *
+from fiasco.collections import IonCollection
+from fiasco.elements import Element
+from fiasco.fiasco import list_elements, list_ions, proton_electron_ratio
+from fiasco.ions import Ion
+from fiasco.levels import Level, Transitions
 from fiasco.util.util import setup_paths
 
 try:
@@ -19,3 +19,5 @@ defaults = setup_paths()
 from fiasco.util.logger import _init_log
 
 log = _init_log()
+
+__all__ = ["IonCollection", "Element", "list_elements", "list_ions", "proton_electron_ratio", "Ion", "Level", "Transitions", "defaults", "log", "__version__"]

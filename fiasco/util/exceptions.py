@@ -1,7 +1,9 @@
 """
-Custom exceptions
+Custom exceptions for fiasco.
 """
 
+__all__ = ['MissingIonError', 'MissingDatabaseError', 'MissingASCIIFileError',
+              'MissingDatasetException', 'UnsupportedVersionError']
 
 class MissingIonError(Exception):
     """

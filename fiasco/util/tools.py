@@ -132,10 +132,10 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     x : `array-like`
         Scaled temperature. First dimension should have length ``n``, the number of
         transitions. The second dimension will be the number of spline points, but may
-        be different for each row. If each row has ``l`` spline points, `x` should
-        have shape ``(n,l)``. If they are not all equal, `x` will have shape ``(n,)``.
+        be different for each row. If each row has ``l`` spline points, ``x`` should
+        have shape ``(n,l)``. If they are not all equal, ``x`` will have shape ``(n,)``.
     y : `array-like`
-        Scaled collision strength. Must have the same dimensions as `x`.
+        Scaled collision strength. Must have the same dimensions as ``x``.
     energy_ratio : `array-like`
         Ratio between the thermal energy and that of each transition with shape ``(n,m)``,
         where ``m`` is the dimension of the temperature array.
@@ -148,7 +148,7 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
     Returns
     -------
     upsilon : `array-like`
-        Descaled collision strength or cross-section with the same shape as `energy_ratio`.
+        Descaled collision strength or cross-section with the same shape as ``energy_ratio``.
     """
     # NOTE: Arrays with staggered number of columns, which have an 'object'
     # dtype (denoted by 'O') appear to be 1D, but should not be cast to 2D

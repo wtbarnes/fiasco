@@ -1,7 +1,11 @@
+"""
+Logging utilities for fiasco.
+"""
 import logging
 
 from astropy.logger import AstropyLogger
 
+__all__ = ['_init_log', '_config_to_loggerConf']
 
 def _init_log(config=None):
     """

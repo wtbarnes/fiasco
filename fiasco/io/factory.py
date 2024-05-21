@@ -1,11 +1,12 @@
 """
-Factory and interface for file parser
+Factory and interface for file parser.
 """
 import pathlib
 
 from fiasco.io.generic import GenericParser
 from fiasco.io.sources import *
 
+__all__ = ['Parser', 'ParserFactory']
 
 class ParserFactory(type):
     """
@@ -33,8 +34,7 @@ class ParserFactory(type):
         filetype_name = path.stem
         filetype_ext = path.suffix[1:]
 
-        subclass_dict = {c.filetype: c for c in all_subclasses(GenericParser)
-                         if hasattr(c, 'filetype')}
+        subclass_dict = {c.filetype: c for c in all_subclasses(GenericParser) if hasattr(c, 'filetype')}
         if filetype_ext in subclass_dict:
             return subclass_dict[filetype_ext](*args, **kwargs)
         elif filetype_name in subclass_dict:
@@ -58,9 +58,6 @@ class Parser(GenericParser, metaclass=ParserFactory):
     The Parser ingests the name of a raw ASCII data file and builds an
     `astropy.table.QTable` from it. A predefined parser is created based
     on the file extension, but a custom parser can also be used.
-
-    Examples
-    --------
     """
-    def __init__(self, filename, custom_parser=None, **kwargs):
+    def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)

@@ -1,0 +1,28 @@
+# Prevents sphinx nitpicky mode picking up on optional
+# (see https://github.com/sphinx-doc/sphinx/issues/6861)
+# Even if it was "fixed", still broken
+py:class optional
+# See https://github.com/numpy/numpy/issues/10039
+py:obj numpy.datetime64
+# There's no specific file or function classes to link to
+py:class any type
+py:class array-like
+py:class file object
+py:class function
+py:class path-like
+py:class str-like
+py:class time-like
+py:obj function
+py:obj iterable
+# Units
+py:class Unit('1 / cm3')
+py:class Unit('erg')
+py:class Unit('Angstrom')
+py:class Unit('1 / cm5')
+py:class Unit('K')
+
+py:obj array-like
+# Can't explain why it hates these math functions
+py:obj psi_{text{norm}}
+py:obj A_{text{sum}}
+py:obj frac{1}{psi_{text{norm}}} int_{0}^{1} psi(y) dy = 2

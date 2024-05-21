@@ -28,7 +28,7 @@ SUPPORTED_VERSIONS = [
 ]
 LATEST_VERSION = SUPPORTED_VERSIONS[-1]
 
-__all__ = ['check_database', 'download_dbase', 'get_test_file_list', 'build_hdf5_dbase']
+__all__ = ['check_database', 'check_database_version', 'download_dbase', 'md5hash', 'get_test_file_list', 'build_hdf5_dbase']
 
 
 def check_database(hdf5_dbase_root, **kwargs):
@@ -157,7 +157,7 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=F
         Path to HDF5 file
     files : `list` or `dict`, optional
         A list of files to update in the HDF5 database. By default,
-        this is all of the files in `ascii_dbase_root`.
+        this is all of the files in ``ascii_dbase_root``.
     check_hash: `bool`, optional
         If True, check the file hash before adding it to the database.
         Building the database will fail if any of the hashes is not as expected.
