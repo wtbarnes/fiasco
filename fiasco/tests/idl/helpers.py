@@ -2,7 +2,6 @@
 Helpers for tests related to comparing with IDL output
 """
 import pathlib
-import pytest
 
 from astropy.utils.data import get_pkg_data_path
 
@@ -61,6 +60,8 @@ def run_idl_script(idl_env, script, input_args, save_vars, file_name, version, f
     file_path = get_idl_test_output_filepath(file_name, version)
     if not file_path.is_file():
         if idl_env is None:
+            # Import here so that this can be used without a hard pytest dependency
+            import pytest
             pytest.skip("""To run the IDL comparison tests, you must:
                             1. Specify a path to a working IDL executable,
                             2. Specify a path to the CHIANTI IDL code,
