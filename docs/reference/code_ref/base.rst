@@ -1,0 +1,1 @@
+.. automodapi:: fiasco.base

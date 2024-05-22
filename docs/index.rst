@@ -1,7 +1,8 @@
 fiasco Documentation
-=====================
+====================
 
 Welcome to the documentation for fiasco.
+
 fiasco provides a Python interface to the `CHIANTI atomic database`_.
 In addition to several high-level abstractions of the atomic data, fiasco also provides many common atomic physics calculations.
 The package takes its name from the Italian word *fiasco*, or flask, `the typical style of bottle <https://en.wikipedia.org/wiki/Fiasco_(bottle)>`_ used to serve the *Chianti Classico* wine.
@@ -47,13 +48,13 @@ In the same way, the `fiasco` package serves up the CHIANTI atomic database.
         Technical description of the inputs, outputs, and behavior of each component of fiasco
 
 .. toctree::
-  :maxdepth: 1
-  :hidden:
+    :maxdepth: 1
+    :hidden:
 
-  quick_start
-  generated/gallery/index
-  how_to_guides
-  topic_guides/index
-  reference/index
+    quick_start
+    generated/gallery/index
+    how_to_guides
+    topic_guides/index
+    reference/index
 
 .. _CHIANTI atomic database: http://www.chiantidatabase.org/

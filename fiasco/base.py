@@ -1,5 +1,7 @@
 """
-Base classes for access to CHIANTI ion data
+Base classes for access to CHIANTI ion data.
+
+These classes are not meant to be instantiated directly by the user.
 """
 import plasmapy.particles
 
@@ -13,7 +15,7 @@ from fiasco.io.generic import GenericIonParser
 from fiasco.util import check_database, parse_ion_name
 from fiasco.util.exceptions import MissingIonError
 
-__all__ = ['IonBase', 'ContinuumBase']
+__all__ = ['Base', 'IonBase', 'ContinuumBase']
 
 
 class Base:
@@ -23,9 +25,12 @@ class Base:
     Parameters
     ----------
     ion_name : str
+        Name of ion, e.g. for Fe V, 'Fe 5', 'iron 5', 'Fe 4+'
     hdf5_dbase_root : str, optional
+        Path to the root of the CHIANTI HDF5 database.
+        If not provided, the default path is used.
     kwargs :
-        kwargs are passed to `check_database`.
+        Further keyword arguments are passed to `fiasco.util.check_database`.
     """
 
     def __init__(self, ion_name, hdf5_dbase_root=None, **kwargs):
@@ -129,17 +134,15 @@ class IonBase(Base):
     """
     Base class for accessing CHIANTI data attached to a particular ion
 
-    .. note:: This is not meant to be instantiated directly by the user
-              and primarily serves as a base class for `~fiasco.Ion`.
+    .. note::
+        This is not meant to be instantiated directly by the user
+        and primarily serves as a base class for `~fiasco.Ion`.
 
     Parameters
     ----------
     ion_name : `str`
         Name of ion, e.g. for Fe V, 'Fe 5', 'iron 5', 'Fe 4+'
     hdf5_path : `str`, optional
-
-    Examples
-    --------
     """
 
     @property

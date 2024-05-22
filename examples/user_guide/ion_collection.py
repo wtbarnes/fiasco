@@ -1,6 +1,6 @@
 """
-Creating an `IonCollection`
-===========================
+Creating an ``IonCollection``
+=============================
 
 This example shows how to create an `~fiasco.IonCollection` object.
 """

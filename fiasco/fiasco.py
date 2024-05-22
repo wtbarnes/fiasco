@@ -1,5 +1,5 @@
 """
-Package-level functions
+Package-level functions.
 """
 import astropy.units as u
 import numpy as np
@@ -22,7 +22,7 @@ def list_elements(hdf5_dbase_root=None, sort=True):
     Parameters
     ----------
     hdf5_dbase_root: path-like, optional
-        If not specified, will default to that specified in `fiasco.defaults`.
+        If not specified, will default to that specified in ``fiasco.defaults``.
     sort: `bool`, optional
         If True, sort the list of elements by increasing atomic number.
     """
@@ -47,7 +47,7 @@ def list_ions(hdf5_dbase_root=None, sort=True):
     Parameters
     ----------
     hdf5_dbase_root: path-like, optional
-        If not specified, will default to that specified in `fiasco.defaults`.
+        If not specified, will default to that specified in ``fiasco.defaults``.
     sort: `bool`, optional
         If True, sort the list of elements by increasing atomic number.
     """

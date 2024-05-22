@@ -41,9 +41,9 @@ plt.show()
 
 ################################################
 # The CHIANTI database also includes tabulated ionization equilibria for
-# all ions in the database. The `ioneq` attribute on each
+# all ions in the database. The ``ioneq`` attribute on each
 # `~fiasco.Ion` object returns the tabulated population
-# fractions interpolated onto the `temperature` array.
+# fractions interpolated onto the ``temperature`` array.
 # Note that these population fractions returned by `~fiasco.Ion.ioneq` are
 # stored in the CHIANTI database and therefore are set to NaN
 # for temperatures outside of the tabulated temperature data given in CHIANTI.

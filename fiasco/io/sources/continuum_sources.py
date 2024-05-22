@@ -257,10 +257,10 @@ class HSeqParser(GenericParser):
 
     Notes
     -----
-    * The parameter :math: `\psi_{\text{norm}}` (called :math: `A_{\text{sum}}` in CHIANTI) is a normalization factor of
-    the integral of the spectral distribution function :math:`\psi(y)` from 0 to 1, such
-    that :math: `\frac{1}{\psi_{\text{norm}}} \int_{0}^{1} \psi(y) dy = 2`.  This normalization is only used For
-    hydrogenic ions.
+    * The parameter :math: `\psi_{\text{norm}}` (called :math: `A_{\text{sum}}` in CHIANTI) is a
+      normalization factor of the integral of the spectral distribution function :math:`\psi(y)` from 0 to 1,
+      such that :math: `\frac{1}{\psi_{\text{norm}}} \int_{0}^{1} \psi(y) dy = 2`.
+      This normalization is only used for hydrogenic ions.
     """
     filetype = 'hseq_2photon'
     dtypes = [int, float, int, float, float, float]

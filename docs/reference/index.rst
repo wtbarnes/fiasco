@@ -1,17 +1,18 @@
 .. _fiasco-reference:
 
 Reference
-==========
+=========
 
 .. _fiasco-reference-api:
 
 API
-----
+---
 
 .. toctree::
   :maxdepth: 1
 
   code_ref/fiasco
+  code_ref/base
   code_ref/io
   code_ref/util
 

@@ -17,14 +17,11 @@ __all__ = ['IonCollection']
 
 class IonCollection:
     """
-    Container for holding multiple ions. Instantiate with ions, elements, or another
-    ion collection.
-
-    Examples
-    --------
+    Container for holding multiple ions.
+    Instantiate with ions, elements, or another ion collection.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args):
         # Import here to avoid circular imports
         from fiasco import log
         self.log = log
@@ -48,7 +45,7 @@ class IonCollection:
             return IonCollection(*ions)
 
     def __contains__(self, value):
-        if isinstance(value, (str, tuple)):
+        if isinstance(value, (str, tuple)):  # NOQA: UP038
             pair = parse_ion_name(value)
         elif isinstance(value, fiasco.Ion):
             pair = value._base_rep
@@ -315,8 +312,8 @@ Available Ions
         for ion in self:
             try:
                 g = ion.contribution_function(density, **kwargs)
-            except MissingDatasetException:
-                # TODO: log the mission ion
+            except MissingDatasetException as e:
+                self.log.warning(f'{ion.ion_name} failed to be added to the contribution function: {e}')
                 continue
             rad_loss += g.sum(axis=2)
 
