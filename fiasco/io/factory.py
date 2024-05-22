@@ -6,7 +6,7 @@ import pathlib
 from fiasco.io.generic import GenericParser
 from fiasco.io.sources import *
 
-__all__ = ['Parser', 'ParserFactory']
+__all__ = ['Parser']
 
 class ParserFactory(type):
     """
