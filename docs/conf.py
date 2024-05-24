@@ -15,7 +15,7 @@ from sphinx_gallery.sorting import ExplicitOrder
 
 # -- Project information -----------------------------------------------------
 project = 'fiasco'
-copyright = f'{datetime.datetime.now(datetime.UTC).year}, Will Barnes'
+copyright = f'{datetime.datetime.utcnow().year}, Will Barnes'
 author = 'Will Barnes'
 # The full version, including alpha/beta/rc tags
 from fiasco import __version__
