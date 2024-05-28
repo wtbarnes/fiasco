@@ -1,5 +1,5 @@
 """
-Useful function/method decorators
+Useful function/method decorators.
 """
 from functools import wraps
 

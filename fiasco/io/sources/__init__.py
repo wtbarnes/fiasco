@@ -1,5 +1,5 @@
 """
-Classes for parsing CHIANTI data sources
+Classes for parsing CHIANTI data sources.
 """
 from fiasco.io.sources.continuum_sources import *
 from fiasco.io.sources.ion_sources import *

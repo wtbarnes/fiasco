@@ -19,9 +19,9 @@ classifiers = [
   "License :: OSI Approved :: BSD License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
   "Topic :: Scientific/Engineering :: Physics",
   "Topic :: Scientific/Engineering :: Astronomy",
@@ -35,12 +35,12 @@ keywords = [
   "atomic data",
   "atomic physics",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
   "astropy",
-  "numpy",
-  "h5py",
   "fortranformat",
+  "h5py",
+  "numpy",
   "plasmapy",
 ]
 
@@ -54,12 +54,12 @@ Issues = "https://github.com/wtbarnes/fiasco/issues/"
 all = ["fiasco"]
 test = [
   "fiasco[all]",
-  "asdf",
   "asdf-astropy",
-  "pytest",
+  "asdf",
+  "matplotlib",
   "pytest-astropy",
   "pytest-cov",
-  "matplotlib",
+  "pytest",
 ]
 test_idl = [
   "fiasco[test]",
@@ -67,16 +67,16 @@ test_idl = [
 ]
 docs =[
   "fiasco[all]",
-  "sphinx>=4.2",
-  "sphinx-automodapi",
-  "sphinx-gallery",
   "aiapy",
-  "pydata-sphinx-theme",
-  "sphinx-design",
-  "sphinxcontrib-bibtex",
-  "hissw",
-  "asdf",
   "asdf-astropy",
+  "asdf",
+  "hissw",
+  "pydata-sphinx-theme",
+  "sphinx-automodapi",
+  "sphinx-design",
+  "sphinx-gallery",
+  "sphinx",
+  "sphinxcontrib-bibtex",
 ]
 dev = ["fiasco[test,docs]"]
 
@@ -89,6 +89,10 @@ packages = ["fiasco"]
 testpaths = [
   "fiasco",
   "docs"
+]
+norecursedirs = [
+    "docs/_build",
+    "docs/generated",
 ]
 doctest_plus = "enabled"
 text_file_format = "rst"
@@ -103,6 +107,8 @@ filterwarnings =[
   "ignore:\\nPyarrow will become a required dependency of pandas in the next major release of pandas:DeprecationWarning",
   # Files created with previous versions of asdf-astropy issue a warning if you have a different version installed
   "ignore::asdf.exceptions.AsdfWarning",
+  # Python 3.14 issue with extracting tarball
+  "ignore:.*filter extracted tar archives and reject files or modify their metadata.*:DeprecationWarning",
 ]
 
 [tool.coverage.run]
@@ -131,41 +137,40 @@ skip = "*.fts,*.fits,venv,*.pro,*.bib,*.asdf,*.json"
 ignore-words-list = "te,emiss"
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 line-length = 110
 exclude=[
-    ".git,",
-    "__pycache__",
-    "build",
-    "fiasco/version.py",
+  ".git,",
+  "__pycache__",
+  "build",
+  "fiasco/version.py",
 ]
 show-fixes = true
-show-source = true
+output-format = "full"
 
-select = [
-       "E",
-       "F",
-       "W",
-       "UP",
-       "PT",
-       #"RET",
-       #"TID",
-
+lint.select = [
+  "E",
+  "F",
+  "W",
+  "UP",
+  "PT",
+  #"RET",
+  #"TID",
 ]
-extend-ignore = [
-    # pycodestyle (E, W)
-    "E501",  # LineTooLong                             # TODO! fix
-    "E741",  # Ambiguous variable name
+lint.extend-ignore = [
+  # pycodestyle (E, W)
+  "E501",  # LineTooLong                             # TODO! fix
+  "E741",  # Ambiguous variable name
 
-    # pytest (PT)
-    "PT001",  # Always use pytest.fixture()
-    "PT004",  # Fixtures which don't return anything should have leading _
-    "PT007",  # Parametrize should be lists of tuples  # TODO! fix
-    "PT011",  # Too broad exception assert             # TODO! fix
-    "PT023",  # Always use () on pytest decorators
+  # pytest (PT)
+  "PT001",  # Always use pytest.fixture()
+  "PT004",  # Fixtures which don't return anything should have leading _
+  "PT007",  # Parametrize should be lists of tuples  # TODO! fix
+  "PT011",  # Too broad exception assert             # TODO! fix
+  "PT023",  # Always use () on pytest decorators
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 # Part of configuration, not a package.
 "setup.py" = ["INP001"]
 "conftest.py" = ["INP001"]
@@ -174,9 +179,9 @@ extend-ignore = [
 # Module level imports do not need to be at the top of a file here
 "docs/conf.py" = ["E402"]
 "__init__.py" = ["E402", "F401", "F403"]
-"test_*.py" = ["B011", "D", "E402", "PGH001", "S101"]
+"test_*.py" = ["B011", "D", "E402", "S101"]
 # Allow star import for the factory
 "fiasco/io/factory.py" = ["F403"]
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "numpy"

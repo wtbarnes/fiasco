@@ -36,7 +36,7 @@ class Ion(IonBase, ContinuumBase):
     ----------
     ion_name : `str` or `tuple`
         Name of the ion. This can be either a string denoting the name or a tuple containing the
-        atomic number and ionization stage. See `~fiasco.util.parse_ion` for a list of all possible
+        atomic number and ionization stage. See `~fiasco.util.parse_ion_name` for a list of all possible
         input formats.
     temperature : `~astropy.units.Quantity`
         Temperature array over which to evaluate temperature dependent quantities.
@@ -1553,7 +1553,7 @@ Using Datasets:
 
         In both cases, the energy of the two photons emitted equals the energy difference of the two levels.
         As a consequence, no photons can be emitted beneath the rest wavelength for a given transition.
-        See the introduction of :cite:t:`drake_1986` for a concise description of the process.
+        See the introduction of :cite:t:`drake_twophoton_1986` for a concise description of the process.
 
         The emission is given by
 

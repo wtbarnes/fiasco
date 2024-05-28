@@ -116,7 +116,7 @@ class Element(fiasco.IonCollection):
         return u.Quantity(ioneq)
 
     def __getitem__(self, value):
-        if isinstance(value, (str, tuple)):
+        if isinstance(value, (str, tuple)):  # NOQA: UP038
             _, value = parse_ion_name(value)
             value -= 1
         return super().__getitem__(value)

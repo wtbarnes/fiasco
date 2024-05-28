@@ -18,8 +18,8 @@ quantity_support()
 
 ################################################
 # First, create the `~fiasco.Element` object for carbon.
-temperature = 10**np.arange(3.9, 6.5, 0.01) * u.K
-el = Element('C', temperature)
+temperature = 10**np.arange(4, 8, 0.01) * u.K
+el = Element('Fe', temperature)
 
 ################################################
 # The ionization fractions in equilibrium can be determined by calculating the
@@ -41,15 +41,15 @@ plt.show()
 
 ################################################
 # The CHIANTI database also includes tabulated ionization equilibria for
-# all ions in the database. The `ioneq` attribute on each
+# all ions in the database. The ``ioneq`` attribute on each
 # `~fiasco.Ion` object returns the tabulated population
-# fractions interpolated onto the `temperature` array.
+# fractions interpolated onto the ``temperature`` array.
 # Note that these population fractions returned by `~fiasco.Ion.ioneq` are
 # stored in the CHIANTI database and therefore are set to NaN
 # for temperatures outside of the tabulated temperature data given in CHIANTI.
-plt.plot(el.temperature, el[3].ioneq)
+plt.plot(el.temperature, el[11].ioneq)
 plt.xscale('log')
-plt.title(f'{el[3].ion_name_roman} Equilibrium Ionization')
+plt.title(f'{el[11].ion_name_roman} Equilibrium Ionization')
 plt.show()
 
 ################################################
@@ -57,10 +57,10 @@ plt.show()
 # Note that the two may not be equal due to differences in the rates when
 # the tabulated results were calculated or due to artifacts from the
 # interpolation.
-plt.plot(el.temperature, el.equilibrium_ionization[:, el[3].charge_state], label='calculated')
-plt.plot(el.temperature, el[3].ioneq, label='interpolated')
-plt.xlim(4e4, 3e5)
+plt.plot(el.temperature, el.equilibrium_ionization[:, el[11].charge_state], label='calculated')
+plt.plot(el.temperature, el[11].ioneq, label='interpolated')
+plt.xlim(5e5, 5e6)
 plt.xscale('log')
 plt.legend()
-plt.title(f'{el[3].ion_name_roman} Equilibrium Ionization')
+plt.title(f'{el[11].ion_name_roman} Equilibrium Ionization')
 plt.show()

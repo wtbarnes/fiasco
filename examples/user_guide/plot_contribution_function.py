@@ -16,7 +16,7 @@ from fiasco import Ion
 quantity_support()
 
 ###############################################################################
-# Specify the plasma properties; note that an `Ion` has to be created with a
+# Specify the plasma properties; note that an `~fiasco.Ion` has to be created with a
 # range of temperatures, but the density is only used later in the contribution
 # function calculation.
 Te = np.geomspace(0.1, 100, 51) * u.MK

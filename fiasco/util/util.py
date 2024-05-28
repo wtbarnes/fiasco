@@ -24,12 +24,12 @@ def parse_ion_name(ion_name):
     of the following representations of Fe 18, that is, an iron ion
     with 17 electrons removed and a total charge of +17, will return (26,18):
 
-    1. `'Fe 18'`, `'fe 18'` (atomic symbol and ionization stage)
-    2. `'Fe 17+'` (atomic symbol and charge state)
-    3. `'Iron 18'`, `'iron 18'` (element name and ionization stage)
-    4. `'Fe XVIII'`, `'fe xviii'` (atomic symbol and ionization stage in spectroscopic notation)
-    5. `'26 18'` (atomic number and ionization stage)
-    6. `(26, 18)` (tuple of any combination of the above)
+    1. ``'Fe 18'`, ``'fe 18'`` (atomic symbol and ionization stage)
+    2. ``'Fe 17+'`` (atomic symbol and charge state)
+    3. ``'Iron 18'``, ``'iron 18'`` (element name and ionization stage)
+    4. ``'Fe XVIII'``, ``'fe xviii'`` (atomic symbol and ionization stage in spectroscopic notation)
+    5. ``'26 18'`` (atomic number and ionization stage)
+    6. ``(26, 18)`` (tuple of any combination of the above)
     """
     if isinstance(ion_name, tuple):
         element, ion = ion_name
@@ -158,7 +158,8 @@ def query_yes_no(question, default="yes"):
     elif default == "no":
         prompt = " [y/N] "
     else:
-        raise ValueError("invalid default answer: '%s'" % default)
+        msg = f"invalid default answer: {default}"
+        raise ValueError(msg)
 
     while True:
         sys.stdout.write(question + prompt)

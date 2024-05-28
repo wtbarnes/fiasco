@@ -1,5 +1,5 @@
 """
-Base class for file parser
+Base class for file parser.
 """
 import astropy.units as u
 import h5py
@@ -15,6 +15,7 @@ import fiasco
 from fiasco.util.exceptions import MissingASCIIFileError
 from fiasco.util.util import read_chianti_version
 
+__all__ = ['GenericParser', 'GenericIonParser']
 
 class GenericParser:
     """

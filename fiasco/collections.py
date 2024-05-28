@@ -17,14 +17,11 @@ __all__ = ['IonCollection']
 
 class IonCollection:
     """
-    Container for holding multiple ions. Instantiate with ions, elements, or another
-    ion collection.
-
-    Examples
-    --------
+    Container for holding multiple ions.
+    Instantiate with ions, elements, or another ion collection.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args):
         # Import here to avoid circular imports
         from fiasco import log
         self.log = log
@@ -48,7 +45,7 @@ class IonCollection:
             return IonCollection(*ions)
 
     def __contains__(self, value):
-        if isinstance(value, (str, tuple)):
+        if isinstance(value, (str, tuple)):  # NOQA: UP038
             pair = parse_ion_name(value)
         elif isinstance(value, fiasco.Ion):
             pair = value._base_rep

@@ -1,5 +1,5 @@
 """
-Access layer for interfacing with CHIANTI stored in HDF5
+Access layer for interfacing with CHIANTI stored in HDF5.
 """
 import astropy.units as u
 import h5py
@@ -10,14 +10,14 @@ from astropy.table import QTable
 
 from fiasco.util.exceptions import MissingDatabaseError
 
-__all__ = ['DataIndexer']
+__all__ = ['DataIndexer', 'DataIndexerHDF5']
 
 
 class DataIndexer:
     """
     Data access layer for each distinct CHIANTI dataset
 
-    Acts as an interface layer between `Ion` and the CHIANTI data. All data that the user interacts
+    Acts as an interface layer between `~fiasco.Ion` and the CHIANTI data. All data that the user interacts
     with passes through this layer.
 
     .. warning:: This object is not meant to be instantiated directly by the user. Rather, instances
@@ -58,7 +58,7 @@ class DataIndexerHDF5:
         """
         Create an instance as long as the dataset exists. This class method
         exists so that None can be returned if the dataset specified by
-        `top_level_path` does not exist.
+        ``top_level_path`` does not exist.
         """
         hdf5_path = pathlib.Path(hdf5_path)
         if not hdf5_path.is_file():
