@@ -1317,6 +1317,35 @@ Using Datasets:
                 / np.sqrt(self.temperature)[:, np.newaxis])
 
     @u.quantity_input
+    def free_free_radiative_loss(self) -> u.erg * u.cm**3 / u.s:
+        r"""
+        Free-free continuum radiative losses as a function of temperature.
+
+        The total free-free radiative loss is given by integrating the emissivity over
+        all wavelengths.  The total losses per unit emission measure is then given by
+        (Equation 18 of :cite:`sutherland_accurate_1998`):
+
+        .. math::
+
+            R_{ff}(T_e) = F_{k} \sqrt{(T_{e})} Z^{2} \langle g_{t,ff}\rangle
+
+        where :math: `T_{e}` is the electron temperature, :math: `\F_{k}` is a constant,
+        :math: `Z` is the ionization stage, and :math: `\langle g_{t,ff}\rangle` is the
+        total (wavelength-averaged) free-free Gaunt factor.
+
+        Notes
+        -----
+        The result does not include ionization equilibrium or abundance factors.
+
+        The prefactor :math: `F_{k}` is defined in Equation 19 of :cite:t:`sutherland_accurate_1998`,
+        with a value of 1.42555669e-27 cm$^{5}$ g K$^{-1/2}$ s$^{3}$).
+
+        """
+        prefactor = (16./3**1.5) * np.sqrt(2. * np.pi * const.k_B/(const.hbar**2 * const.m_e**3)) * (const.e.esu**6 / const.c**3)
+        gf = self._gaunt_factor_free_free_total()
+        return (prefactor * self.charge_state**2 * gf * np.sqrt(self.temperature))
+
+    @u.quantity_input
     def gaunt_factor_free_free(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
         r"""
         Free-free Gaunt factor as a function of wavelength.

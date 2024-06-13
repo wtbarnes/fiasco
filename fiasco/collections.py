@@ -329,6 +329,7 @@ Available Ions
         density = np.atleast_1d(density)
         rad_loss = u.Quantity(np.zeros(self.temperature.shape + density.shape), 'erg cm^3 s^-1')
         for ion in self:
+            # bound-bound emission:
             try:
                 g = ion.contribution_function(density, **kwargs)
             except MissingDatasetException as e:
@@ -336,15 +337,18 @@ Available Ions
                 continue
             rad_loss += g.sum(axis=2)
 
+            # free-free emission:
+            ff = ion.free_free_radiative_loss() * self.abundance * ion.ioneq
+            for i in range(len(density)):
+                rad_loss[:,i] += ff
+
         wavelength = np.logspace(-2,4,200) * u.angstrom
 
-        ff = self.free_free(wavelength, **kwargs)
         fb = self.free_bound(wavelength, **kwargs)
         tp = self.two_photon(wavelength, density, **kwargs)
 
         for i in range(len(density)):
             for j in range(len(self.temperature)):
-                rad_loss[j,i] += np.trapz(ff[j,:], wavelength)
                 rad_loss[j,i] += np.trapz(fb[j,:], wavelength)
                 rad_loss[j,i] += np.trapz(tp[:,j,i], wavelength)
 
