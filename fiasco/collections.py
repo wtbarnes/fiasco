@@ -336,21 +336,16 @@ Available Ions
                 continue
             rad_loss += g.sum(axis=2)
 
-        # Setup bins
-        if bin_width is None:
-            bin_width = np.diff(wavelength_range)[0]/100.
-        num_bins = int((np.diff(wavelength_range)[0]/bin_width).value)
-        wavelength_edges = np.linspace(*wavelength_range.value, num_bins+1)
+        wavelength = np.logspace(-2,4,200) * u.angstrom
 
-        wavelength = (wavelength_edges[1:] + wavelength_edges[:-1])/2. * wavelength_range.unit
+        ff = self.free_free(wavelength, **kwargs)
+        fb = self.free_bound(wavelength, **kwargs)
+        tp = self.two_photon(wavelength, density, **kwargs)
 
-        # Note: currently assumes fixed bin width.
-        ff = self.free_free(wavelength, **kwargs).sum(axis=1) * bin_width
-        fb = self.free_bound(wavelength, **kwargs).sum(axis=1) * bin_width
-        tp = self.two_photon(wavelength, density, **kwargs).sum(axis=0) * bin_width
-
-        rad_loss += tp
         for i in range(len(density)):
-            rad_loss[:,i] += ff+fb
+            for j in range(len(self.temperature)):
+                rad_loss[j,i] += np.trapz(ff[j,:], wavelength)
+                rad_loss[j,i] += np.trapz(fb[j,:], wavelength)
+                rad_loss[j,i] += np.trapz(tp[:,j,i], wavelength)
 
         return rad_loss

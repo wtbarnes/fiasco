@@ -336,6 +336,12 @@ def test_free_free(ion):
     # This value has not been tested for correctness
     assert u.allclose(emission[0], 1.72804216e-29 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
+def test_gaunt_factor_free_free_total(ion):
+    gf = ion._gaunt_factor_free_free_total()
+    assert gf.shape == (100,)
+    # This value has not been tested for correctness
+    assert u.allclose(gf[1], 1.24001343 * u.dimensionless_unscaled)
+
 
 def test_free_bound(ion):
     emission = ion.free_bound(200 * u.Angstrom)

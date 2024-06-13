@@ -1393,6 +1393,20 @@ Using Datasets:
 
         return u.Quantity(np.where(gf < 0., 0., gf))
 
+    @needs_dataset('gffint')
+    @u.quantity_input
+    def _gaunt_factor_free_free_total(self) -> u.dimensionless_unscaled:
+        """
+        The total (wavelength-averaged) free-free Gaunt factor, used for calculating
+        the total radiative losses from free-free emission.
+        """
+        Ry = const.h * const.c * const.Ryd
+        log_gamma_squared = np.log10((self.charge_state**2 * Ry) / (const.k_B * self.temperature))
+        index = [np.abs(self._gffint['log_gamma_squared'] - x).argmin() for x in log_gamma_squared]
+        delta = log_gamma_squared - self._gffint['log_gamma_squared'][index]
+        # The spline fit was pre-calculated by Sutherland 1998:
+        return self._gffint['gaunt_factor'][index] + delta * (self._gffint['s1'][index] + delta * (self._gffint['s2'][index] + delta * self._gffint['s3'][index]))
+
     @needs_dataset('fblvl', 'ip')
     @u.quantity_input
     def free_bound(self,
