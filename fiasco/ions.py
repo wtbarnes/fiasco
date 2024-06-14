@@ -283,6 +283,25 @@ Using Datasets:
         """
         return self.temperature[np.argmax(self.ioneq)]
 
+    @property
+    def zeta_0(self) -> u.dimensionless_unscaled:
+        r"""
+        :math: `\zeta_{0}`, the number of vacancies in the ion, which is used to calculate
+        the free-bound Gaunt factor of an ion.
+
+        See Section 2.2 and Table 1 of :cite:t:`mewe_freebound_1986`.
+        """
+        difference = self.atomic_number - (self.charge_state + 1)
+        if difference <= 0:
+            max_vacancies = 1
+        elif difference <= 8 and difference > 0:
+            max_vacancies = 9
+        elif difference <= 22 and difference > 8:
+            max_vacancies = 27
+        else:
+            max_vacancies = 55
+        return float(max_vacancies - difference)
+
     @cached_property
     @needs_dataset('scups')
     @u.quantity_input
@@ -1516,6 +1535,14 @@ Using Datasets:
 
         return (prefactor * energy_temperature_factor * sum_factor)
 
+    @u.quantity_input
+    def free_bound_radiative_loss(self) -> u.erg * u.cm**3 / u.s:
+        """
+        The radiative loss rate for free-bound emission as a function of temperature,
+        integrated over all wavelengths.
+        """
+        return 0.
+
     @needs_dataset('verner')
     @u.quantity_input
     def _verner_cross_section(self, energy: u.erg) -> u.cm**2:
@@ -1570,6 +1597,13 @@ Using Datasets:
         cross_section = prefactor * ionization_energy**2 * photon_energy**(-3) * gaunt_factor / n
         cross_section[np.where(photon_energy < ionization_energy)] = 0.*cross_section.unit
         return cross_section
+
+    def _gaunt_factor_free_bound_total(self) -> u.dimensionless_unscaled:
+        """
+        The total Gaunt factor for free-bound emission
+        """
+        return 1.
+
 
     @needs_dataset('elvlc')
     @u.quantity_input

@@ -304,11 +304,11 @@ Available Ions
 
     @u.quantity_input
     def radiative_loss(
-        self, density: u.cm**(-3), wavelength_range: u.angstrom = [0, 5000]*u.angstrom, bin_width=None, **kwargs
+        self, density: u.cm**(-3), **kwargs
         ) -> u.Unit('erg cm3 s-1'):
         r"""
         Calculate radiative loss rate curve integrating bound-bound, free-bound,
-        free-free, and two_photon emission over wavelength.
+        and free-free emission over wavelength.
 
         Parameters
         ----------
@@ -324,6 +324,11 @@ Available Ions
         -------
         rad_loss : `~astropy.units.Quantity`
             The bolometric radiative loss rate per unit emission measure
+
+        Notes
+        -----
+        The calculation does not include two-photon continuum emission, which is also
+        neglected in CHIANTI.
 
         """
         density = np.atleast_1d(density)
@@ -342,14 +347,6 @@ Available Ions
             for i in range(len(density)):
                 rad_loss[:,i] += ff
 
-        wavelength = np.logspace(-2,4,200) * u.angstrom
-
-        fb = self.free_bound(wavelength, **kwargs)
-        tp = self.two_photon(wavelength, density, **kwargs)
-
-        for i in range(len(density)):
-            for j in range(len(self.temperature)):
-                rad_loss[j,i] += np.trapz(fb[j,:], wavelength)
-                rad_loss[j,i] += np.trapz(tp[:,j,i], wavelength)
+            #fb = ion.free_bound_radiative_loss() * self.abundance * ion.ioneq
 
         return rad_loss
