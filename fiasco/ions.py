@@ -1599,9 +1599,32 @@ Using Datasets:
         return cross_section
 
     def _gaunt_factor_free_bound_total(self) -> u.dimensionless_unscaled:
-        """
+        r"""
         The total Gaunt factor for free-bound emission
+
+        Notes
+        -----
+
+        Equation 14 of :cite:t: `mewe_freebound_1986` has a simple
+        analytic solution.  They approximate
+        .. math::
+            f_{1}(Z, n, n_{0} ) = \sum_{1}^{\infty} n^{-3} - \sum_{1}^{n_{0}} n^{-3} = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} \approx 0.21 n_{0}^{-1.5}
+
+        However, the second sum is analytic, :math: `\sum_{1}^{n_{0}} n^{-3} = \zeta(3) + \frac{1}{2}\psi^{(2)}(n_{0}+1)`
+        where :math: `\psi^{n}(x)` is the n-th derivative of the digamma function (a.k.a. the polygamma function).
+        So, we can write the full solution as:
+        .. math::
+            f_{1}(Z, n, n_{0} ) = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} = - \frac{1}{2}\psi^{(2)}(n_{0}+1)
+
+        The final expression is therefore simplified and more accurate than :cite:t: `mewe_freebound_1986`.
         """
+        #Eq. 14 of Mewe 1986 can be written accurately:
+        # sum_1^n_0 n^(-3) = zeta(3) + polygamma(2, n_0+1)/2
+        # so f1 = zeta(3) - zeta(3) - polygamma(2, n_0+1)/2
+        #       = -polygamma(2, n_0+1)/2
+
+        #f1 = -1.0 * polygamma(2, n_0 + 1) / 2.0
+
         return 1.
 
 
