@@ -8,6 +8,7 @@ import numpy as np
 from functools import cached_property
 from scipy.interpolate import CubicSpline, interp1d, PchipInterpolator, splev, splrep
 from scipy.ndimage import map_coordinates
+from scipy.special import polygamma
 
 from fiasco import proton_electron_ratio
 from fiasco.base import ContinuumBase, IonBase
@@ -1535,6 +1536,7 @@ Using Datasets:
 
         return (prefactor * energy_temperature_factor * sum_factor)
 
+    @needs_dataset('fblvl', 'ip')
     @u.quantity_input
     def free_bound_radiative_loss(self) -> u.erg * u.cm**3 / u.s:
         """
@@ -1598,9 +1600,14 @@ Using Datasets:
         cross_section[np.where(photon_energy < ionization_energy)] = 0.*cross_section.unit
         return cross_section
 
+    @needs_dataset('fblvl', 'ip')
+    @u.quantity_input
     def _gaunt_factor_free_bound_total(self) -> u.dimensionless_unscaled:
         r"""
-        The total Gaunt factor for free-bound emission
+        The total Gaunt factor for free-bound emission, using the expressions from :cite:t: `mewe_freebound_1986`.
+
+        The Gaunt factor is not calculated for individual levels, except that the ground state has
+        been specified to be :math: `g_{fb}(n_{0}) = 0.9` following :cite:t: `mewe_freebound_1986`.
 
         Notes
         -----
@@ -1610,22 +1617,35 @@ Using Datasets:
         .. math::
             f_{1}(Z, n, n_{0} ) = \sum_{1}^{\infty} n^{-3} - \sum_{1}^{n_{0}} n^{-3} = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} \approx 0.21 n_{0}^{-1.5}
 
+        where :math: `\zeta(x)` is the Riemann zeta function.
+
         However, the second sum is analytic, :math: `\sum_{1}^{n_{0}} n^{-3} = \zeta(3) + \frac{1}{2}\psi^{(2)}(n_{0}+1)`
         where :math: `\psi^{n}(x)` is the n-th derivative of the digamma function (a.k.a. the polygamma function).
         So, we can write the full solution as:
         .. math::
-            f_{1}(Z, n, n_{0} ) = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} = - \frac{1}{2}\psi^{(2)}(n_{0}+1)
+            f_{1}(Z, n, n_{0}) = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} = - \frac{1}{2}\psi^{(2)}(n_{0}+1)
 
         The final expression is therefore simplified and more accurate than :cite:t: `mewe_freebound_1986`.
         """
-        #Eq. 14 of Mewe 1986 can be written accurately:
-        # sum_1^n_0 n^(-3) = zeta(3) + polygamma(2, n_0+1)/2
-        # so f1 = zeta(3) - zeta(3) - polygamma(2, n_0+1)/2
-        #       = -polygamma(2, n_0+1)/2
+        z = self.ionization_stage
 
-        #f1 = -1.0 * polygamma(2, n_0 + 1) / 2.0
+        if z == 1:
+            return u.Quantity(np.zeros(self.temperature.shape))  # can't recombine onto neutrals
+        else:
+            Ry = const.h * const.c * const.Ryd
+            pe_ratio = proton_electron_ratio(self.temperature, **self._instance_kwargs)
+            prefactor = (Ry / const.k_B)
 
-        return 1.
+            n_0 = self._fblvl['n'][0]
+
+            z_0 = n_0 * np.sqrt(self.previous_ion().ip / Ry)
+            g_n_0 = 0.9 # The ground state Gaunt factor, g_fb(n_0), prescribed by Mewe et al 1986
+
+            f_0 = g_n_0 * self.zeta_0 * (z_0**4 / n_0**5) * np.exp((prefactor * z_0**2)/(n_0**2 * self.temperature))
+            f_1 = -1.0 * polygamma(2, n_0 + 1) / 2.0
+            f_2 = f_0 + 2.0 * f_1 * z**4 * np.exp((prefactor * z**2)/(self.temperature * (n_0+1)**2))
+
+            return (prefactor / (pe_ratio * self.temperature)) * f_2 * self.abundance * self.ioneq
 
 
     @needs_dataset('elvlc')
