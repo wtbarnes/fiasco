@@ -1449,12 +1449,15 @@ Using Datasets:
         The total (wavelength-averaged) free-free Gaunt factor, used for calculating
         the total radiative losses from free-free emission.
         """
-        Ry = const.h * const.c * const.Ryd
-        log_gamma_squared = np.log10((self.charge_state**2 * Ry) / (const.k_B * self.temperature))
-        index = [np.abs(self._gffint['log_gamma_squared'] - x).argmin() for x in log_gamma_squared]
-        delta = log_gamma_squared - self._gffint['log_gamma_squared'][index]
-        # The spline fit was pre-calculated by Sutherland 1998:
-        return self._gffint['gaunt_factor'][index] + delta * (self._gffint['s1'][index] + delta * (self._gffint['s2'][index] + delta * self._gffint['s3'][index]))
+        if self.ionization_stage == 1:
+            return u.Quantity(np.zeros(self.temperature.shape))  # can't recombine onto neutrals
+        else:
+            Ry = const.h * const.c * const.Ryd
+            log_gamma_squared = np.log10((self.charge_state**2 * Ry) / (const.k_B * self.temperature))
+            index = [np.abs(self._gffint['log_gamma_squared'] - x).argmin() for x in log_gamma_squared]
+            delta = log_gamma_squared - self._gffint['log_gamma_squared'][index]
+            # The spline fit was pre-calculated by Sutherland 1998:
+            return self._gffint['gaunt_factor'][index] + delta * (self._gffint['s1'][index] + delta * (self._gffint['s2'][index] + delta * self._gffint['s3'][index]))
 
     @needs_dataset('fblvl', 'ip')
     @u.quantity_input
@@ -1563,25 +1566,29 @@ Using Datasets:
 
         We have dropped the factor of :math:`n_{e}^{2}` here to make the loss rate per unit EM.
         """
-        C_ff = 64 * np.pi / 3. *np.sqrt(np.pi/6.) * (const.e.esu**6)/(const.c**2 * const.m_e**1.5 * const.k_B**0.5)
-        prefactor = C_ff * const.k_B * np.sqrt(self.temperature) / (const.h*const.c)
+        if self.ionization_stage == 1:
+            # can't recombine onto neutrals
+            return u.Quantity(np.zeros(self.temperature.shape)* u.erg * u.cm**3 / u.s)
+        else:
+            C_ff = 64 * np.pi / 3. *np.sqrt(np.pi/6.) * (const.e.esu**6)/(const.c**2 * const.m_e**1.5 * const.k_B**0.5)
+            prefactor = C_ff * const.k_B * np.sqrt(self.temperature) / (const.h*const.c)
 
-        E_obs = self._fblvl['E_obs']*const.h*const.c
-        E_th = self._fblvl['E_th']*const.h*const.c
-        level_fb = self._fblvl['level']
-        use_theoretical = np.logical_and(E_obs==0*u.erg, level_fb!=1)
-        E_fb = np.where(use_theoretical, E_th, E_obs)
+            E_obs = self._fblvl['E_obs']*const.h*const.c
+            E_th = self._fblvl['E_th']*const.h*const.c
+            level_fb = self._fblvl['level']
+            use_theoretical = np.logical_and(E_obs==0*u.erg, level_fb!=1)
+            E_fb = np.where(use_theoretical, E_th, E_obs)
 
-        wvl_n0 = const.h * const.c / (self.previous_ion().ip - E_fb[0])
-        wvl_n1 = (self._fblvl['n'][0] + 1)**2 /(const.Ryd * self.ionization_stage**2)
+            wvl_n0 = const.h * const.c / (self.previous_ion().ip - E_fb[0])
+            wvl_n1 = (self._fblvl['n'][0] + 1)**2 /(const.Ryd * self.ionization_stage**2)
 
-        g_fb0 = self._gaunt_factor_free_bound_total(ground_state=True)
-        g_fb1 = self._gaunt_factor_free_bound_total(ground_state=False)
+            g_fb0 = self._gaunt_factor_free_bound_total(ground_state=True)
+            g_fb1 = self._gaunt_factor_free_bound_total(ground_state=False)
 
-        term1 = g_fb0 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n0))
-        term2 = g_fb1 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n1))
+            term1 = g_fb0 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n0))
+            term2 = g_fb1 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n1))
 
-        return prefactor * (term1 + term2)
+            return prefactor * (term1 + term2)
 
     @needs_dataset('verner')
     @u.quantity_input
@@ -1649,7 +1656,7 @@ Using Datasets:
 
         Notes
         -----
-        The calculation includes the abundances and ionization equilibria.
+        The calculation does not include the abundances and ionization equilibria, unlike in :cite:t:`mewe_freebound_1986`.
 
         Equation 14 of :cite:t:`mewe_freebound_1986` has a simple
         analytic solution.  They approximate
@@ -1669,7 +1676,8 @@ Using Datasets:
         z = self.ionization_stage
 
         if z == 1:
-            return u.Quantity(np.zeros(self.temperature.shape))  # can't recombine onto neutrals
+            # can't recombine onto neutrals
+            return u.Quantity(np.zeros(self.temperature.shape))
         else:
             Ry = const.h * const.c * const.Ryd
             pe_ratio = proton_electron_ratio(self.temperature, **self._instance_kwargs)
@@ -1685,7 +1693,7 @@ Using Datasets:
                 f_1 = -1.0 * polygamma(2, n_0 + 1) / 2.0
                 f_2 = 2.0 * f_1 * z**4 * np.exp((prefactor * z**2)/(self.temperature * (n_0+1)**2))
 
-            return (prefactor / (pe_ratio * self.temperature)) * f_2 * self.abundance * self.ioneq
+            return (prefactor / (pe_ratio * self.temperature)) * f_2
 
 
     @needs_dataset('elvlc')
