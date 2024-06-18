@@ -1539,11 +1539,49 @@ Using Datasets:
     @needs_dataset('fblvl', 'ip')
     @u.quantity_input
     def free_bound_radiative_loss(self) -> u.erg * u.cm**3 / u.s:
-        """
+        r"""
         The radiative loss rate for free-bound emission as a function of temperature,
         integrated over all wavelengths.
+
+        The calculation integrates Equation 1a of :cite:t:`mewe_freebound_1986`, where the
+        Gaunt factor is summed only for free-bound emission (see CHIANTI technical report #9).
+        Since the form of the Gaunt factor used in by :cite:t:`mewe_freebound_1986` does not
+        depend on wavelength, the integral is straightforward.
+
+        The continuum intensity (per unit EM) is given by:
+
+        .. math::
+
+            P_{fb}(\lambda, T) = \frac{C_{ff} G_{fb}}{\lambda^{2}\ T^{1/2}} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
+
+        where :math:`C_{ff} = \frac{64 \pi}{3} \sqrt{\frac{\pi}{6}} \frac{q_{e}^{6}}{c^{2} m_{e}^{2} k_{B}^{1/2}}` is
+        a constant :cite:p:`gronenschild_twophoton_1978`.  Integrating in wavelength space gives the free-bound loss rate:
+
+        .. math::
+
+            R_{fb} = \frac{C_{ff} k_{B} G_{fb} T^{1/2}}{h c} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
+
+        We have dropped the factor of :math:`n_{e}^{2}` here to make the loss rate per unit EM.
         """
-        return 0.
+        C_ff = 64 * np.pi / 3. *np.sqrt(np.pi/6.) * (const.e.esu**6)/(const.c**2 * const.m_e**1.5 * const.k_B**0.5)
+        prefactor = C_ff * const.k_B * np.sqrt(self.temperature) / (const.h*const.c)
+
+        E_obs = self._fblvl['E_obs']*const.h*const.c
+        E_th = self._fblvl['E_th']*const.h*const.c
+        level_fb = self._fblvl['level']
+        use_theoretical = np.logical_and(E_obs==0*u.erg, level_fb!=1)
+        E_fb = np.where(use_theoretical, E_th, E_obs)
+
+        wvl_n0 = const.h * const.c / (self.previous_ion().ip - E_fb[0])
+        wvl_n1 = (self._fblvl['n'][0] + 1)**2 /(const.Ryd * self.ionization_stage**2)
+
+        g_fb0 = self._gaunt_factor_free_bound_total(ground_state=True)
+        g_fb1 = self._gaunt_factor_free_bound_total(ground_state=False)
+
+        term1 = g_fb0 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n0))
+        term2 = g_fb1 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n1))
+
+        return prefactor * (term1 + term2)
 
     @needs_dataset('verner')
     @u.quantity_input
@@ -1602,17 +1640,18 @@ Using Datasets:
 
     @needs_dataset('fblvl', 'ip')
     @u.quantity_input
-    def _gaunt_factor_free_bound_total(self) -> u.dimensionless_unscaled:
+    def _gaunt_factor_free_bound_total(self, ground_state=True) -> u.dimensionless_unscaled:
         r"""
-        The total Gaunt factor for free-bound emission, using the expressions from :cite:t: `mewe_freebound_1986`.
+        The total Gaunt factor for free-bound emission, using the expressions from :cite:t:`mewe_freebound_1986`.
 
         The Gaunt factor is not calculated for individual levels, except that the ground state has
-        been specified to be :math: `g_{fb}(n_{0}) = 0.9` following :cite:t: `mewe_freebound_1986`.
+        been specified to be :math: `g_{fb}(n_{0}) = 0.9` following :cite:t:`mewe_freebound_1986`.
 
         Notes
         -----
+        The calculation includes the abundances and ionization equilibria.
 
-        Equation 14 of :cite:t: `mewe_freebound_1986` has a simple
+        Equation 14 of :cite:t:`mewe_freebound_1986` has a simple
         analytic solution.  They approximate
         .. math::
             f_{1}(Z, n, n_{0} ) = \sum_{1}^{\infty} n^{-3} - \sum_{1}^{n_{0}} n^{-3} = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} \approx 0.21 n_{0}^{-1.5}
@@ -1625,7 +1664,7 @@ Using Datasets:
         .. math::
             f_{1}(Z, n, n_{0}) = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} = - \frac{1}{2}\psi^{(2)}(n_{0}+1)
 
-        The final expression is therefore simplified and more accurate than :cite:t: `mewe_freebound_1986`.
+        The final expression is therefore simplified and more accurate than :cite:t:`mewe_freebound_1986`.
         """
         z = self.ionization_stage
 
@@ -1638,12 +1677,13 @@ Using Datasets:
 
             n_0 = self._fblvl['n'][0]
 
-            z_0 = n_0 * np.sqrt(self.previous_ion().ip / Ry)
-            g_n_0 = 0.9 # The ground state Gaunt factor, g_fb(n_0), prescribed by Mewe et al 1986
-
-            f_0 = g_n_0 * self.zeta_0 * (z_0**4 / n_0**5) * np.exp((prefactor * z_0**2)/(n_0**2 * self.temperature))
-            f_1 = -1.0 * polygamma(2, n_0 + 1) / 2.0
-            f_2 = f_0 + 2.0 * f_1 * z**4 * np.exp((prefactor * z**2)/(self.temperature * (n_0+1)**2))
+            if ground_state:
+                g_n_0 = 0.9 # The ground state Gaunt factor, g_fb(n_0), prescribed by Mewe et al 1986
+                z_0 = n_0 * np.sqrt(self.previous_ion().ip / Ry)
+                f_2 = g_n_0 * self.zeta_0 * (z_0**4 / n_0**5) * np.exp((prefactor * z_0**2)/(n_0**2 * self.temperature))
+            else:
+                f_1 = -1.0 * polygamma(2, n_0 + 1) / 2.0
+                f_2 = 2.0 * f_1 * z**4 * np.exp((prefactor * z**2)/(self.temperature * (n_0+1)**2))
 
             return (prefactor / (pe_ratio * self.temperature)) * f_2 * self.abundance * self.ioneq
 
