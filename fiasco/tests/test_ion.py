@@ -344,9 +344,13 @@ def test_free_free(ion):
 
 def test_gaunt_factor_free_free_total(ion):
     gf = ion._gaunt_factor_free_free_total()
-    assert gf.shape == (100,)
+    assert gf.shape == (len(temperature),)
     # This value has not been tested for correctness
-    assert u.allclose(gf[1], 1.24001343 * u.dimensionless_unscaled)
+    assert u.allclose(gf[0], 1.23584439 * u.dimensionless_unscaled)
+
+def test_free_free_radiative_loss(h1, fe20):
+    assert u.allclose(h1.free_free_radiative_loss(), 0.0 * u.erg * u.cm**3 / u.s)
+    assert u.isclose(fe20.free_free_radiative_loss()[0], 1.79093013e-22 * u.erg * u.cm**3 / u.s)
 
 
 def test_free_bound(ion):
@@ -354,6 +358,14 @@ def test_free_bound(ion):
     assert emission.shape == ion.temperature.shape + (1, )
     # This value has not been tested for correctness
     assert u.allclose(emission[0, 0], 9.7902609e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
+
+def test_gaunt_factor_free_bound_total(ion):
+    gf = ion._gaunt_factor_free_bound_total()
+    assert gf.shape == (len(temperature),)
+
+def test_free_bound_radiative_loss(h1, fe20):
+    assert u.allclose(h1.free_bound_radiative_loss(), 0.0 * u.erg * u.cm**3 / u.s)
+
 
 # The two-photon test currently fails for dbase_version >= 9 because it is missing c_5.reclvl
 @pytest.mark.requires_dbase_version('>= 8','<= 8.0.7')
@@ -482,9 +494,3 @@ def test_has_dataset(ion, c6):
     assert not ion._has_dataset('psplups')
     # C VI has no dielectronic data
     assert not c6._has_dataset('dielectronic_elvlc')
-
-def test_free_bound_radiative_loss(h1):
-    assert u.allclose(h1.free_bound_radiative_loss(), 0.0)
-
-def test_free_free_radiative_loss(h1):
-    assert u.allclose(h1.free_free_radiative_loss(), 0.0)
