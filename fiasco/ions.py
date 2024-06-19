@@ -1566,11 +1566,13 @@ Using Datasets:
 
         We have dropped the factor of :math:`n_{e}^{2}` here to make the loss rate per unit EM.
         """
-        if self.ionization_stage == 1:
+        z = self.ionization_stage - 1
+
+        if z == 0:
             # can't recombine onto neutrals
             return u.Quantity(np.zeros(self.temperature.shape)* u.erg * u.cm**3 / u.s)
         else:
-            C_ff = 64 * np.pi / 3. *np.sqrt(np.pi/6.) * (const.e.esu**6)/(const.c**2 * const.m_e**1.5 * const.k_B**0.5)
+            C_ff = 64 * np.pi / 3.0 * np.sqrt(np.pi/6.) * (const.e.esu**6)/(const.c**2 * const.m_e**1.5 * const.k_B**0.5)
             prefactor = C_ff * const.k_B * np.sqrt(self.temperature) / (const.h*const.c)
 
             E_obs = self._fblvl['E_obs']*const.h*const.c
@@ -1580,7 +1582,7 @@ Using Datasets:
             E_fb = np.where(use_theoretical, E_th, E_obs)
 
             wvl_n0 = const.h * const.c / (self.previous_ion().ip - E_fb[0])
-            wvl_n1 = (self._fblvl['n'][0] + 1)**2 /(const.Ryd * self.ionization_stage**2)
+            wvl_n1 = (self._fblvl['n'][0] + 1)**2 /(const.Ryd * z**2)
 
             g_fb0 = self._gaunt_factor_free_bound_total(ground_state=True)
             g_fb1 = self._gaunt_factor_free_bound_total(ground_state=False)
@@ -1673,14 +1675,13 @@ Using Datasets:
 
         The final expression is therefore simplified and more accurate than :cite:t:`mewe_freebound_1986`.
         """
-        z = self.ionization_stage
+        z = self.ionization_stage - 1
 
-        if z == 1:
+        if z == 0:
             # can't recombine onto neutrals
             return u.Quantity(np.zeros(self.temperature.shape))
         else:
             Ry = const.h * const.c * const.Ryd
-            pe_ratio = proton_electron_ratio(self.temperature, **self._instance_kwargs)
             prefactor = (Ry / const.k_B)
 
             n_0 = self._fblvl['n'][0]
@@ -1690,10 +1691,12 @@ Using Datasets:
                 z_0 = n_0 * np.sqrt(self.previous_ion().ip / Ry)
                 f_2 = g_n_0 * self.zeta_0 * (z_0**4 / n_0**5) * np.exp((prefactor * z_0**2)/(n_0**2 * self.temperature))
             else:
-                f_1 = -1.0 * polygamma(2, n_0 + 1) / 2.0
-                f_2 = 2.0 * f_1 * z**4 * np.exp((prefactor * z**2)/(self.temperature * (n_0+1)**2))
+                f_1 = -0.5 * polygamma(2, n_0 + 1)
+                f_2 = 2.0 * f_1 * z**4 * np.exp((prefactor * z**2)/((n_0+1)**2 * self.temperature))
 
-            return (prefactor / (pe_ratio * self.temperature)) * f_2
+            f_2[np.where(self.ioneq <= 0.0)] = 0.0
+
+            return (prefactor * f_2 / self.temperature)
 
 
     @needs_dataset('elvlc')

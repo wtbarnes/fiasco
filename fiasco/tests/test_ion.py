@@ -157,9 +157,12 @@ def test_abundance(ion):
     # This value has not been tested for correctness
     assert u.allclose(ion.abundance, 0.0001258925411794166)
 
-def test_zeta0(ion, fe20):
-    assert u.isclose(ion.zeta_0, 6.0)
-    assert u.isclose(fe20.zeta_0, 3.0)
+def test_zeta0(hdf5_dbase_root):
+    iron = fiasco.Element('Fe', temperature=temperature, hdf5_dbase_root=hdf5_dbase_root)
+    assert u.isclose(iron[2].zeta_0, 32.0)
+    assert u.isclose(iron[16].zeta_0, 18.0)
+    assert u.isclose(iron[24].zeta_0, 8.0)
+    assert u.isclose(iron[26].zeta_0, 2.0)
 
 @pytest.mark.requires_dbase_version('>= 8')
 def test_proton_collision(fe10):
@@ -479,3 +482,9 @@ def test_has_dataset(ion, c6):
     assert not ion._has_dataset('psplups')
     # C VI has no dielectronic data
     assert not c6._has_dataset('dielectronic_elvlc')
+
+def test_free_bound_radiative_loss(h1):
+    assert u.allclose(h1.free_bound_radiative_loss(), 0.0)
+
+def test_free_free_radiative_loss(h1):
+    assert u.allclose(h1.free_free_radiative_loss(), 0.0)
