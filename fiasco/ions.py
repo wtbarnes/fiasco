@@ -1450,7 +1450,7 @@ Using Datasets:
         the total radiative losses from free-free emission.
         """
         if self.charge_state == 0:
-            return u.Quantity(np.zeros(self.temperature.shape))  # can't recombine onto neutrals
+            return u.Quantity(np.zeros(self.temperature.shape))
         else:
             Ry = const.h * const.c * const.Ryd
             log_gamma_squared = np.log10((self.charge_state**2 * Ry) / (const.k_B * self.temperature))

@@ -339,22 +339,14 @@ Available Ions
 
         for ion in self:
             # free-free emission:
-            try:
-                ff = ion.free_free_radiative_loss() * ion.abundance * ion.ioneq
-                for i in range(len(density)):
-                    rad_loss[:,i] += ff
-            except MissingDatasetException as e:
-                self.log.warning(f'{ion.ion_name} not included in the free-free emission. {e}')
-                continue
+            ff = ion.free_free_radiative_loss() * ion.abundance * ion.ioneq
+            for i in range(len(density)):
+                rad_loss[:,i] += ff
 
         for ion in self:
             # free-bound emission:
-            try:
-                fb = ion.free_bound_radiative_loss() * ion.abundance * ion.ioneq
-                for i in range(len(density)):
-                    rad_loss[:,i] += fb
-            except MissingDatasetException as e:
-                self.log.warning(f'{ion.ion_name} not included in the free-bound emission. {e}')
-                continue
+            fb = ion.free_bound_radiative_loss() * ion.abundance * ion.ioneq
+            for i in range(len(density)):
+                rad_loss[:,i] += fb
 
         return rad_loss
