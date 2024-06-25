@@ -1449,7 +1449,7 @@ Using Datasets:
         The total (wavelength-averaged) free-free Gaunt factor, used for calculating
         the total radiative losses from free-free emission.
         """
-        if self.ionization_stage == 1:
+        if self.charge_state == 0:
             return u.Quantity(np.zeros(self.temperature.shape))  # can't recombine onto neutrals
         else:
             Ry = const.h * const.c * const.Ryd
@@ -1565,30 +1565,39 @@ Using Datasets:
             R_{fb} = \frac{C_{ff} k_{B} G_{fb} T^{1/2}}{h c} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
 
         We have dropped the factor of :math:`n_{e}^{2}` here to make the loss rate per unit EM.
+
+        Notes
+        -----
+        The input ion `self` is taken to the recombining ion.
         """
-        z = self.ionization_stage - 1
+        z = self.charge_state
 
         if z == 0:
-            # can't recombine onto neutrals
-            return u.Quantity(np.zeros(self.temperature.shape)* u.erg * u.cm**3 / u.s)
+            return u.Quantity(np.zeros(self.temperature.shape) * u.erg * u.cm**3 / u.s)
         else:
+            recombined = self.previous_ion()
+            if not recombined._has_dataset('fblvl'):
+                return u.Quantity(np.zeros(self.temperature.shape) * u.erg * u.cm**3 / u.s)
+
             C_ff = 64 * np.pi / 3.0 * np.sqrt(np.pi/6.) * (const.e.esu**6)/(const.c**2 * const.m_e**1.5 * const.k_B**0.5)
             prefactor = C_ff * const.k_B * np.sqrt(self.temperature) / (const.h*const.c)
 
-            E_obs = self._fblvl['E_obs']*const.h*const.c
-            E_th = self._fblvl['E_th']*const.h*const.c
-            level_fb = self._fblvl['level']
+            E_obs = recombined._fblvl['E_obs']*const.h*const.c
+            E_th = recombined._fblvl['E_th']*const.h*const.c
+            level_fb = recombined._fblvl['level']
             use_theoretical = np.logical_and(E_obs==0*u.erg, level_fb!=1)
             E_fb = np.where(use_theoretical, E_th, E_obs)
 
-            wvl_n0 = const.h * const.c / (self.previous_ion().ip - E_fb[0])
-            wvl_n1 = (self._fblvl['n'][0] + 1)**2 /(const.Ryd * z**2)
+            # these wavelengths check out with Mewe table 1 -- working!
+            wvl_n0 = const.h * const.c / (recombined.ip - E_fb[0])
+            wvl_n1 = (recombined._fblvl['n'][0] + 1)**2 /(const.Ryd * z**2)
 
             g_fb0 = self._gaunt_factor_free_bound_total(ground_state=True)
             g_fb1 = self._gaunt_factor_free_bound_total(ground_state=False)
 
             term1 = g_fb0 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n0))
             term2 = g_fb1 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n1))
+            #term3 = g_fb1 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n0))
 
             return prefactor * (term1 + term2)
 
@@ -1656,8 +1665,17 @@ Using Datasets:
         The Gaunt factor is not calculated for individual levels, except that the ground state has
         been specified to be :math: `g_{fb}(n_{0}) = 0.9` following :cite:t:`mewe_freebound_1986`.
 
+        Parameters
+        ----------
+        ground_state : `bool`, optional
+            If True (default), calculate the Gaunt factor for recombination onto the ground state :math: `n = 0`.
+            Otherwise, calculate for recombination onto higher levels with :math: `n > 1`.  See Equation 16 of
+            :cite:t:`mewe_freebound_1986`.
+
         Notes
         -----
+        The input ion `self` is taken to the recombining ion.
+
         The calculation does not include the abundances and ionization equilibria, unlike in :cite:t:`mewe_freebound_1986`.
 
         Equation 14 of :cite:t:`mewe_freebound_1986` has a simple
@@ -1675,28 +1693,31 @@ Using Datasets:
 
         The final expression is therefore simplified and more accurate than :cite:t:`mewe_freebound_1986`.
         """
-        z = self.ionization_stage - 1
+        z = self.charge_state
 
         if z == 0:
-            # can't recombine onto neutrals
             return u.Quantity(np.zeros(self.temperature.shape))
         else:
-            Ry = const.h * const.c * const.Ryd
-            prefactor = (Ry / const.k_B)
+            recombined = self.previous_ion()
+            if not recombined._has_dataset('fblvl'):
+                return u.Quantity(np.zeros(self.temperature.shape))
 
-            n_0 = self._fblvl['n'][0]
+            Ry = const.h * const.c * const.Ryd
+            prefactor = (Ry / (const.k_B * self.temperature))
+
+            n_0 = recombined._fblvl['n'][0]
 
             if ground_state:
                 g_n_0 = 0.9 # The ground state Gaunt factor, g_fb(n_0), prescribed by Mewe et al 1986
-                z_0 = n_0 * np.sqrt(self.previous_ion().ip / Ry)
-                f_2 = g_n_0 * self.zeta_0 * (z_0**4 / n_0**5) * np.exp((prefactor * z_0**2)/(n_0**2 * self.temperature))
+                z_0 = n_0 * np.sqrt(recombined.ip / Ry)
+                f_2 = g_n_0 * self.zeta_0 * (z_0**4 / n_0**5) * np.exp((prefactor * z_0**2)/(n_0**2))
             else:
                 f_1 = -0.5 * polygamma(2, n_0 + 1)
-                f_2 = 2.0 * f_1 * z**4 * np.exp((prefactor * z**2)/((n_0+1)**2 * self.temperature))
+                f_2 = 2.0 * f_1 * z**4 * np.exp((prefactor * z**2)/((n_0+1)**2))
 
             f_2[np.where(self.ioneq <= 0.0)] = 0.0
 
-            return (prefactor * f_2 / self.temperature)
+            return (prefactor * f_2)
 
 
     @needs_dataset('elvlc')
