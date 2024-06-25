@@ -1584,9 +1584,7 @@ Using Datasets:
 
             E_obs = recombined._fblvl['E_obs']*const.h*const.c
             E_th = recombined._fblvl['E_th']*const.h*const.c
-            level_fb = recombined._fblvl['level']
-            use_theoretical = np.logical_and(E_obs==0*u.erg, level_fb!=1)
-            E_fb = np.where(use_theoretical, E_th, E_obs)
+            E_fb = np.where(E_obs==0*u.erg, E_th, E_obs)
 
             # these wavelengths check out with Mewe table 1 -- working!
             wvl_n0 = const.h * const.c / (recombined.ip - E_fb[0])
