@@ -364,13 +364,16 @@ def test_free_bound(ion):
     # This value has not been tested for correctness
     assert u.allclose(emission[0, 0], 9.7902609e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
-def test_gaunt_factor_free_bound_total(ion, h1):
+def test_gaunt_factor_free_bound_total(ion, h1, fe2):
     ion_gf_0 = ion._gaunt_factor_free_bound_total()
     ion_gf_1 = ion._gaunt_factor_free_bound_total(ground_state=False)
     h1_gf = h1._gaunt_factor_free_bound_total()
+    fe2_gf = fe2._gaunt_factor_free_bound_total()
     assert ion_gf_0.shape == (len(temperature),)
     assert h1_gf.shape == (len(temperature),)
+    assert fe2_gf.shape == (len(temperature),)
     assert (u.allclose(h1_gf, 0.0 * u.dimensionless_unscaled))
+    assert (u.allclose(fe2_gf, 0.0 * u.dimensionless_unscaled))
     # These values have not been tested for correctness
     assert u.isclose(ion_gf_0[20], 55.18573076316151 * u.dimensionless_unscaled)
     assert u.isclose(ion_gf_1[20], 11.849092513590998 * u.dimensionless_unscaled)
