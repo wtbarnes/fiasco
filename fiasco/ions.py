@@ -8,6 +8,7 @@ import numpy as np
 from functools import cached_property
 from scipy.interpolate import CubicSpline, interp1d, PchipInterpolator, splev, splrep
 from scipy.ndimage import map_coordinates
+from scipy.special import polygamma
 
 from fiasco import proton_electron_ratio
 from fiasco.base import ContinuumBase, IonBase
@@ -282,6 +283,25 @@ Using Datasets:
         the temperature at which lines for this ion are formed.
         """
         return self.temperature[np.argmax(self.ioneq)]
+
+    @property
+    def zeta_0(self) -> u.dimensionless_unscaled:
+        r"""
+        :math: `\zeta_{0}`, the number of vacancies in the ion, which is used to calculate
+        the free-bound Gaunt factor of an ion.
+
+        See Section 2.2 and Table 1 of :cite:t:`mewe_freebound_1986`.
+        """
+        difference = self.atomic_number - (self.charge_state + 1)
+        if difference <= 0:
+            max_vacancies = 1
+        elif difference <= 8 and difference > 0:
+            max_vacancies = 9
+        elif difference <= 22 and difference > 8:
+            max_vacancies = 27
+        else:
+            max_vacancies = 55
+        return float(max_vacancies - difference)
 
     @cached_property
     @needs_dataset('scups')
@@ -1317,6 +1337,35 @@ Using Datasets:
                 / np.sqrt(self.temperature)[:, np.newaxis])
 
     @u.quantity_input
+    def free_free_radiative_loss(self) -> u.erg * u.cm**3 / u.s:
+        r"""
+        Free-free continuum radiative losses as a function of temperature.
+
+        The total free-free radiative loss is given by integrating the emissivity over
+        all wavelengths.  The total losses per unit emission measure is then given by
+        (Equation 18 of :cite:`sutherland_accurate_1998`):
+
+        .. math::
+
+            R_{ff}(T_e) = F_{k} \sqrt{(T_{e})} Z^{2} \langle g_{t,ff}\rangle
+
+        where :math: `T_{e}` is the electron temperature, :math: `\F_{k}` is a constant,
+        :math: `Z` is the ionization stage, and :math: `\langle g_{t,ff}\rangle` is the
+        total (wavelength-averaged) free-free Gaunt factor.
+
+        Notes
+        -----
+        The result does not include ionization equilibrium or abundance factors.
+
+        The prefactor :math: `F_{k}` is defined in Equation 19 of :cite:t:`sutherland_accurate_1998`,
+        with a value of 1.42555669e-27 cm$^{5}$ g K$^{-1/2}$ s$^{3}$).
+
+        """
+        prefactor = (16./3**1.5) * np.sqrt(2. * np.pi * const.k_B/(const.hbar**2 * const.m_e**3)) * (const.e.esu**6 / const.c**3)
+        gf = self._gaunt_factor_free_free_total()
+        return (prefactor * self.charge_state**2 * gf * np.sqrt(self.temperature))
+
+    @u.quantity_input
     def gaunt_factor_free_free(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
         r"""
         Free-free Gaunt factor as a function of wavelength.
@@ -1392,6 +1441,23 @@ Using Datasets:
         gf = map_coordinates(gf_data, indices, order=1, mode='nearest').reshape(lower_u.shape)
 
         return u.Quantity(np.where(gf < 0., 0., gf))
+
+    @needs_dataset('gffint')
+    @u.quantity_input
+    def _gaunt_factor_free_free_total(self) -> u.dimensionless_unscaled:
+        """
+        The total (wavelength-averaged) free-free Gaunt factor, used for calculating
+        the total radiative losses from free-free emission.
+        """
+        if self.charge_state == 0:
+            return u.Quantity(np.zeros(self.temperature.shape))
+        else:
+            Ry = const.h * const.c * const.Ryd
+            log_gamma_squared = np.log10((self.charge_state**2 * Ry) / (const.k_B * self.temperature))
+            index = [np.abs(self._gffint['log_gamma_squared'] - x).argmin() for x in log_gamma_squared]
+            delta = log_gamma_squared - self._gffint['log_gamma_squared'][index]
+            # The spline fit was pre-calculated by Sutherland 1998:
+            return self._gffint['gaunt_factor'][index] + delta * (self._gffint['s1'][index] + delta * (self._gffint['s2'][index] + delta * self._gffint['s3'][index]))
 
     @needs_dataset('fblvl', 'ip')
     @u.quantity_input
@@ -1473,6 +1539,63 @@ Using Datasets:
 
         return (prefactor * energy_temperature_factor * sum_factor)
 
+    @u.quantity_input
+    def free_bound_radiative_loss(self) -> u.erg * u.cm**3 / u.s:
+        r"""
+        The radiative loss rate for free-bound emission as a function of temperature,
+        integrated over all wavelengths.
+
+        The calculation integrates Equation 1a of :cite:t:`mewe_freebound_1986`, where the
+        Gaunt factor is summed only for free-bound emission (see CHIANTI technical report #9).
+        Since the form of the Gaunt factor used in by :cite:t:`mewe_freebound_1986` does not
+        depend on wavelength, the integral is straightforward.
+
+        The continuum intensity (per unit EM) is given by:
+
+        .. math::
+
+            P_{fb}(\lambda, T) = \frac{C_{ff} G_{fb}}{\lambda^{2}\ T^{1/2}} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
+
+        where :math:`C_{ff} = \frac{64 \pi}{3} \sqrt{\frac{\pi}{6}} \frac{q_{e}^{6}}{c^{2} m_{e}^{2} k_{B}^{1/2}}` is
+        a constant :cite:p:`gronenschild_twophoton_1978`.  Integrating in wavelength space gives the free-bound loss rate:
+
+        .. math::
+
+            R_{fb} = \frac{C_{ff} k_{B} G_{fb} T^{1/2}}{h c} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
+
+        We have dropped the factor of :math:`n_{e}^{2}` here to make the loss rate per unit EM.
+
+        Notes
+        -----
+        The input ion `self` is taken to the recombining ion.
+        """
+        z = self.charge_state
+
+        if z == 0:
+            return u.Quantity(np.zeros(self.temperature.shape) * u.erg * u.cm**3 / u.s)
+        else:
+            recombined = self.previous_ion()
+            if not recombined._has_dataset('fblvl'):
+                return u.Quantity(np.zeros(self.temperature.shape) * u.erg * u.cm**3 / u.s)
+
+            C_ff = 64 * np.pi / 3.0 * np.sqrt(np.pi/6.) * (const.e.esu**6)/(const.c**2 * const.m_e**1.5 * const.k_B**0.5)
+            prefactor = C_ff * const.k_B * np.sqrt(self.temperature) / (const.h*const.c)
+
+            E_obs = recombined._fblvl['E_obs']*const.h*const.c
+            E_th = recombined._fblvl['E_th']*const.h*const.c
+            E_fb = np.where(E_obs==0*u.erg, E_th, E_obs)
+
+            wvl_n0 = const.h * const.c / (recombined.ip - E_fb[0])
+            wvl_n1 = (recombined._fblvl['n'][0] + 1)**2 /(const.Ryd * z**2)
+
+            g_fb0 = self._gaunt_factor_free_bound_total(ground_state=True)
+            g_fb1 = self._gaunt_factor_free_bound_total(ground_state=False)
+
+            term1 = g_fb0 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n0))
+            term2 = g_fb1 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n1))
+
+            return prefactor * (term1 + term2)
+
     @needs_dataset('verner')
     @u.quantity_input
     def _verner_cross_section(self, energy: u.erg) -> u.cm**2:
@@ -1527,6 +1650,69 @@ Using Datasets:
         cross_section = prefactor * ionization_energy**2 * photon_energy**(-3) * gaunt_factor / n
         cross_section[np.where(photon_energy < ionization_energy)] = 0.*cross_section.unit
         return cross_section
+
+    @u.quantity_input
+    def _gaunt_factor_free_bound_total(self, ground_state=True) -> u.dimensionless_unscaled:
+        r"""
+        The total Gaunt factor for free-bound emission, using the expressions from :cite:t:`mewe_freebound_1986`.
+
+        The Gaunt factor is not calculated for individual levels, except that the ground state has
+        been specified to be :math: `g_{fb}(n_{0}) = 0.9` following :cite:t:`mewe_freebound_1986`.
+
+        Parameters
+        ----------
+        ground_state : `bool`, optional
+            If True (default), calculate the Gaunt factor for recombination onto the ground state :math: `n = 0`.
+            Otherwise, calculate for recombination onto higher levels with :math: `n > 1`.  See Equation 16 of
+            :cite:t:`mewe_freebound_1986`.
+
+        Notes
+        -----
+        The input ion `self` is taken to the recombining ion.
+
+        The calculation does not include the abundances and ionization equilibria, unlike in :cite:t:`mewe_freebound_1986`.
+
+        Equation 14 of :cite:t:`mewe_freebound_1986` has a simple
+        analytic solution.  They approximate
+        .. math::
+            f_{1}(Z, n, n_{0} ) = \sum_{1}^{\infty} n^{-3} - \sum_{1}^{n_{0}} n^{-3} = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} \approx 0.21 n_{0}^{-1.5}
+
+        where :math: `\zeta(x)` is the Riemann zeta function.
+
+        However, the second sum is analytic, :math: `\sum_{1}^{n_{0}} n^{-3} = \zeta(3) + \frac{1}{2}\psi^{(2)}(n_{0}+1)`
+        where :math: `\psi^{n}(x)` is the n-th derivative of the digamma function (a.k.a. the polygamma function).
+        So, we can write the full solution as:
+        .. math::
+            f_{1}(Z, n, n_{0}) = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} = - \frac{1}{2}\psi^{(2)}(n_{0}+1)
+
+        The final expression is therefore simplified and more accurate than :cite:t:`mewe_freebound_1986`.
+        """
+        z = self.charge_state
+
+        if z == 0:
+            return u.Quantity(np.zeros(self.temperature.shape))
+        else:
+            recombined = self.previous_ion()
+            if not recombined._has_dataset('fblvl'):
+                return u.Quantity(np.zeros(self.temperature.shape))
+
+            Ry = const.h * const.c * const.Ryd
+            prefactor = (Ry / (const.k_B * self.temperature))
+
+            n_0 = recombined._fblvl['n'][0]
+
+            if ground_state:
+                g_n_0 = 0.9 # The ground state Gaunt factor, g_fb(n_0), prescribed by Mewe et al 1986
+                z_0 = n_0 * np.sqrt(recombined.ip / Ry)
+                f_2 = g_n_0 * self.zeta_0 * (z_0**4 / n_0**5) * np.exp((prefactor * z_0**2)/(n_0**2))
+            else:
+                f_1 = -0.5 * polygamma(2, n_0 + 1)
+                f_2 = 2.0 * f_1 * z**4 * np.exp((prefactor * z**2)/((n_0+1)**2))
+
+            f_2[np.where(self.ioneq <= 0.0)] = 0.0
+
+            return (prefactor * f_2)
+
 
     @needs_dataset('elvlc')
     @u.quantity_input
