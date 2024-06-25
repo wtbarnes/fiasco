@@ -337,6 +337,7 @@ Available Ions
                 continue
             rad_loss += g.sum(axis=2)
 
+        for ion in self:
             # free-free emission:
             try:
                 ff = ion.free_free_radiative_loss() * ion.abundance * ion.ioneq
@@ -346,6 +347,7 @@ Available Ions
                 self.log.warning(f'{ion.ion_name} not included in the free-free emission. {e}')
                 continue
 
+        for ion in self:
             # free-bound emission:
             try:
                 fb = ion.free_bound_radiative_loss() * ion.abundance * ion.ioneq
