@@ -14,18 +14,22 @@ from fiasco.util import parse_ion_name
 # by wavelength so I have to run the g_of_t function once with the GUI selector to work out
 # what integer index corresponds to which wavelength. For any additional test that is added to
 # the list below, this index will need to be computed and added to the list below.
+# NOTE: These indices will change with database version number so they'll need to be updated
+# or we will have to find a way to select them automatically.
 INDEX_WAVE_MAPPING = {
-    200.972*u.Angstrom: 297,
-    171.073*u.Angstrom: 13946,
-    188.497*u.Angstrom: 22527,
-    197.862*u.Angstrom: 27964,
-    262.984*u.Angstrom: 1415,
+    'Ca XV 200.972 Angstrom': 297,
+    'Fe IX 171.073 Angstrom': 13946,
+    'Fe IX 188.496 Angstrom': 18403,
+    'Fe XI 188.497 Angstrom': 22527,
+    'Fe XIV 197.862 Angstrom': 27964,
+    'Fe XVI 262.984 Angstrom': 1415,
 }
 
 
 @pytest.mark.parametrize(('ion_name', 'wavelength'), [
     ('Ca XV', 200.972*u.Angstrom),
     ('Fe IX', 171.073*u.Angstrom),
+    ('Fe IX', 188.496*u.Angstrom),
     ('Fe XI', 188.497*u.Angstrom),
     ('Fe XIV', 197.862*u.Angstrom),
     ('Fe XVI', 262.984*u.Angstrom),
@@ -54,7 +58,7 @@ def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, ion_name, wav
         'iz': iz,
         'wavelength': wavelength,
         'wave_window': 1 * u.angstrom,
-        'index': INDEX_WAVE_MAPPING[wavelength],
+        'index': INDEX_WAVE_MAPPING[f'{ion_name} {wavelength}'],
         'density': 1e+10 * u.cm**(-3),
         'abundance': 'sun_coronal_1992_feldman_ext',
         'ioneq': 'chianti',

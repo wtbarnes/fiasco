@@ -1,11 +1,17 @@
 """
 Helpers for tests related to comparing with IDL output
 """
+import os
 import pathlib
 
 from astropy.utils.data import get_pkg_data_path
 
-__all__ = ['get_idl_test_output_filepath', 'read_idl_test_output', 'run_idl_script']
+__all__ = [
+    'get_idl_test_output_filepath',
+    'read_idl_test_output',
+    'setup_idl_environment',
+    'run_idl_script',
+]
 
 
 def get_idl_test_output_filepath(name, version):
@@ -22,6 +28,53 @@ def read_idl_test_output(name, version, keys=None):
             keys = af.tree.keys()
         output = {k: af.tree[k] for k in keys}
     return output
+
+
+def setup_idl_environment(ascii_dbase_root,
+                          idl_codebase_root,
+                          idl_executable,
+                          ssw_gen_root=None):
+    """
+    Setup an IDL environment for CHIANTI
+
+    .. note:: If `hissw` is not installed or IDL or SSW are not installed, this
+              function will return None.
+
+    Parameters
+    ----------
+    ascii_dbase_root: path-like
+        Path to top of IDL database tree
+    idl_codebase_root: path-like
+        Path to top of CHIANTI IDL software tree
+    idl_executable: path-like
+        Path to IDL executable
+    """
+    try:
+        import hissw
+    except ImportError:
+        return None
+    extra_paths = [d for d, _, _ in os.walk(idl_codebase_root)]
+    header = f'''
+    defsysv,'!xuvtop','{ascii_dbase_root}'
+    defsysv,'!abund_file',''
+    defsysv,'!ioneq_file',''
+    '''
+    if ssw_gen_root is None:
+        extra_paths += [get_pkg_data_path('ssw_gen_functions', package='fiasco.tests.idl')]
+    else:
+        extra_paths += [d for d, _, _ in os.walk(ssw_gen_root)]
+    env = hissw.Environment(
+        idl_only=True,
+        idl_home=idl_executable,
+        header=header,
+        extra_paths=extra_paths
+    )
+    try:
+        _ = env.run('print,!xuvtop', verbose=False)
+    except (hissw.util.SSWIDLError, hissw.util.IDLLicenseError):
+        return None
+    else:
+        return env
 
 
 def run_idl_script(idl_env, script, input_args, save_vars, file_name, version, format_func=None, write_file=True):
