@@ -3,10 +3,10 @@ Custom exceptions for fiasco.
 """
 
 __all__ = [
-    'MissingIonError', 
-    'MissingDatabaseError', 
+    'MissingIonError',
+    'MissingDatabaseError',
     'MissingASCIIFileError',
-    'MissingDatasetException', 
+    'MissingDatasetException',
     'UnsupportedVersionError'
 ]
 
