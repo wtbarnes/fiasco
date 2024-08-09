@@ -1576,7 +1576,6 @@ Using Datasets:
             recombined = self.previous_ion()
             if not recombined._has_dataset('fblvl'):
                 return u.Quantity(np.zeros(self.temperature.shape) * u.erg * u.cm**3 / u.s)
-
             C_ff = 64 * np.pi / 3.0 * np.sqrt(np.pi/6.) * (const.e.esu**6)/(const.c**2 * const.m_e**1.5 * const.k_B**0.5)
             prefactor = C_ff * const.k_B * np.sqrt(self.temperature) / (const.h*const.c)
 
