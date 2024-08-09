@@ -303,9 +303,7 @@ Available Ions
         return wavelength, spectrum
 
     @u.quantity_input
-    def radiative_loss(
-        self, density: u.cm**(-3), **kwargs
-        ) -> u.Unit('erg cm3 s-1'):
+    def radiative_loss(self, density: u.cm**(-3), **kwargs) -> u.Unit('erg cm3 s-1'):
         r"""
         Calculate radiative loss rate curve integrating bound-bound, free-bound,
         and free-free emission over wavelength.
@@ -326,27 +324,61 @@ Available Ions
         neglected in CHIANTI.
 
         """
+        rad_loss_bound_bound = self.radiative_loss_bound_bound(density, **kwargs)
+        rad_loss_free_free = self.radiative_loss_free_free()
+        rad_loss_free_bound = self.radiative_loss_free_bound()
+
+        rad_loss_total = (rad_loss_bound_bound
+                          + rad_loss_free_free[:, np.newaxis]
+                          + rad_loss_free_bound[:, np.newaxis])
+
+        return rad_loss_total
+
+    @u.quantity_input
+    def radiative_loss_bound_bound(self, density, **kwargs) -> u.Unit('erg cm3 s-1'):
+        """
+        """
         density = np.atleast_1d(density)
         rad_loss = u.Quantity(np.zeros(self.temperature.shape + density.shape), 'erg cm^3 s^-1')
         for ion in self:
-            # bound-bound emission:
             try:
                 g = ion.contribution_function(density, **kwargs)
             except MissingDatasetException as e:
                 self.log.warning(f'{ion.ion_name} not included in the bound-bound emission. {e}')
                 continue
             rad_loss += g.sum(axis=2)
-
-        for ion in self:
-            # free-free emission:
-            ff = ion.free_free_radiative_loss() * ion.abundance * ion.ioneq
-            for i in range(len(density)):
-                rad_loss[:,i] += ff
-
-        for ion in self:
-            # free-bound emission:
-            fb = ion.free_bound_radiative_loss() * ion.abundance * ion.ioneq
-            for i in range(len(density)):
-                rad_loss[:,i] += fb
-
         return rad_loss
+
+    @u.quantity_input
+    def radiative_loss_free_free(self) -> u.Unit('erg cm3 s-1'):
+        """
+        """
+        free_free = u.Quantity(np.zeros(self.temperature.shape), 'erg cm^3 s^-1')
+        for ion in self:
+            try:
+                ff = ion.free_free_radiative_loss()
+                abundance = ion.abundance
+                ioneq = ion.ioneq
+            except MissingDatasetException as e:
+                self.log.warning(f'{ion.ion_name} not included in free-free radiative loss. {e}')
+                continue
+            else:
+                free_free += ff * abundance * ioneq
+        return free_free
+
+    @u.quantity_input
+    def radiative_loss_free_bound(self) ->  u.Unit('erg cm3 s-1'):
+        """
+        """
+        free_bound = u.Quantity(np.zeros(self.temperature.shape), 'erg cm^3 s^-1')
+        for ion in self:
+            try:
+                fb = ion.free_bound_radiative_loss()
+                abundance = ion.abundance
+                ioneq = ion.ioneq
+            except MissingDatasetException as e:
+                self.log.warning(f'{ion.ion_name} not included in free-bound radiative loss. {e}')
+                continue
+            else:
+                free_bound += fb * abundance * ioneq
+        return free_bound
