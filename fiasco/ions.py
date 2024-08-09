@@ -285,9 +285,9 @@ Using Datasets:
         return self.temperature[np.argmax(self.ioneq)]
 
     @property
-    def zeta_0(self) -> u.dimensionless_unscaled:
+    def _zeta_0(self) -> u.dimensionless_unscaled:
         r"""
-        :math: `\zeta_{0}`, the number of vacancies in the ion, which is used to calculate
+        :math:`\zeta_{0}`, the number of vacancies in the ion, which is used to calculate
         the free-bound Gaunt factor of an ion.
 
         See Section 2.2 and Table 1 of :cite:t:`mewe_freebound_1986`.
@@ -301,7 +301,7 @@ Using Datasets:
             max_vacancies = 27
         else:
             max_vacancies = 55
-        return float(max_vacancies - difference)
+        return max_vacancies - difference
 
     @cached_property
     @needs_dataset('scups')
@@ -1351,15 +1351,14 @@ Using Datasets:
 
         where :math:`T_{e}` is the electron temperature, :math:`F_{k}` is a constant,
         :math:`Z` is the ionization stage, and :math:`\langle g_{t,ff}\rangle` is the
-        total (wavelength-averaged) free-free Gaunt factor.
+        total (wavelength-averaged) free-free Gaunt factor.  The prefactor :math:`F_{k}` 
+        is defined in Equation 19 of :cite:t:`sutherland_accurate_1998`, with a value 
+        of 1.42555669e-27 cm$^{5}$ g K$^{-1/2}$ s$^{3}$).
+
 
         Notes
         -----
         The result does not include ionization equilibrium or abundance factors.
-
-        The prefactor :math: `F_{k}` is defined in Equation 19 of :cite:t:`sutherland_accurate_1998`,
-        with a value of 1.42555669e-27 cm$^{5}$ g K$^{-1/2}$ s$^{3}$).
-
         """
         prefactor = (16./3**1.5) * np.sqrt(2. * np.pi * const.k_B/(const.hbar**2 * const.m_e**3)) * (const.e.esu**6 / const.c**3)
         gf = self._gaunt_factor_free_free_total()
@@ -1701,7 +1700,7 @@ Using Datasets:
                 # These terms are eventually set to zero anyway since the ionization fraction is so small
                 # at these temperatures.
                 with np.errstate(over='ignore'):
-                    f_2 = g_n_0 * self.zeta_0 * (z_0**4 / n_0**5) * np.exp((prefactor * z_0**2)/(n_0**2))
+                    f_2 = g_n_0 * self._zeta_0 * (z_0**4 / n_0**5) * np.exp((prefactor * z_0**2)/(n_0**2))
             else:
                 f_1 = -0.5 * polygamma(2, n_0 + 1)
                 with np.errstate(over='ignore'):
