@@ -1684,19 +1684,15 @@ Using Datasets:
         The final expression is therefore simplified and more accurate than :cite:t:`mewe_freebound_1986`.
         """
         z = self.charge_state
-
         if z == 0:
             return u.Quantity(np.zeros(self.temperature.shape))
         else:
             recombined = self.previous_ion()
             if not recombined._has_dataset('fblvl'):
                 return u.Quantity(np.zeros(self.temperature.shape))
-
             Ry = const.h * const.c * const.Ryd
             prefactor = (Ry / (const.k_B * self.temperature)).decompose()
-
             n_0 = recombined._fblvl['n'][0]
-
             if ground_state:
                 g_n_0 = 0.9 # The ground state Gaunt factor, g_fb(n_0), prescribed by Mewe et al 1986
                 z_0 = n_0 * np.sqrt(recombined.ip / Ry).decompose()
@@ -1710,7 +1706,6 @@ Using Datasets:
                 f_1 = -0.5 * polygamma(2, n_0 + 1)
                 with np.errstate(over='ignore'):
                     f_2 = 2.0 * f_1 * z**4 * np.exp((prefactor * z**2)/((n_0+1)**2))
-
             # Large terms in the exponential can lead to infs in the f_2 term. These will be zero'd
             # out when multiplied by the ionization equilibrium anyway
             f_2 = np.where(np.isinf(f_2), 0.0, f_2)
