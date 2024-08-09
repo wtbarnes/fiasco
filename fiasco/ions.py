@@ -1349,8 +1349,8 @@ Using Datasets:
 
             R_{ff}(T_e) = F_{k} \sqrt{(T_{e})} Z^{2} \langle g_{t,ff}\rangle
 
-        where :math: `T_{e}` is the electron temperature, :math: `\F_{k}` is a constant,
-        :math: `Z` is the ionization stage, and :math: `\langle g_{t,ff}\rangle` is the
+        where :math:`T_{e}` is the electron temperature, :math:`F_{k}` is a constant,
+        :math:`Z` is the ionization stage, and :math:`\langle g_{t,ff}\rangle` is the
         total (wavelength-averaged) free-free Gaunt factor.
 
         Notes
