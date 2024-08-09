@@ -124,7 +124,6 @@ def run_idl_script(idl_env, script, input_args, save_vars, file_name, version, f
         if format_func is not None:
             for k in format_func:
                 result[k] = format_func[k](result[k])
-        # Save the the contribution function to the data directory
         variables = {**result, **input_args, 'idl_script': script}
         if write_file:
             with asdf.AsdfFile(variables) as af:
