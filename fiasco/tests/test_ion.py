@@ -348,12 +348,12 @@ def test_free_free(ion):
 
 def test_gaunt_factor_free_free_total(ion):
     gf = ion._gaunt_factor_free_free_total()
-    assert gf.shape == (len(temperature),)
+    assert gf.shape == ion.temperature.shape
     # This value has not been tested for correctness
     assert u.allclose(gf[0], 1.23584439 * u.dimensionless_unscaled)
 
 def test_free_free_radiative_loss(h1, fe20):
-    assert fe20.free_free_radiative_loss().shape == (len(temperature),)
+    assert fe20.free_free_radiative_loss().shape == fe20.temperature.shape
     assert u.allclose(h1.free_free_radiative_loss(), 0.0 * u.erg * u.cm**3 / u.s)
     # This value has not been tested for correctness
     assert u.isclose(fe20.free_free_radiative_loss()[0], 1.79093013e-22 * u.erg * u.cm**3 / u.s)
@@ -369,9 +369,9 @@ def test_gaunt_factor_free_bound_total(ion, h1, fe2):
     ion_gf_1 = ion._gaunt_factor_free_bound_total(ground_state=False)
     h1_gf = h1._gaunt_factor_free_bound_total()
     fe2_gf = fe2._gaunt_factor_free_bound_total()
-    assert ion_gf_0.shape == (len(temperature),)
-    assert h1_gf.shape == (len(temperature),)
-    assert fe2_gf.shape == (len(temperature),)
+    assert ion_gf_0.shape == ion.temperature.shape
+    assert h1_gf.shape == h1.temperature.shape
+    assert fe2_gf.shape == fe2.temperature.shape
     assert (u.allclose(h1_gf, 0.0 * u.dimensionless_unscaled))
     assert (u.allclose(fe2_gf, 0.0 * u.dimensionless_unscaled))
     # These values have not been tested for correctness
@@ -379,10 +379,19 @@ def test_gaunt_factor_free_bound_total(ion, h1, fe2):
     assert u.isclose(ion_gf_1[20], 11.849092513590998 * u.dimensionless_unscaled)
 
 def test_free_bound_radiative_loss(ion, h1):
-    assert ion.free_bound_radiative_loss().shape == (len(temperature),)
+    assert ion.free_bound_radiative_loss().shape == ion.temperature.shape
     assert u.allclose(h1.free_bound_radiative_loss(), 0.0 * u.erg * u.cm**3 / u.s)
     # This value has not been tested for correctness
     assert u.isclose(ion.free_bound_radiative_loss()[20], 1.977311794139327e-23 * u.erg * u.cm**3 / u.s)
+
+@pytest.mark.parametrize('gs', [True, False])
+def test_free_bound_gaunt_factor_low_temperature(gs):
+    # At low temperatures (~1e4 K), exponential terms in the gaunt factor used to compute the
+    # free-bound radiative loss can blow up. This just tests to make sure those are handled correctly
+    ion = fiasco.Ion('N 8', np.logspace(4,6,100)*u.K)
+    gf_fb_total = ion._gaunt_factor_free_bound_total(ground_state=gs)
+    assert not np.isinf(gf_fb_total).any()
+
 
 # The two-photon test currently fails for dbase_version >= 9 because it is missing c_5.reclvl
 @pytest.mark.requires_dbase_version('>= 8','<= 8.0.7')

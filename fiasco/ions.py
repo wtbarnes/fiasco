@@ -1697,19 +1697,27 @@ Using Datasets:
                 return u.Quantity(np.zeros(self.temperature.shape))
 
             Ry = const.h * const.c * const.Ryd
-            prefactor = (Ry / (const.k_B * self.temperature))
+            prefactor = (Ry / (const.k_B * self.temperature)).decompose()
 
             n_0 = recombined._fblvl['n'][0]
 
             if ground_state:
                 g_n_0 = 0.9 # The ground state Gaunt factor, g_fb(n_0), prescribed by Mewe et al 1986
-                z_0 = n_0 * np.sqrt(recombined.ip / Ry)
-                f_2 = g_n_0 * self.zeta_0 * (z_0**4 / n_0**5) * np.exp((prefactor * z_0**2)/(n_0**2))
+                z_0 = n_0 * np.sqrt(recombined.ip / Ry).decompose()
+                # NOTE: Low temperatures can lead to very large terms in the exponential and in some
+                # cases, the exponential term can exceed the maximum number expressible in double precision.
+                # These terms are eventually set to zero anyway since the ionization fraction is so small
+                # at these temperatures.
+                with np.errstate(over='ignore'):
+                    f_2 = g_n_0 * self.zeta_0 * (z_0**4 / n_0**5) * np.exp((prefactor * z_0**2)/(n_0**2))
             else:
                 f_1 = -0.5 * polygamma(2, n_0 + 1)
-                f_2 = 2.0 * f_1 * z**4 * np.exp((prefactor * z**2)/((n_0+1)**2))
+                with np.errstate(over='ignore'):
+                    f_2 = 2.0 * f_1 * z**4 * np.exp((prefactor * z**2)/((n_0+1)**2))
 
-            f_2[np.where(self.ioneq <= 0.0)] = 0.0
+            # Large terms in the exponential can lead to infs in the f_2 term. These will be zero'd
+            # out when multiplied by the ionization equilibrium anyway
+            f_2 = np.where(np.isinf(f_2), 0.0, f_2)
 
             return (prefactor * f_2)
 
