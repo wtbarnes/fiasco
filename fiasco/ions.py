@@ -1584,13 +1584,10 @@ Using Datasets:
             E_obs = recombined._fblvl['E_obs']*const.h*const.c
             E_th = recombined._fblvl['E_th']*const.h*const.c
             E_fb = np.where(E_obs==0*u.erg, E_th, E_obs)
-
             wvl_n0 = const.h * const.c / (recombined.ip - E_fb[0])
             wvl_n1 = (recombined._fblvl['n'][0] + 1)**2 /(const.Ryd * z**2)
-
             g_fb0 = self._gaunt_factor_free_bound_total(ground_state=True)
             g_fb1 = self._gaunt_factor_free_bound_total(ground_state=False)
-
             term1 = g_fb0 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n0))
             term2 = g_fb1 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n1))
 
