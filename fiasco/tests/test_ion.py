@@ -385,10 +385,10 @@ def test_free_bound_radiative_loss(ion, h1):
     assert u.isclose(ion.free_bound_radiative_loss()[20], 1.977311794139327e-23 * u.erg * u.cm**3 / u.s)
 
 @pytest.mark.parametrize('gs', [True, False])
-def test_free_bound_gaunt_factor_low_temperature(gs):
+def test_free_bound_gaunt_factor_low_temperature(gs, hdf5_dbase_root):
     # At low temperatures (~1e4 K), exponential terms in the gaunt factor used to compute the
     # free-bound radiative loss can blow up. This just tests to make sure those are handled correctly
-    ion = fiasco.Ion('N 8', np.logspace(4,6,100)*u.K)
+    ion = fiasco.Ion('N 8', np.logspace(4,6,100)*u.K, hdf5_dbase_root=hdf5_dbase_root)
     gf_fb_total = ion._gaunt_factor_free_bound_total(ground_state=gs)
     assert not np.isinf(gf_fb_total).any()
 
