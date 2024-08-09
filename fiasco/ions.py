@@ -1570,7 +1570,6 @@ Using Datasets:
         The input ion `self` is taken to the recombining ion.
         """
         z = self.charge_state
-
         if z == 0:
             return u.Quantity(np.zeros(self.temperature.shape) * u.erg * u.cm**3 / u.s)
         else:
