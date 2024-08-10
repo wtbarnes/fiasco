@@ -163,10 +163,10 @@ def test_abundance(ion):
 
 def test_zeta0(hdf5_dbase_root):
     iron = fiasco.Element('Fe', temperature=temperature, hdf5_dbase_root=hdf5_dbase_root)
-    assert u.isclose(iron[2].zeta_0, 32.0)
-    assert u.isclose(iron[16].zeta_0, 18.0)
-    assert u.isclose(iron[24].zeta_0, 8.0)
-    assert u.isclose(iron[26].zeta_0, 2.0)
+    assert u.isclose(iron[2]._zeta_0, 32.0)
+    assert u.isclose(iron[16]._zeta_0, 18.0)
+    assert u.isclose(iron[24]._zeta_0, 8.0)
+    assert u.isclose(iron[26]._zeta_0, 2.0)
 
 @pytest.mark.requires_dbase_version('>= 8')
 def test_proton_collision(fe10):
