@@ -7,3 +7,4 @@ Topic Guides
   :maxdepth: 1
 
   database_format
+  freebound_gaunt_factor

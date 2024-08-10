@@ -1351,8 +1351,8 @@ Using Datasets:
 
         where :math:`T_{e}` is the electron temperature, :math:`F_{k}` is a constant,
         :math:`Z` is the ionization stage, and :math:`\langle g_{t,ff}\rangle` is the
-        total (wavelength-averaged) free-free Gaunt factor.  The prefactor :math:`F_{k}` 
-        is defined in Equation 19 of :cite:t:`sutherland_accurate_1998`, with a value 
+        total (wavelength-averaged) free-free Gaunt factor.  The prefactor :math:`F_{k}`
+        is defined in Equation 19 of :cite:t:`sutherland_accurate_1998`, with a value
         of 1.42555669e-27 cm$^{5}$ g K$^{-1/2}$ s$^{3}$).
 
 
