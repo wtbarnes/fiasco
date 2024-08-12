@@ -1566,7 +1566,7 @@ Using Datasets:
 
         Notes
         -----
-        This ion, for which the free-bound radiative loss is being calculated, is taken to the recombining ion.
+        This ion, for which the free-bound radiative loss is being calculated, is taken to be the recombining ion.
         The ion one ionization stage lower is taken to be the recombined ion.
         """
         z = self.charge_state
