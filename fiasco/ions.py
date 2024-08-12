@@ -290,7 +290,7 @@ Using Datasets:
         :math:`\zeta_{0}`, the number of vacancies in the ion, which is used to calculate
         the free-bound Gaunt factor of an ion.
 
-        See Section 2.2 and Table 1 of :cite:t:`mewe_freebound_1986`.
+        See Section 2.2 and Table 1 of :cite:t:`mewe_calculated_1986`.
         """
         difference = self.atomic_number - (self.charge_state + 1)
         if difference <= 0:
@@ -1544,9 +1544,9 @@ Using Datasets:
         The radiative loss rate for free-bound emission as a function of temperature,
         integrated over all wavelengths.
 
-        The calculation integrates Equation 1a of :cite:t:`mewe_freebound_1986`, where the
+        The calculation integrates Equation 1a of :cite:t:`mewe_calculated_1986`, where the
         Gaunt factor is summed only for free-bound emission (see CHIANTI technical report #9).
-        Since the form of the Gaunt factor used in by :cite:t:`mewe_freebound_1986` does not
+        Since the form of the Gaunt factor used in by :cite:t:`mewe_calculated_1986` does not
         depend on wavelength, the integral is straightforward.
 
         The continuum intensity (per unit EM) is given by:
@@ -1556,7 +1556,7 @@ Using Datasets:
             P_{fb}(\lambda, T) = \frac{C_{ff} G_{fb}}{\lambda^{2}\ T^{1/2}} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
 
         where :math:`C_{ff} = \frac{64 \pi}{3} \sqrt{\frac{\pi}{6}} \frac{q_{e}^{6}}{c^{2} m_{e}^{2} k_{B}^{1/2}}` is
-        a constant :cite:p:`gronenschild_twophoton_1978`.  Integrating in wavelength space gives the free-bound loss rate:
+        a constant :cite:p:`gronenschild_calculated_1978`.  Integrating in wavelength space gives the free-bound loss rate:
 
         .. math::
 
@@ -1649,25 +1649,25 @@ Using Datasets:
     @u.quantity_input
     def _gaunt_factor_free_bound_total(self, ground_state=True) -> u.dimensionless_unscaled:
         r"""
-        The total Gaunt factor for free-bound emission, using the expressions from :cite:t:`mewe_freebound_1986`.
+        The total Gaunt factor for free-bound emission, using the expressions from :cite:t:`mewe_calculated_1986`.
 
         The Gaunt factor is not calculated for individual levels, except that the ground state has
-        been specified to be :math: `g_{fb}(n_{0}) = 0.9` following :cite:t:`mewe_freebound_1986`.
+        been specified to be :math: `g_{fb}(n_{0}) = 0.9` following :cite:t:`mewe_calculated_1986`.
 
         Parameters
         ----------
         ground_state : `bool`, optional
             If True (default), calculate the Gaunt factor for recombination onto the ground state :math: `n = 0`.
             Otherwise, calculate for recombination onto higher levels with :math: `n > 1`.  See Equation 16 of
-            :cite:t:`mewe_freebound_1986`.
+            :cite:t:`mewe_calculated_1986`.
 
         Notes
         -----
         The input ion `self` is taken to the recombining ion.
 
-        The calculation does not include the abundances and ionization equilibria, unlike in :cite:t:`mewe_freebound_1986`.
+        The calculation does not include the abundances and ionization equilibria, unlike in :cite:t:`mewe_calculated_1986`.
 
-        Equation 14 of :cite:t:`mewe_freebound_1986` has a simple
+        Equation 14 of :cite:t:`mewe_calculated_1986` has a simple
         analytic solution.  They approximate
         .. math::
             f_{1}(Z, n, n_{0} ) = \sum_{1}^{\infty} n^{-3} - \sum_{1}^{n_{0}} n^{-3} = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} \approx 0.21 n_{0}^{-1.5}
@@ -1680,7 +1680,7 @@ Using Datasets:
         .. math::
             f_{1}(Z, n, n_{0}) = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} = - \frac{1}{2}\psi^{(2)}(n_{0}+1)
 
-        The final expression is therefore simplified and more accurate than :cite:t:`mewe_freebound_1986`.
+        The final expression is therefore simplified and more accurate than :cite:t:`mewe_calculated_1986`.
         """
         z = self.charge_state
         if z == 0:
@@ -1737,7 +1737,7 @@ Using Datasets:
 
         In both cases, the energy of the two photons emitted equals the energy difference of the two levels.
         As a consequence, no photons can be emitted beneath the rest wavelength for a given transition.
-        See the introduction of :cite:t:`drake_twophoton_1986` for a concise description of the process.
+        See the introduction of :cite:t:`drake_spontaneous_1986` for a concise description of the process.
 
         The emission is given by
 
@@ -1748,7 +1748,7 @@ Using Datasets:
         where :math:`\lambda_{0}` is rest wavelength of the (disallowed) transition,
         :math:`A_{ji}` is the Einstein spontaneous emission coefficient,
         :math:`\psi` is so-called spectral distribution function, given approximately by
-        :math:`\psi(y) \approx 2.623 \sqrt{\cos{\Big(\pi(y-\frac{1}{2})\Big)}}` :cite:p:`gronenschild_twophoton_1978`,
+        :math:`\psi(y) \approx 2.623 \sqrt{\cos{\Big(\pi(y-\frac{1}{2})\Big)}}` :cite:p:`gronenschild_calculated_1978`,
         :math:`\psi_{\text{norm}}` is a normalization factor for hydrogen-like ions such
         that :math:`\frac{1}{\psi_{\text{norm}}} \int_{0}^{1} \psi(y) dy = 2` (and 1 for helium-like ions),
         and :math:`n_{j}(X^{+m})` is the density of ions m of element X in excited state j, given by
