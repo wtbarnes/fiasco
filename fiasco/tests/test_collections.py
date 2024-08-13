@@ -136,21 +136,21 @@ def test_radiative_loss_bound_bound(collection, hdf5_dbase_root):
     # add Li III to the test to include an ion that throws a MissingDatasetException
     collection = collection + fiasco.Ion('Li III', collection.temperature, hdf5_dbase_root=hdf5_dbase_root)
     density = [1e9,1e10,1e11] * u.cm**-3
-    rl = collection.radiative_loss_bound_bound(density)
+    rl = collection.bound_bound_radiative_loss(density)
     assert rl.shape == (len(temperature), len(density))
     # These values have not been checked for correctness
     u.allclose(rl[0], [3.90235371e-24, 4.06540902e-24, 4.08411295e-24] * u.erg * u.cm**3 / u.s)
 
 @pytest.mark.requires_dbase_version('>= 8')
 def test_radiative_loss_free_free(collection, hdf5_dbase_root):
-    rl = collection.radiative_loss_free_free()
+    rl = collection.free_free_radiative_loss()
     assert rl.shape == collection.temperature.shape
     # This value has not been checked for correctness
     u.isclose(rl[0], 2.72706455e-35 * u.erg * u.cm**3 / u.s)
 
 @pytest.mark.requires_dbase_version('>= 8')
 def test_radiative_loss_free_bound(collection, hdf5_dbase_root):
-    rl = collection.radiative_loss_free_bound()
+    rl = collection.free_bound_radiative_loss()
     assert rl.shape == collection.temperature.shape
     # This value has not been checked for correctness
     u.isclose(rl[0], 1.13808317e-33 * u.erg * u.cm**3 / u.s)
