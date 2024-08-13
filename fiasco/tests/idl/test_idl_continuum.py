@@ -160,7 +160,7 @@ def test_idl_compare_free_free_radiative_loss(idl_env, ion_input_args, hdf5_dbas
                                 format_func={'free_free_radiative_loss': lambda x: x*u.Unit('erg cm3 s-1'),
                                              'temperature': lambda x: x*u.K})
     all_ions = build_ion_collection(hdf5_dbase_root, idl_result['temperature'], **ion_input_args)
-    free_free_radiative_loss_python = all_ions.radiative_loss_free_free()
+    free_free_radiative_loss_python = all_ions.free_free_radiative_loss()
     assert u.allclose(idl_result['free_free_radiative_loss'],
                       free_free_radiative_loss_python,
                       atol=None,
@@ -182,7 +182,7 @@ def test_idl_compare_free_bound_radiative_loss(idl_env, ion_input_args, hdf5_dba
                                 format_func={'free_bound_radiative_loss': lambda x: x*u.Unit('erg cm3 s-1'),
                                              'temperature': lambda x: x*u.K})
     all_ions = build_ion_collection(hdf5_dbase_root, idl_result['temperature'], **ion_input_args)
-    free_bound_radiative_loss_python = all_ions.radiative_loss_free_bound()
+    free_bound_radiative_loss_python = all_ions.free_bound_radiative_loss()
     assert u.allclose(idl_result['free_bound_radiative_loss'],
                       free_bound_radiative_loss_python,
                       atol=None,

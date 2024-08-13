@@ -305,8 +305,11 @@ Available Ions
     @u.quantity_input
     def radiative_loss(self, density: u.cm**(-3), **kwargs) -> u.Unit('erg cm3 s-1'):
         r"""
-        Calculate radiative loss rate curve integrating bound-bound, free-bound,
-        and free-free emission over wavelength.
+        Calculate the total wavelength-integrated radiative loss rate including the
+        bound-bound, free-bound, and free-free emission contributions
+
+        .. note::  The calculation does not include two-photon continuum emission, which is also
+                   neglected in the CHIANTI IDL routines.
 
         Parameters
         ----------
@@ -315,18 +318,12 @@ Available Ions
 
         Returns
         -------
-        rad_loss : `~astropy.units.Quantity`
-            The bolometric radiative loss rate per unit emission measure
-
-        Notes
-        -----
-        The calculation does not include two-photon continuum emission, which is also
-        neglected in CHIANTI.
-
+        rad_loss_total : `~astropy.units.Quantity`
+            The total bolometric radiative loss rate
         """
-        rad_loss_bound_bound = self.radiative_loss_bound_bound(density, **kwargs)
-        rad_loss_free_free = self.radiative_loss_free_free()
-        rad_loss_free_bound = self.radiative_loss_free_bound()
+        rad_loss_bound_bound = self.bound_bound_radiative_loss(density, **kwargs)
+        rad_loss_free_free = self.free_free_radiative_loss()
+        rad_loss_free_bound = self.free_bound_radiative_loss()
 
         rad_loss_total = (rad_loss_bound_bound
                           + rad_loss_free_free[:, np.newaxis]
@@ -335,7 +332,7 @@ Available Ions
         return rad_loss_total
 
     @u.quantity_input
-    def radiative_loss_bound_bound(self, density, **kwargs) -> u.Unit('erg cm3 s-1'):
+    def bound_bound_radiative_loss(self, density, **kwargs) -> u.Unit('erg cm3 s-1'):
         r"""
         Calculate the radiative loss rate from bound-bound emission (line emission)
         integrated over wavelength.
@@ -362,7 +359,7 @@ Available Ions
         return rad_loss
 
     @u.quantity_input
-    def radiative_loss_free_free(self) -> u.Unit('erg cm3 s-1'):
+    def free_free_radiative_loss(self) -> u.Unit('erg cm3 s-1'):
         r"""
         Calculate the radiative loss rate from free-free emission (bremsstrahlung)
         integrated over wavelength.
@@ -386,7 +383,7 @@ Available Ions
         return free_free
 
     @u.quantity_input
-    def radiative_loss_free_bound(self) ->  u.Unit('erg cm3 s-1'):
+    def free_bound_radiative_loss(self) ->  u.Unit('erg cm3 s-1'):
         r"""
         Calculate the radiative loss rate from free-bound emission (collisional recombination)
         integrated over wavelength.
