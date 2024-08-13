@@ -1341,9 +1341,13 @@ Using Datasets:
         r"""
         Free-free continuum radiative losses as a function of temperature.
 
+        .. note::
+
+            This does not include the ionization fraction or abundance factors.
+
         The total free-free radiative loss is given by integrating the emissivity over
-        all wavelengths.  The total losses per unit emission measure is then given by
-        (Equation 18 of :cite:`sutherland_accurate_1998`):
+        all wavelengths.  The total losses per unit emission measure are then given by
+        Equation 18 of :cite:`sutherland_accurate_1998`,
 
         .. math::
 
@@ -1353,12 +1357,7 @@ Using Datasets:
         :math:`Z` is the ionization stage, and :math:`\langle g_{t,ff}\rangle` is the
         total (wavelength-averaged) free-free Gaunt factor.  The prefactor :math:`F_{k}`
         is defined in Equation 19 of :cite:t:`sutherland_accurate_1998`, with a value
-        of 1.42555669e-27 cm$^{5}$ g K$^{-1/2}$ s$^{3}$).
-
-
-        Notes
-        -----
-        The result does not include ionization equilibrium or abundance factors.
+        of :math:`F_k\approx1.42555669\times10^{-27}\,\mathrm{cm}^{5}\,\mathrm{g}\,\mathrm{K}^{-1/2}\,\mathrm{s}^{3}`.
         """
         prefactor = (16./3**1.5) * np.sqrt(2. * np.pi * const.k_B/(const.hbar**2 * const.m_e**3)) * (const.e.esu**6 / const.c**3)
         gf = self._gaunt_factor_free_free_total()
@@ -1487,8 +1486,7 @@ Using Datasets:
         :math:`i`-th level of the recombined ion and the ground level of the recombining ion, respectively,
         :math:`\sigma_i^{\mathrm{bf}}` is the free-bound cross-section,
         and :math:`I_i` is the energy required to ionize the recombined ion from level :math:`i`.
-        A detailed derivation of this formula can be found in
-        `CHIANTI Technical Report No. 12 <http://www.chiantidatabase.org/tech_reports/12_freebound/chianti_report_12.pdf>`_.
+        A detailed derivation of this formula can be found in :cite:t:`young_chianti_2021`.
 
         For ground state transitions, the photoionization cross-section :math:`\sigma_i^{\mathrm{bf}}` is evaluated
         using Eq. 1 of :cite:t:`verner_analytic_1995` if ``use_verner`` is set to True.
@@ -1544,9 +1542,15 @@ Using Datasets:
         The radiative loss rate for free-bound emission as a function of temperature,
         integrated over all wavelengths.
 
+        .. note:: This does not include the ionization fraction or abundance factors.
+
+        .. note:: This ion, for which the free-bound radiative loss is being calculated,
+                  is taken to be the recombining ion. The ion one ionization stage lower
+                  is taken to be the recombined ion.
+
         The calculation integrates Equation 1a of :cite:t:`mewe_calculated_1986`, where the
-        Gaunt factor is summed only for free-bound emission (see CHIANTI technical report #9).
-        Since the form of the Gaunt factor used in by :cite:t:`mewe_calculated_1986` does not
+        Gaunt factor is summed only for free-bound emission :cite:p:`young_chianti_2019-1`.
+        Since the form of the Gaunt factor used by :cite:t:`mewe_calculated_1986` does not
         depend on wavelength, the integral is straightforward.
 
         The continuum intensity (per unit EM) is given by:
@@ -1555,19 +1559,20 @@ Using Datasets:
 
             P_{fb}(\lambda, T) = \frac{C_{ff} G_{fb}}{\lambda^{2}\ T^{1/2}} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
 
-        where :math:`C_{ff} = \frac{64 \pi}{3} \sqrt{\frac{\pi}{6}} \frac{q_{e}^{6}}{c^{2} m_{e}^{2} k_{B}^{1/2}}` is
-        a constant :cite:p:`gronenschild_calculated_1978`.  Integrating in wavelength space gives the free-bound loss rate:
+        where
+
+        .. math::
+
+            C_{ff} = \frac{64 \pi}{3} \sqrt{\frac{\pi}{6}} \frac{q_{e}^{6}}{c^{2} m_{e}^{2} k_{B}^{1/2}}
+
+        is a constant :cite:p:`gronenschild_calculated_1978`.
+        Integrating in wavelength space gives the free-bound loss rate,
 
         .. math::
 
             R_{fb} = \frac{C_{ff} k_{B} G_{fb} T^{1/2}}{h c} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
 
         We have dropped the factor of :math:`n_{e}^{2}` here to make the loss rate per unit EM.
-
-        Notes
-        -----
-        This ion, for which the free-bound radiative loss is being calculated, is taken to be the recombining ion.
-        The ion one ionization stage lower is taken to be the recombined ion.
         """
         z = self.charge_state
         if z == 0:
@@ -1663,10 +1668,6 @@ Using Datasets:
 
         Notes
         -----
-        The input ion `self` is taken to the recombining ion.
-
-        The calculation does not include the abundances and ionization equilibria, unlike in :cite:t:`mewe_calculated_1986`.
-
         Equation 14 of :cite:t:`mewe_calculated_1986` has a simple
         analytic solution.  They approximate
         .. math::
@@ -1726,33 +1727,7 @@ Using Datasets:
                   expressed per steradian and as such the factor of
                   :math:`1/4\pi` is not included.
 
-        In hydrogen-like ions, the transition :math:`2S_{1/2} \rightarrow 1S_{1/2} + h\nu` cannot occur
-        as an electric dipole transition, but only as a much slower magnetic dipole transition.
-        The dominant transition then becomes :math:`2S_{1/2} \rightarrow 1S_{1/2} + h\nu_{1} + h\nu_{2}`.
-
-        In helium-like ions, the transition from :math:`1s2s ^{1}S_{0} \rightarrow 1s^{2}\ ^{1}S_{0} + h\nu`
-        is forbidden under quantum selection rules since :math:`\Delta J = 0`.
-        Similarly, the dominant transition becomes
-        :math:`1s2s ^{1}S_{0} \rightarrow 1s^{2}\ ^{1}S_{0} + h\nu_{1} + h\nu_{2}`.
-
-        In both cases, the energy of the two photons emitted equals the energy difference of the two levels.
-        As a consequence, no photons can be emitted beneath the rest wavelength for a given transition.
-        See the introduction of :cite:t:`drake_spontaneous_1986` for a concise description of the process.
-
-        The emission is given by
-
-        .. math::
-
-            C_{2p}(\lambda, T, n_{e}) = hc \frac{n_{j}(X^{+m}) A_{ji} \lambda_{0} \psi(\frac{\lambda_{0}}{\lambda})}{\psi_{\text{norm}}\lambda^{3}}
-
-        where :math:`\lambda_{0}` is rest wavelength of the (disallowed) transition,
-        :math:`A_{ji}` is the Einstein spontaneous emission coefficient,
-        :math:`\psi` is so-called spectral distribution function, given approximately by
-        :math:`\psi(y) \approx 2.623 \sqrt{\cos{\Big(\pi(y-\frac{1}{2})\Big)}}` :cite:p:`gronenschild_calculated_1978`,
-        :math:`\psi_{\text{norm}}` is a normalization factor for hydrogen-like ions such
-        that :math:`\frac{1}{\psi_{\text{norm}}} \int_{0}^{1} \psi(y) dy = 2` (and 1 for helium-like ions),
-        and :math:`n_{j}(X^{+m})` is the density of ions m of element X in excited state j, given by
-        :math:`n_{j}(X^{+m}) = \frac{n_{j}(X^{+m})}{n(X^{+m})} \frac{n(X^{+m})}{n(X)} \frac{n(X)}{n_{H}} \frac{n_{H}}{n_{e}} n_{e}`.
+        For more details regarding this calculation, see :ref:`fiasco-topic-guide-two-photon-continuum`.
 
         Parameters
         ----------

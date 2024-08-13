@@ -8,3 +8,4 @@ Topic Guides
 
   database_format
   freebound_gaunt_factor
+  two_photon_continuum
