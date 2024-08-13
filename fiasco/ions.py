@@ -8,6 +8,7 @@ import numpy as np
 from functools import cached_property
 from scipy.interpolate import CubicSpline, interp1d, PchipInterpolator, splev, splrep
 from scipy.ndimage import map_coordinates
+from scipy.special import polygamma
 
 from fiasco import proton_electron_ratio
 from fiasco.base import ContinuumBase, IonBase
@@ -282,6 +283,25 @@ Using Datasets:
         the temperature at which lines for this ion are formed.
         """
         return self.temperature[np.argmax(self.ioneq)]
+
+    @property
+    def _zeta_0(self) -> u.dimensionless_unscaled:
+        r"""
+        :math:`\zeta_{0}`, the number of vacancies in the ion, which is used to calculate
+        the free-bound Gaunt factor of an ion.
+
+        See Section 2.2 and Table 1 of :cite:t:`mewe_calculated_1986`.
+        """
+        difference = self.atomic_number - (self.charge_state + 1)
+        if difference <= 0:
+            max_vacancies = 1
+        elif difference <= 8 and difference > 0:
+            max_vacancies = 9
+        elif difference <= 22 and difference > 8:
+            max_vacancies = 27
+        else:
+            max_vacancies = 55
+        return max_vacancies - difference
 
     @cached_property
     @needs_dataset('scups')
@@ -1317,6 +1337,33 @@ Using Datasets:
                 / np.sqrt(self.temperature)[:, np.newaxis])
 
     @u.quantity_input
+    def free_free_radiative_loss(self) -> u.erg * u.cm**3 / u.s:
+        r"""
+        Free-free continuum radiative losses as a function of temperature.
+
+        .. note::
+
+            This does not include the ionization fraction or abundance factors.
+
+        The total free-free radiative loss is given by integrating the emissivity over
+        all wavelengths.  The total losses per unit emission measure are then given by
+        Equation 18 of :cite:`sutherland_accurate_1998`,
+
+        .. math::
+
+            R_{ff}(T_e) = F_{k} \sqrt{(T_{e})} Z^{2} \langle g_{t,ff}\rangle
+
+        where :math:`T_{e}` is the electron temperature, :math:`F_{k}` is a constant,
+        :math:`Z` is the ionization stage, and :math:`\langle g_{t,ff}\rangle` is the
+        total (wavelength-averaged) free-free Gaunt factor.  The prefactor :math:`F_{k}`
+        is defined in Equation 19 of :cite:t:`sutherland_accurate_1998`, with a value
+        of :math:`F_k\approx1.42555669\times10^{-27}\,\mathrm{cm}^{5}\,\mathrm{g}\,\mathrm{K}^{-1/2}\,\mathrm{s}^{3}`.
+        """
+        prefactor = (16./3**1.5) * np.sqrt(2. * np.pi * const.k_B/(const.hbar**2 * const.m_e**3)) * (const.e.esu**6 / const.c**3)
+        gf = self._gaunt_factor_free_free_total()
+        return (prefactor * self.charge_state**2 * gf * np.sqrt(self.temperature))
+
+    @u.quantity_input
     def gaunt_factor_free_free(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
         r"""
         Free-free Gaunt factor as a function of wavelength.
@@ -1393,6 +1440,23 @@ Using Datasets:
 
         return u.Quantity(np.where(gf < 0., 0., gf))
 
+    @needs_dataset('gffint')
+    @u.quantity_input
+    def _gaunt_factor_free_free_total(self) -> u.dimensionless_unscaled:
+        """
+        The total (wavelength-averaged) free-free Gaunt factor, used for calculating
+        the total radiative losses from free-free emission.
+        """
+        if self.charge_state == 0:
+            return u.Quantity(np.zeros(self.temperature.shape))
+        else:
+            Ry = const.h * const.c * const.Ryd
+            log_gamma_squared = np.log10((self.charge_state**2 * Ry) / (const.k_B * self.temperature))
+            index = [np.abs(self._gffint['log_gamma_squared'] - x).argmin() for x in log_gamma_squared]
+            delta = log_gamma_squared - self._gffint['log_gamma_squared'][index]
+            # The spline fit was pre-calculated by Sutherland 1998:
+            return self._gffint['gaunt_factor'][index] + delta * (self._gffint['s1'][index] + delta * (self._gffint['s2'][index] + delta * self._gffint['s3'][index]))
+
     @needs_dataset('fblvl', 'ip')
     @u.quantity_input
     def free_bound(self,
@@ -1422,8 +1486,7 @@ Using Datasets:
         :math:`i`-th level of the recombined ion and the ground level of the recombining ion, respectively,
         :math:`\sigma_i^{\mathrm{bf}}` is the free-bound cross-section,
         and :math:`I_i` is the energy required to ionize the recombined ion from level :math:`i`.
-        A detailed derivation of this formula can be found in
-        `CHIANTI Technical Report No. 12 <http://www.chiantidatabase.org/tech_reports/12_freebound/chianti_report_12.pdf>`_.
+        A detailed derivation of this formula can be found in :cite:t:`young_chianti_2021`.
 
         For ground state transitions, the photoionization cross-section :math:`\sigma_i^{\mathrm{bf}}` is evaluated
         using Eq. 1 of :cite:t:`verner_analytic_1995` if ``use_verner`` is set to True.
@@ -1472,6 +1535,66 @@ Using Datasets:
             sum_factor += omega / omega_0 * np.exp(-E_scaled) * cross_section
 
         return (prefactor * energy_temperature_factor * sum_factor)
+
+    @u.quantity_input
+    def free_bound_radiative_loss(self) -> u.erg * u.cm**3 / u.s:
+        r"""
+        The radiative loss rate for free-bound emission as a function of temperature,
+        integrated over all wavelengths.
+
+        .. note:: This does not include the ionization fraction or abundance factors.
+
+        .. note:: This ion, for which the free-bound radiative loss is being calculated,
+                  is taken to be the recombining ion. The ion one ionization stage lower
+                  is taken to be the recombined ion.
+
+        The calculation integrates Equation 1a of :cite:t:`mewe_calculated_1986`, where the
+        Gaunt factor is summed only for free-bound emission :cite:p:`young_chianti_2019-1`.
+        Since the form of the Gaunt factor used by :cite:t:`mewe_calculated_1986` does not
+        depend on wavelength, the integral is straightforward.
+
+        The continuum intensity (per unit EM) is given by:
+
+        .. math::
+
+            P_{fb}(\lambda, T) = \frac{C_{ff} G_{fb}}{\lambda^{2}\ T^{1/2}} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
+
+        where
+
+        .. math::
+
+            C_{ff} = \frac{64 \pi}{3} \sqrt{\frac{\pi}{6}} \frac{q_{e}^{6}}{c^{2} m_{e}^{2} k_{B}^{1/2}}
+
+        is a constant :cite:p:`gronenschild_calculated_1978`.
+        Integrating in wavelength space gives the free-bound loss rate,
+
+        .. math::
+
+            R_{fb} = \frac{C_{ff} k_{B} G_{fb} T^{1/2}}{h c} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
+
+        We have dropped the factor of :math:`n_{e}^{2}` here to make the loss rate per unit EM.
+        """
+        z = self.charge_state
+        if z == 0:
+            return u.Quantity(np.zeros(self.temperature.shape) * u.erg * u.cm**3 / u.s)
+        else:
+            recombined = self.previous_ion()
+            if not recombined._has_dataset('fblvl'):
+                return u.Quantity(np.zeros(self.temperature.shape) * u.erg * u.cm**3 / u.s)
+            C_ff = 64 * np.pi / 3.0 * np.sqrt(np.pi/6.) * (const.e.esu**6)/(const.c**2 * const.m_e**1.5 * const.k_B**0.5)
+            prefactor = C_ff * const.k_B * np.sqrt(self.temperature) / (const.h*const.c)
+
+            E_obs = recombined._fblvl['E_obs']*const.h*const.c
+            E_th = recombined._fblvl['E_th']*const.h*const.c
+            E_fb = np.where(E_obs==0*u.erg, E_th, E_obs)
+            wvl_n0 = const.h * const.c / (recombined.ip - E_fb[0])
+            wvl_n1 = (recombined._fblvl['n'][0] + 1)**2 /(const.Ryd * z**2)
+            g_fb0 = self._gaunt_factor_free_bound_total(ground_state=True)
+            g_fb1 = self._gaunt_factor_free_bound_total(ground_state=False)
+            term1 = g_fb0 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n0))
+            term2 = g_fb1 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n1))
+
+            return prefactor * (term1 + term2)
 
     @needs_dataset('verner')
     @u.quantity_input
@@ -1528,6 +1651,68 @@ Using Datasets:
         cross_section[np.where(photon_energy < ionization_energy)] = 0.*cross_section.unit
         return cross_section
 
+    @u.quantity_input
+    def _gaunt_factor_free_bound_total(self, ground_state=True) -> u.dimensionless_unscaled:
+        r"""
+        The total Gaunt factor for free-bound emission, using the expressions from :cite:t:`mewe_calculated_1986`.
+
+        The Gaunt factor is not calculated for individual levels, except that the ground state has
+        been specified to be :math: `g_{fb}(n_{0}) = 0.9` following :cite:t:`mewe_calculated_1986`.
+
+        Parameters
+        ----------
+        ground_state : `bool`, optional
+            If True (default), calculate the Gaunt factor for recombination onto the ground state :math: `n = 0`.
+            Otherwise, calculate for recombination onto higher levels with :math: `n > 1`.  See Equation 16 of
+            :cite:t:`mewe_calculated_1986`.
+
+        Notes
+        -----
+        Equation 14 of :cite:t:`mewe_calculated_1986` has a simple
+        analytic solution.  They approximate
+        .. math::
+            f_{1}(Z, n, n_{0} ) = \sum_{1}^{\infty} n^{-3} - \sum_{1}^{n_{0}} n^{-3} = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} \approx 0.21 n_{0}^{-1.5}
+
+        where :math: `\zeta(x)` is the Riemann zeta function.
+
+        However, the second sum is analytic, :math: `\sum_{1}^{n_{0}} n^{-3} = \zeta(3) + \frac{1}{2}\psi^{(2)}(n_{0}+1)`
+        where :math: `\psi^{n}(x)` is the n-th derivative of the digamma function (a.k.a. the polygamma function).
+        So, we can write the full solution as:
+        .. math::
+            f_{1}(Z, n, n_{0}) = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} = - \frac{1}{2}\psi^{(2)}(n_{0}+1)
+
+        The final expression is therefore simplified and more accurate than :cite:t:`mewe_calculated_1986`.
+        """
+        z = self.charge_state
+        if z == 0:
+            return u.Quantity(np.zeros(self.temperature.shape))
+        else:
+            recombined = self.previous_ion()
+            if not recombined._has_dataset('fblvl'):
+                return u.Quantity(np.zeros(self.temperature.shape))
+            Ry = const.h * const.c * const.Ryd
+            prefactor = (Ry / (const.k_B * self.temperature)).decompose()
+            n_0 = recombined._fblvl['n'][0]
+            if ground_state:
+                g_n_0 = 0.9 # The ground state Gaunt factor, g_fb(n_0), prescribed by Mewe et al 1986
+                z_0 = n_0 * np.sqrt(recombined.ip / Ry).decompose()
+                # NOTE: Low temperatures can lead to very large terms in the exponential and in some
+                # cases, the exponential term can exceed the maximum number expressible in double precision.
+                # These terms are eventually set to zero anyway since the ionization fraction is so small
+                # at these temperatures.
+                with np.errstate(over='ignore'):
+                    f_2 = g_n_0 * self._zeta_0 * (z_0**4 / n_0**5) * np.exp((prefactor * z_0**2)/(n_0**2))
+            else:
+                f_1 = -0.5 * polygamma(2, n_0 + 1)
+                with np.errstate(over='ignore'):
+                    f_2 = 2.0 * f_1 * z**4 * np.exp((prefactor * z**2)/((n_0+1)**2))
+            # Large terms in the exponential can lead to infs in the f_2 term. These will be zero'd
+            # out when multiplied by the ionization equilibrium anyway
+            f_2 = np.where(np.isinf(f_2), 0.0, f_2)
+
+            return (prefactor * f_2)
+
+
     @needs_dataset('elvlc')
     @u.quantity_input
     def two_photon(self,
@@ -1542,33 +1727,7 @@ Using Datasets:
                   expressed per steradian and as such the factor of
                   :math:`1/4\pi` is not included.
 
-        In hydrogen-like ions, the transition :math:`2S_{1/2} \rightarrow 1S_{1/2} + h\nu` cannot occur
-        as an electric dipole transition, but only as a much slower magnetic dipole transition.
-        The dominant transition then becomes :math:`2S_{1/2} \rightarrow 1S_{1/2} + h\nu_{1} + h\nu_{2}`.
-
-        In helium-like ions, the transition from :math:`1s2s ^{1}S_{0} \rightarrow 1s^{2}\ ^{1}S_{0} + h\nu`
-        is forbidden under quantum selection rules since :math:`\Delta J = 0`.
-        Similarly, the dominant transition becomes
-        :math:`1s2s ^{1}S_{0} \rightarrow 1s^{2}\ ^{1}S_{0} + h\nu_{1} + h\nu_{2}`.
-
-        In both cases, the energy of the two photons emitted equals the energy difference of the two levels.
-        As a consequence, no photons can be emitted beneath the rest wavelength for a given transition.
-        See the introduction of :cite:t:`drake_twophoton_1986` for a concise description of the process.
-
-        The emission is given by
-
-        .. math::
-
-            C_{2p}(\lambda, T, n_{e}) = hc \frac{n_{j}(X^{+m}) A_{ji} \lambda_{0} \psi(\frac{\lambda_{0}}{\lambda})}{\psi_{\text{norm}}\lambda^{3}}
-
-        where :math:`\lambda_{0}` is rest wavelength of the (disallowed) transition,
-        :math:`A_{ji}` is the Einstein spontaneous emission coefficient,
-        :math:`\psi` is so-called spectral distribution function, given approximately by
-        :math:`\psi(y) \approx 2.623 \sqrt{\cos{\Big(\pi(y-\frac{1}{2})\Big)}}` :cite:p:`gronenschild_twophoton_1978`,
-        :math:`\psi_{\text{norm}}` is a normalization factor for hydrogen-like ions such
-        that :math:`\frac{1}{\psi_{\text{norm}}} \int_{0}^{1} \psi(y) dy = 2` (and 1 for helium-like ions),
-        and :math:`n_{j}(X^{+m})` is the density of ions m of element X in excited state j, given by
-        :math:`n_{j}(X^{+m}) = \frac{n_{j}(X^{+m})}{n(X^{+m})} \frac{n(X^{+m})}{n(X)} \frac{n(X)}{n_{H}} \frac{n_{H}}{n_{e}} n_{e}`.
+        For more details regarding this calculation, see :ref:`fiasco-topic-guide-two-photon-continuum`.
 
         Parameters
         ----------

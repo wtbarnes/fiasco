@@ -224,7 +224,7 @@ Available Ions
         wavelength_range : `~astropy.units.Quantity`, optional
             Tuple of bounds on which transitions to include. Default includes all
         bin_width : `~astropy.units.Quantity`, optional
-            Wavelength resolution to bin intensity values. Default to 1/10 of range
+            Wavelength resolution to bin intensity values. Default to 1/100 of range
         kernel : `~astropy.convolution.kernels.Model1DKernel`, optional
             Convolution kernel for computing spectrum. Default is gaussian kernel with thermal width
 
@@ -303,9 +303,49 @@ Available Ions
         return wavelength, spectrum
 
     @u.quantity_input
-    def radiative_loss(self, density: u.cm**(-3), **kwargs):
+    def radiative_loss(self, density: u.cm**(-3), **kwargs) -> u.Unit('erg cm3 s-1'):
+        r"""
+        Calculate the total wavelength-integrated radiative loss rate including the
+        bound-bound, free-bound, and free-free emission contributions
+
+        .. note::  The calculation does not include two-photon continuum emission, which is also
+                   neglected in the CHIANTI IDL routines.
+
+        Parameters
+        ----------
+        density : `~astropy.units.Quantity`
+            Electron number density
+
+        Returns
+        -------
+        rad_loss_total : `~astropy.units.Quantity`
+            The total bolometric radiative loss rate
         """
-        Calculate radiative loss curve which includes multiple ions
+        rad_loss_bound_bound = self.bound_bound_radiative_loss(density, **kwargs)
+        rad_loss_free_free = self.free_free_radiative_loss()
+        rad_loss_free_bound = self.free_bound_radiative_loss()
+
+        rad_loss_total = (rad_loss_bound_bound
+                          + rad_loss_free_free[:, np.newaxis]
+                          + rad_loss_free_bound[:, np.newaxis])
+
+        return rad_loss_total
+
+    @u.quantity_input
+    def bound_bound_radiative_loss(self, density, **kwargs) -> u.Unit('erg cm3 s-1'):
+        r"""
+        Calculate the radiative loss rate from bound-bound emission (line emission)
+        integrated over wavelength.
+
+        Parameters
+        ----------
+        density : `~astropy.units.Quantity`
+            Electron number density
+
+        Returns
+        -------
+        rad_loss : `~astropy.units.Quantity`
+            The bolometric bound-bound radiative loss rate per unit emission measure
         """
         density = np.atleast_1d(density)
         rad_loss = u.Quantity(np.zeros(self.temperature.shape + density.shape), 'erg cm^3 s^-1')
@@ -313,8 +353,55 @@ Available Ions
             try:
                 g = ion.contribution_function(density, **kwargs)
             except MissingDatasetException as e:
-                self.log.warning(f'{ion.ion_name} failed to be added to the contribution function: {e}')
+                self.log.warning(f'{ion.ion_name} not included in the bound-bound emission. {e}')
                 continue
             rad_loss += g.sum(axis=2)
-
         return rad_loss
+
+    @u.quantity_input
+    def free_free_radiative_loss(self) -> u.Unit('erg cm3 s-1'):
+        r"""
+        Calculate the radiative loss rate from free-free emission (bremsstrahlung)
+        integrated over wavelength.
+
+        Returns
+        -------
+        rad_loss : `~astropy.units.Quantity`
+            The bolometric free-free radiative loss rate per unit emission measure
+        """
+        free_free = u.Quantity(np.zeros(self.temperature.shape), 'erg cm^3 s^-1')
+        for ion in self:
+            try:
+                ff = ion.free_free_radiative_loss()
+                abundance = ion.abundance
+                ioneq = ion.ioneq
+            except MissingDatasetException as e:
+                self.log.warning(f'{ion.ion_name} not included in free-free radiative loss. {e}')
+                continue
+            else:
+                free_free += ff * abundance * ioneq
+        return free_free
+
+    @u.quantity_input
+    def free_bound_radiative_loss(self) ->  u.Unit('erg cm3 s-1'):
+        r"""
+        Calculate the radiative loss rate from free-bound emission (collisional recombination)
+        integrated over wavelength.
+
+        Returns
+        -------
+        rad_loss : `~astropy.units.Quantity`
+            The bolometric free-bound radiative loss rate per unit emission measure
+        """
+        free_bound = u.Quantity(np.zeros(self.temperature.shape), 'erg cm^3 s^-1')
+        for ion in self:
+            try:
+                fb = ion.free_bound_radiative_loss()
+                abundance = ion.abundance
+                ioneq = ion.ioneq
+            except MissingDatasetException as e:
+                self.log.warning(f'{ion.ion_name} not included in free-bound radiative loss. {e}')
+                continue
+            else:
+                free_bound += fb * abundance * ioneq
+        return free_bound

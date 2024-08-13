@@ -11,32 +11,38 @@ from fiasco.tests.idl.helpers import run_idl_script
 from fiasco.util.exceptions import MissingDatasetException
 
 
-@pytest.fixture
-def all_ions(hdf5_dbase_root):
-    temperature = np.logspace(5, 8, 61) * u.K
-    abundance_name = 'sun_coronal_1992_feldman_ext'
-    ioneq_name = 'chianti'
-    ion_kwargs = {
-        'abundance': abundance_name,
-        'ioneq_filename': ioneq_name,
-        'hdf5_dbase_root': hdf5_dbase_root,
-    }
-    all_ions = [fiasco.Ion(i, temperature, **ion_kwargs) for i in fiasco.list_ions(hdf5_dbase_root)]
+def build_ion_collection(root, temperature, **kwargs):
+    all_ions = [fiasco.Ion(i, temperature, hdf5_dbase_root=root, **kwargs) for i in fiasco.list_ions(root)]
     return fiasco.IonCollection(*all_ions)
 
 
 @pytest.fixture
-def wavelength():
-    return np.arange(25, 414, 1) * u.Angstrom
+def ion_input_args():
+    return {
+        'abundance': 'sun_coronal_1992_feldman_ext',
+        'ioneq': 'chianti',
+    }
 
 
 @pytest.fixture
-def idl_input_args(all_ions, wavelength):
+def temperature():
+    return np.logspace(5, 8, 61) * u.K
+
+
+@pytest.fixture
+def all_ions(ion_input_args, temperature, hdf5_dbase_root):
+    # NOTE: the reason for separating the fixture and the function that generates
+    # the collection is so that it is easier to generate a new collection for
+    # different inputs
+    return build_ion_collection(hdf5_dbase_root, temperature, **ion_input_args)
+
+
+@pytest.fixture
+def idl_input_args(ion_input_args, temperature):
     return {
-        'wavelength': wavelength,
-        'temperature': all_ions.temperature,
-        'abundance': all_ions[0]._dset_names['abundance'],
-        'ioneq': all_ions[0]._dset_names['ioneq_filename'],
+        'wavelength': np.arange(25, 414, 1) * u.Angstrom,
+        'temperature': temperature,
+        **ion_input_args,
     }
 
 
@@ -137,3 +143,47 @@ def test_idl_compare_free_bound_ion(idl_env, all_ions, idl_input_args, dbase_ver
                                     write_file=False)
         # Compare IDL and Python calculation
         assert u.allclose(idl_result['free_bound'], free_bound_python, atol=None, rtol=0.006)
+
+
+def test_idl_compare_free_free_radiative_loss(idl_env, ion_input_args, hdf5_dbase_root, dbase_version):
+    script = """
+    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
+    ioneq_file = FILEPATH('{{ioneq}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    ff_rad_loss, temperature, free_free_radiative_loss, abund_file=abund_file, ioneq_file=ioneq_file
+    """
+    idl_result = run_idl_script(idl_env,
+                                script,
+                                ion_input_args,
+                                ['temperature', 'free_free_radiative_loss'],
+                                'freefree_radiative_loss_all_ions',
+                                dbase_version,
+                                format_func={'free_free_radiative_loss': lambda x: x*u.Unit('erg cm3 s-1'),
+                                             'temperature': lambda x: x*u.K})
+    all_ions = build_ion_collection(hdf5_dbase_root, idl_result['temperature'], **ion_input_args)
+    free_free_radiative_loss_python = all_ions.free_free_radiative_loss()
+    assert u.allclose(idl_result['free_free_radiative_loss'],
+                      free_free_radiative_loss_python,
+                      atol=None,
+                      rtol=0.005)
+
+
+def test_idl_compare_free_bound_radiative_loss(idl_env, ion_input_args, hdf5_dbase_root, dbase_version):
+    script = """
+    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
+    ioneq_file = FILEPATH('{{ioneq}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    fb_rad_loss, temperature, free_bound_radiative_loss, abund_file=abund_file, ioneq_file=ioneq_file
+    """
+    idl_result = run_idl_script(idl_env,
+                                script,
+                                ion_input_args,
+                                ['temperature', 'free_bound_radiative_loss'],
+                                'freebound_radiative_loss_all_ions',
+                                dbase_version,
+                                format_func={'free_bound_radiative_loss': lambda x: x*u.Unit('erg cm3 s-1'),
+                                             'temperature': lambda x: x*u.K})
+    all_ions = build_ion_collection(hdf5_dbase_root, idl_result['temperature'], **ion_input_args)
+    free_bound_radiative_loss_python = all_ions.free_bound_radiative_loss()
+    assert u.allclose(idl_result['free_bound_radiative_loss'],
+                      free_bound_radiative_loss_python,
+                      atol=None,
+                      rtol=0.01)
