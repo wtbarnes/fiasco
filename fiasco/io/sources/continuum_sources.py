@@ -104,7 +104,7 @@ class ItohIntegratedGauntParser(GenericParser):
             u.dimensionless_unscaled, u.dimensionless_unscaled, u.dimensionless_unscaled,
             u.dimensionless_unscaled, u.dimensionless_unscaled, u.dimensionless_unscaled,
             u.dimensionless_unscaled, u.dimensionless_unscaled]
-    headings = ['a_0k','a_1k','a_2k','a_3k','a_4k','a_5k','a_6k','a_7k','a_8k','a_9k', 'a_10k']
+    headings = ['a_i0','a_i1','a_i2','a_i3','a_i4','a_i5','a_i6','a_i7','a_i8','a_i9', 'a_i10']
     descriptions = ['fitting coefficient','fitting coefficient', 'fitting coefficient',
                 'fitting coefficient', 'fitting coefficient', 'fitting coefficient',
                 'fitting coefficient', 'fitting coefficient', 'fitting coefficient',
