@@ -93,6 +93,55 @@ class GffintParser(GffguParser):
         super().__init__(filename, **kwargs)
         self.body_index = 4
 
+class ItohIntegratedGauntParser(GenericParser):
+    """
+    Total (frequency-integrated) relativistic free-free Gaunt factor as a
+    function of a scaled temperature and scaled atomic number.
+    """
+    filetype='itoh_integrated_gaunt'
+    dtypes=[float, float, float, float, float, float, float, float, float, float, float]
+    units = [u.dimensionless_unscaled, u.dimensionless_unscaled, u.dimensionless_unscaled,
+            u.dimensionless_unscaled, u.dimensionless_unscaled, u.dimensionless_unscaled,
+            u.dimensionless_unscaled, u.dimensionless_unscaled, u.dimensionless_unscaled,
+            u.dimensionless_unscaled, u.dimensionless_unscaled]
+    headings = ['a_0k','a_1k','a_2k','a_3k','a_4k','a_5k','a_6k','a_7k','a_8k','a_9k', 'a_10k']
+    descriptions = ['fitting coefficient','fitting coefficient', 'fitting coefficient',
+                'fitting coefficient', 'fitting coefficient', 'fitting coefficient',
+                'fitting coefficient', 'fitting coefficient', 'fitting coefficient',
+                'fitting coefficient', 'fitting coefficient']
+
+    def __init__(self, filename, **kwargs):
+        super().__init__(filename, **kwargs)
+        self.full_path = pathlib.Path(kwargs.get('full_path',
+                                    self.ascii_dbase_root / 'continuum' / filename))
+
+    def extract_footer(self, *args):
+        return """Fit parameters for relativistic free-free Gaunt factors integrated over frequency.
+Itoh et al., 2002, A&A, 382, 722
+comment: These are the coefficients a_ik tabulated in Table 1."""
+
+
+class ItohIntegratedGauntNonrelParser(GenericParser):
+    """
+    Total (frequency-integrated) non-relativistic free-free Gaunt factor as a
+    function of a scaled temperature.
+    """
+    filetype='itoh_integrated_gaunt_nonrel'
+    dtypes=[float]
+    units = [u.dimensionless_unscaled]
+    headings = ['b_i']
+    descriptions = ['fitting coefficient']
+
+    def __init__(self, filename, **kwargs):
+        super().__init__(filename, **kwargs)
+        self.full_path = pathlib.Path(kwargs.get('full_path',
+                                    self.ascii_dbase_root / 'continuum' / filename))
+
+    def extract_footer(self, *args):
+        return """Fit coefficients for non-relativistic, frequency integrated free-free Gaunt factor
+Itoh et al. (2002, A&A, 382, 722)
+Comment: Data taken from Table 2 of this work."""
+
 
 class KlgfbParser(GenericParser):
     """
