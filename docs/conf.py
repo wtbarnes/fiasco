@@ -120,6 +120,7 @@ bibtex_bibfiles = ['references.bib']
 html_sidebars = {
     "quick_start*": [],
     "how_to_guides*": [],
+    "citation*": [],
 }
 # Render inheritance diagrams in SVG
 graphviz_output_format = "svg"
