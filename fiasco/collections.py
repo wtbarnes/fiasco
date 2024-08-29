@@ -348,7 +348,11 @@ Available Ions
             The bolometric bound-bound radiative loss rate per unit emission measure
         """
         density = np.atleast_1d(density)
-        rad_loss = u.Quantity(np.zeros(self.temperature.shape + density.shape), 'erg cm^3 s^-1')
+        if kwargs.get('couple_density_to_temperature', False):
+            shape = self.temperature.shape + (1,)
+        else:
+            shape = self.temperature.shape + density.shape
+        rad_loss = u.Quantity(np.zeros(shape), 'erg cm^3 s^-1')
         for ion in self:
             try:
                 g = ion.contribution_function(density, **kwargs)
