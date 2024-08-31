@@ -42,8 +42,14 @@ def idl_input_args(ion_input_args, temperature):
     return {
         'wavelength': np.arange(25, 414, 1) * u.Angstrom,
         'temperature': temperature,
+        'density': 1e9*u.cm**(-3),
         **ion_input_args,
     }
+
+
+def _scale_continuum(x):
+    "Scale IDL continuum results to have right magnitude and units"
+    return x/1e40*u.Unit('erg cm3 s-1 Angstrom-1')
 
 
 def test_idl_compare_free_free(idl_env, all_ions, idl_input_args, dbase_version):
@@ -70,7 +76,7 @@ def test_idl_compare_free_free(idl_env, all_ions, idl_input_args, dbase_version)
                                 ['free_free'],
                                 'freefree_all_ions',
                                 dbase_version,
-                                format_func={'free_free': lambda x: x/1e40*u.Unit('erg cm3 s-1 Angstrom-1')})
+                                format_func={'free_free': _scale_continuum})
 
     free_free_python = all_ions.free_free(idl_result['wavelength'])
     # Compare IDL and Python calculation
@@ -101,7 +107,7 @@ def test_idl_compare_free_bound(idl_env, all_ions, idl_input_args, dbase_version
                                 ['free_bound'],
                                 'freebound_all_ions',
                                 dbase_version,
-                                format_func={'free_bound': lambda x: x*4*np.pi/1e40*u.Unit('erg cm3 s-1 Angstrom-1')})
+                                format_func={'free_bound': lambda x: _scale_continuum})
     free_bound_python = all_ions.free_bound(idl_result['wavelength'])
     # Compare IDL and Python calculation
     assert u.allclose(idl_result['free_bound'], free_bound_python, atol=None, rtol=0.005)
@@ -139,7 +145,7 @@ def test_idl_compare_free_bound_ion(idl_env, all_ions, idl_input_args, dbase_ver
                                     ['free_bound'],
                                     f'freebound_{ion.atomic_number}_{ion.ionization_stage}',
                                     dbase_version,
-                                    format_func={'free_bound': lambda x: x*4*np.pi/1e40*u.Unit('erg cm3 s-1 Angstrom-1')},
+                                    format_func={'free_bound': lambda x: _scale_continuum},
                                     write_file=False)
         # Compare IDL and Python calculation
         assert u.allclose(idl_result['free_bound'], free_bound_python, atol=None, rtol=0.006)
@@ -187,3 +193,33 @@ def test_idl_compare_free_bound_radiative_loss(idl_env, ion_input_args, hdf5_dba
                       free_bound_radiative_loss_python,
                       atol=None,
                       rtol=0.01)
+
+
+def test_idl_compare_two_photon(idl_env, all_ions, idl_input_args, dbase_version):
+    script = """
+    ; set common block
+    common elements, abund, abund_ref, ioneq, ioneq_logt, ioneq_ref
+
+    ; read abundance and ionization equilibrium
+    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
+    ioneq_file = FILEPATH('{{ioneq}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    read_abund, abund_file, abund, abund_ref
+    read_ioneq, ioneq_file, ioneq_logt, ioneq, ioneq_ref
+
+    ; set temperature and wavelength
+    temperature = {{ temperature | to_unit('K') | force_double_precision }}
+    density = {{ density | to_unit('cm-3') | force_double_precision }}
+    wavelength = {{ wavelength | to_unit('Angstrom') | force_double_precision }}
+
+    ; calculate two-photon
+    two_photon,temperature,wavelength,two_photon_continuum,edensity=density,/no_setup
+    """
+    idl_result = run_idl_script(idl_env,
+                                script,
+                                idl_input_args,
+                                ['two_photon_continuum'],
+                                'twophoton_all_ions',
+                                dbase_version,
+                                format_func={'two_photon_continuum': _scale_continuum})
+    two_photon_python = all_ions.two_photon(idl_result['wavelength'], idl_result['density']).squeeze()
+    assert u.allclose(idl_result['two_photon_continuum'], two_photon_python, atol=None, rtol=0.005)
