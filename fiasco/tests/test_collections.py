@@ -109,19 +109,15 @@ def test_free_bound(another_collection, wavelength):
 
 
 @pytest.mark.requires_dbase_version('>= 8')
-@pytest.mark.parametrize('wavelength', [wavelength, wavelength[450]])
-def test_two_photon(collection, wavelength, hdf5_dbase_root):
+@pytest.mark.parametrize(('wavelength','index_w'), [(wavelength,450), (wavelength[450],0)])
+def test_two_photon(collection, wavelength, index_w, hdf5_dbase_root):
     # add Li III to the test to include an ion that throws a MissingDatasetException
     collection = collection + fiasco.Ion('Li III', collection.temperature, hdf5_dbase_root=hdf5_dbase_root)
     tp = collection.two_photon(wavelength, electron_density = 1e10 * u.cm**(-3))
-    if wavelength.shape:
-        assert tp.shape == wavelength.shape + temperature.shape + (1, )
-    else:
-        assert tp.shape == (1, ) + temperature.shape + (1, )
-    index_w = 450 if wavelength.shape else 0
-    index_t = 30
+    wavelength = np.atleast_1d(wavelength)
+    assert tp.shape == temperature.shape + (1, ) + wavelength.shape
     # This value has not been checked for correctness
-    assert u.allclose(tp[index_w, index_t, 0], 3.48580645e-27 * u.Unit('erg cm3 s-1 Angstrom-1'))
+    assert u.allclose(tp[30, 0, index_w], 3.48580645e-27 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
 
 @pytest.mark.requires_dbase_version('>= 8')
