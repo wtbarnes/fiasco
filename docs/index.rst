@@ -55,6 +55,7 @@ In the same way, the `fiasco` package serves up the CHIANTI atomic database.
     generated/gallery/index
     how_to_guides
     topic_guides/index
+    citation
     reference/index
 
 .. _CHIANTI atomic database: http://www.chiantidatabase.org/

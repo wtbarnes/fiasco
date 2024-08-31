@@ -1,0 +1,1 @@
+.. include:: ../fiasco/CITATION.rst
