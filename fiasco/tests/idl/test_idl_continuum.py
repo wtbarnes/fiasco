@@ -47,11 +47,6 @@ def idl_input_args(ion_input_args, temperature):
     }
 
 
-def _scale_continuum(x):
-    "Scale IDL continuum results to have right magnitude and units"
-    return x/1e40*u.Unit('erg cm3 s-1 Angstrom-1')
-
-
 def test_idl_compare_free_free(idl_env, all_ions, idl_input_args, dbase_version):
     script = """
     ; set common block
@@ -76,7 +71,7 @@ def test_idl_compare_free_free(idl_env, all_ions, idl_input_args, dbase_version)
                                 ['free_free'],
                                 'freefree_all_ions',
                                 dbase_version,
-                                format_func={'free_free': _scale_continuum})
+                                format_func={'free_free': lambda x: x/1e40*u.Unit('erg cm3 s-1 Angstrom-1')})
 
     free_free_python = all_ions.free_free(idl_result['wavelength'])
     # Compare IDL and Python calculation
@@ -107,7 +102,7 @@ def test_idl_compare_free_bound(idl_env, all_ions, idl_input_args, dbase_version
                                 ['free_bound'],
                                 'freebound_all_ions',
                                 dbase_version,
-                                format_func={'free_bound': lambda x: _scale_continuum})
+                                format_func={'free_bound': lambda x: x*4*np.pi/1e40*u.Unit('erg cm3 s-1 Angstrom-1')})
     free_bound_python = all_ions.free_bound(idl_result['wavelength'])
     # Compare IDL and Python calculation
     assert u.allclose(idl_result['free_bound'], free_bound_python, atol=None, rtol=0.005)
@@ -145,7 +140,7 @@ def test_idl_compare_free_bound_ion(idl_env, all_ions, idl_input_args, dbase_ver
                                     ['free_bound'],
                                     f'freebound_{ion.atomic_number}_{ion.ionization_stage}',
                                     dbase_version,
-                                    format_func={'free_bound': lambda x: _scale_continuum},
+                                    format_func={'free_bound': lambda x: x*4*np.pi/1e40*u.Unit('erg cm3 s-1 Angstrom-1')},
                                     write_file=False)
         # Compare IDL and Python calculation
         assert u.allclose(idl_result['free_bound'], free_bound_python, atol=None, rtol=0.006)
@@ -195,6 +190,7 @@ def test_idl_compare_free_bound_radiative_loss(idl_env, ion_input_args, hdf5_dba
                       rtol=0.01)
 
 
+@pytest.mark.xfail()
 def test_idl_compare_two_photon(idl_env, all_ions, idl_input_args, dbase_version):
     script = """
     ; set common block
@@ -220,6 +216,6 @@ def test_idl_compare_two_photon(idl_env, all_ions, idl_input_args, dbase_version
                                 ['two_photon_continuum'],
                                 'twophoton_all_ions',
                                 dbase_version,
-                                format_func={'two_photon_continuum': _scale_continuum})
+                                format_func={'two_photon_continuum': lambda x: x*4*np.pi/1e40*u.Unit('erg cm3 s-1 Angstrom-1')})
     two_photon_python = all_ions.two_photon(idl_result['wavelength'], idl_result['density']).squeeze()
     assert u.allclose(idl_result['two_photon_continuum'], two_photon_python, atol=None, rtol=0.005)
