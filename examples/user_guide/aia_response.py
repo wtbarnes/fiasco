@@ -77,7 +77,7 @@ response_transitions = f(transitions) * response.unit
 # For more more information on the AIA wavelength response calculation,
 # see :cite:t:`boerner_initial_2012`.
 K = (g / energy * response_transitions).sum(axis=2) / (4*np.pi*u.steradian)
-K = K.squeeze().to('cm5 ct pix-1 s-1')
+K = K.squeeze().to('cm5 DN pix-1 s-1')
 
 ############################################################
 # Plot the effective temperature response function for the 94
