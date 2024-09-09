@@ -2,6 +2,7 @@
 IDL comparison tests for continuum calculations
 """
 import astropy.units as u
+import copy
 import numpy as np
 import pytest
 
@@ -210,9 +211,13 @@ def test_idl_compare_two_photon(idl_env, all_ions, idl_input_args, dbase_version
     ; calculate two-photon
     two_photon,temperature,wavelength,two_photon_continuum,edensity=density,/no_setup
     """
+    # NOTE: Extend wavelength range for the two-photon test
+    new_input_args = copy.deepcopy(idl_input_args)
+    new_input_args['temperature'] = 10**np.arange(4, 7.05, 0.05) * u.K
+    new_input_args['wavelength'] = np.arange(1,2000,1) * u.Angstrom
     idl_result = run_idl_script(idl_env,
                                 script,
-                                idl_input_args,
+                                new_input_args,
                                 ['two_photon_continuum'],
                                 'twophoton_all_ions',
                                 dbase_version,
