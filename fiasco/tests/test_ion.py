@@ -411,6 +411,7 @@ def test_two_photon(c4, c5, c6):
     assert u.allclose(c6_emission[30, 0, 0], 8.25316887e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
     assert u.allclose(c6_emission_protons[30, 0, 0], 6.79615958e-29 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
+
 def test_free_bound_no_recombining(h1):
     # This is test the case where there is no data available for the recombining
     # ion (H 2)
