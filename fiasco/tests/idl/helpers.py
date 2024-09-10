@@ -1,6 +1,7 @@
 """
 Helpers for tests related to comparing with IDL output
 """
+import asdf
 import os
 import pathlib
 
@@ -108,8 +109,6 @@ def run_idl_script(idl_env, script, input_args, save_vars, file_name, version, f
         installation. Setting this to False may be needed to reduce the amount of test
         data.
     """
-    # NOTE: Importing here to avoid it as a hard dependency for running tests
-    import asdf
     file_path = get_idl_test_output_filepath(file_name, version)
     if not file_path.is_file():
         if idl_env is None:
