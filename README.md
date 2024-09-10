@@ -51,7 +51,7 @@ For more advanced examples, see [the example gallery](https://fiasco.readthedocs
 ## Acknowledging or Citing fiasco
 
 If you use `fiasco` in any published work, please cite the appropriate version of the software as well as the CHIANTI atomic database.
-See [this page](https://fiasco.readthedocs.io/en/latest/citation.html) for additional details.
+See [this page](https://fiasco.readthedocs.io/en/stable/citation.html) for additional details.
 
 ## Why *fiasco*?
 
