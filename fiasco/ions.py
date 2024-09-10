@@ -1712,13 +1712,13 @@ Using Datasets:
 
             return (prefactor * f_2)
 
-
     @needs_dataset('elvlc')
     @u.quantity_input
     def two_photon(self,
                    wavelength: u.angstrom,
                    electron_density: u.cm**(-3),
-                   include_protons=False) -> u.Unit('erg cm3 s-1 Angstrom-1'):
+                   include_protons=False,
+                   couple_density_to_temperature=False) -> u.Unit('erg cm3 s-1 Angstrom-1'):
         r"""
         Two-photon continuum emission of a hydrogenic or helium-like ion.
 
@@ -1735,21 +1735,25 @@ Using Datasets:
         electron_density : `~astropy.units.Quantity`
         include_protons : `bool`, optional
             If True, use proton excitation and de-excitation rates in the level population calculation.
+        couple_density_to_temperature: `bool`, optional
+            If True, the density will vary along the same axis as temperature
         """
         wavelength = np.atleast_1d(wavelength)
         electron_density = np.atleast_1d(electron_density)
 
-        final_shape = wavelength.shape + self.temperature.shape + electron_density.shape
+        final_shape = self.temperature.shape + electron_density.shape + wavelength.shape
+        if couple_density_to_temperature:
+            final_shape = self.temperature.shape + (1,) + wavelength.shape
         if self.hydrogenic:
             A_ji = self._hseq['A']
             psi_norm = self._hseq['psi_norm']
-            cubic_spline = CubicSpline(self._hseq['y'], self._hseq['psi'])
+            x_interp, y_interp = self._hseq['y'], self._hseq['psi']
             config = '2s'  # Get the index of the 2S1/2 state for H-like
             J = 0.5
         elif self.helium_like:
             A_ji = self._heseq['A']
             psi_norm = 1.0 * u.dimensionless_unscaled
-            cubic_spline = CubicSpline(self._heseq['y'], self._heseq['psi'])
+            x_interp, y_interp = self._heseq['y'], self._heseq['psi']
             config = '1s.2s'  # Get the index of the 1s2s 1S0 state for He-like:
             J = 0
         else:
@@ -1761,15 +1765,22 @@ Using Datasets:
         E_2p = E_obs if E_obs > 0.0 else E_th
         rest_wavelength = 1 / E_2p
 
-        psi_interp = cubic_spline((rest_wavelength / wavelength).decompose())
-        psi_interp = np.where(wavelength < rest_wavelength, 0.0, psi_interp)
+        # NOTE: Explicitly setting the boundary condition type here to match the behavior of the
+        # IDL spline interpolation functions. See https://github.com/wtbarnes/fiasco/pull/297 for
+        # additional details.
+        cubic_spline = CubicSpline(x_interp, y_interp, bc_type='natural')
+        x_new = (rest_wavelength / wavelength).decompose().to_value(u.dimensionless_unscaled)
+        psi_interp = cubic_spline(x_new)
+        psi_interp = np.where(x_new>1.0, 0.0, psi_interp)
 
         energy_dist = (A_ji * rest_wavelength * psi_interp) / (psi_norm * wavelength**3)
 
         level_population = self.level_populations(electron_density, include_protons=include_protons)
         level_population = level_population[..., level_index]
 
+        if couple_density_to_temperature:
+            electron_density = electron_density[:, np.newaxis]
         level_density = level_population / electron_density
-        matrix = np.outer(energy_dist, level_density).reshape(*final_shape)
+        matrix = np.outer(level_density, energy_dist).reshape(final_shape)
 
         return const.h * const.c * matrix

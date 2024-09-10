@@ -2,6 +2,7 @@
 IDL comparison tests for continuum calculations
 """
 import astropy.units as u
+import copy
 import numpy as np
 import pytest
 
@@ -42,6 +43,7 @@ def idl_input_args(ion_input_args, temperature):
     return {
         'wavelength': np.arange(25, 414, 1) * u.Angstrom,
         'temperature': temperature,
+        'density': 1e9*u.cm**(-3),
         **ion_input_args,
     }
 
@@ -187,3 +189,38 @@ def test_idl_compare_free_bound_radiative_loss(idl_env, ion_input_args, hdf5_dba
                       free_bound_radiative_loss_python,
                       atol=None,
                       rtol=0.01)
+
+
+@pytest.mark.xfail()
+def test_idl_compare_two_photon(idl_env, all_ions, idl_input_args, dbase_version):
+    script = """
+    ; set common block
+    common elements, abund, abund_ref, ioneq, ioneq_logt, ioneq_ref
+
+    ; read abundance and ionization equilibrium
+    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
+    ioneq_file = FILEPATH('{{ioneq}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    read_abund, abund_file, abund, abund_ref
+    read_ioneq, ioneq_file, ioneq_logt, ioneq, ioneq_ref
+
+    ; set temperature and wavelength
+    temperature = {{ temperature | to_unit('K') | force_double_precision }}
+    density = {{ density | to_unit('cm-3') | force_double_precision }}
+    wavelength = {{ wavelength | to_unit('Angstrom') | force_double_precision }}
+
+    ; calculate two-photon
+    two_photon,temperature,wavelength,two_photon_continuum,edensity=density,/no_setup
+    """
+    # NOTE: Extend wavelength range for the two-photon test
+    new_input_args = copy.deepcopy(idl_input_args)
+    new_input_args['temperature'] = 10**np.arange(4, 7.05, 0.05) * u.K
+    new_input_args['wavelength'] = np.arange(1,2000,1) * u.Angstrom
+    idl_result = run_idl_script(idl_env,
+                                script,
+                                new_input_args,
+                                ['two_photon_continuum'],
+                                'twophoton_all_ions',
+                                dbase_version,
+                                format_func={'two_photon_continuum': lambda x: x*4*np.pi/1e40*u.Unit('erg cm3 s-1 Angstrom-1')})
+    two_photon_python = all_ions.two_photon(idl_result['wavelength'], idl_result['density']).squeeze()
+    assert u.allclose(idl_result['two_photon_continuum'], two_photon_python, atol=None, rtol=0.005)

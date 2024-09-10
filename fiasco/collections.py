@@ -194,7 +194,7 @@ Available Ions
         """
         wavelength = np.atleast_1d(wavelength)
         electron_density = np.atleast_1d(electron_density)
-        two_photon = u.Quantity(np.zeros(wavelength.shape + self.temperature.shape + electron_density.shape),
+        two_photon = u.Quantity(np.zeros(self.temperature.shape + electron_density.shape + wavelength.shape),
                                 'erg cm^3 s^-1 Angstrom^-1')
         for ion in self:
             try:
@@ -203,7 +203,7 @@ Available Ions
                 self.log.warning(f'{ion.ion_name} not included in two-photon emission. {e}')
                 continue
             else:
-                two_photon += tp * ion.abundance * ion.ioneq[:, np.newaxis]
+                two_photon += tp * ion.abundance * ion.ioneq[:, np.newaxis, np.newaxis]
         return two_photon
 
     @u.quantity_input
