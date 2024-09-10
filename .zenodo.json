@@ -1,0 +1,44 @@
+{
+  "description": "fiasco provides a Python interface to the CHIANTI, an atomic database used primarily for astrophysical spectroscopy.",
+  "license": "BSD-3-Clause",
+  "title": "fiasco",
+  "upload_type": "software",
+  "access_right": "open",
+  "creators": [
+    {
+      "name": "Will Barnes",
+      "orcid": "0000-0001-9642-6089",
+      "affiliation": "Department of Physics, American University / NASA Goddard Space Flight Center"
+    },
+    {
+      "name": "David Stansby",
+      "orcid": "0000-0002-1365-1908",
+      "affiliation": "Department of Mechanical Engineering, University College London"
+    },
+    {
+      "name": "Nick Murphy",
+      "orcid": "0000-0001-6628-8033",
+      "affiliation": "Center for Astrophysics | Harvard & Smithsonian"
+    },
+    {
+      "name": "Jeffrey Reep",
+      "orcid": "0000-0003-4739-1152",
+      "affiliation": "University of Hawaii at Manoa"
+    },
+    {
+      "name": "Stuart Mumford",
+      "orcid": "0000-0003-4217-4642",
+      "affiliation": "Aperio Software Ltd."
+    },
+    {
+      "name": "Nabil Freij",
+      "orcid": "0000-0002-6253-082X",
+      "affiliation": "Lockheed Martin Solar and Astrophysics Laboratory & Bay Area Environmental Research Institute"
+    },
+    {
+      "name": "Laura Hayes",
+      "orcid": "0000-0002-6835-2390",
+      "affiliation": "European Space Research and Technology Centre, European Space Agency"
+    }
+  ]
+}

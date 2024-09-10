@@ -13,7 +13,7 @@ In addition to several high-level abstractions of the atomic data, fiasco also p
 ## Install
 
 ```shell
-$ pip install fiasco
+pip install fiasco
 ```
 
 The [CHIANTI atomic database](http://www.chiantidatabase.org/chianti_download.html) is also required.
