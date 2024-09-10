@@ -342,8 +342,21 @@ class CilvlParser(GenericIonParser):
 
 class ReclvlParser(CilvlParser):
     filetype = 'reclvl'
+    dtypes = [int, int, 'object', 'object']
     headings = ['lower_level', 'upper_level', 'temperature', 'recombination_rate']
     descriptions = ['lower level index', 'upper level index', 'temperature', 'recombination rate coefficient']
+
+    def postprocessor(self, df):
+        # NOTE: For some versions of the database, not all of the temperatures and rates in a given file are
+        # the same length. As such, the dtype of these columns must be set to "object". However, in cases
+        # where they are all equal, we want to make sure they are preserved as floats.
+        for cn in df.colnames:
+            all_equal = np.all(np.array([row.size for row in df[cn]]) == df[cn][0].size)
+            if df[cn].dtype == np.dtype('O') and all_equal:
+                df[cn] = df[cn].astype(np.dtype('float64'))
+
+        df = super().postprocessor(df)
+        return df
 
 
 class RrparamsParser(GenericIonParser):
