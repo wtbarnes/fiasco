@@ -4,7 +4,6 @@
 import configparser
 import datetime
 import os
-import pathlib
 
 from sphinx_gallery.sorting import ExplicitOrder
 
@@ -138,10 +137,10 @@ ON_RTD = os.environ.get('READTHEDOCS') == 'True'
 ON_GHA = os.environ.get('CI') == 'true'
 
 # On Read the Docs and CI, download the database and build a minimal HDF5 version
-if ON_RTD or ON_GHA:
+if (ON_RTD or ON_GHA):
     from fiasco.util import build_hdf5_dbase, download_dbase, get_test_file_list
     from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
-    FIASCO_HOME = pathlib.Path.home() / '.fiasco'
+    from fiasco.util.util import FIASCO_HOME, FIASCO_RC
     FIASCO_HOME.mkdir(exist_ok=True, parents=True)
     ascii_dbase_root = FIASCO_HOME / 'chianti_dbase'
     hdf5_dbase_root = FIASCO_HOME / 'chianti_dbase.h5'
@@ -151,7 +150,7 @@ if ON_RTD or ON_GHA:
         hdf5_dbase_root,
         files=get_test_file_list(),
     )
-    with (FIASCO_HOME / 'fiascorc').open('w') as f:
+    with FIASCO_RC.open(mode='w') as f:
         c = configparser.ConfigParser()
         c.add_section('database')
         c.set('database', 'ascii_dbase_root', str(ascii_dbase_root))
