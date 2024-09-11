@@ -15,6 +15,7 @@ py:class time-like
 py:obj function
 py:obj iterable
 # Units
+py:class Unit
 py:class Unit('1 / cm3')
 py:class Unit('erg')
 py:class Unit('Angstrom')
