@@ -1,7 +1,7 @@
 fiasco Documentation
 ====================
 
-Welcome to the documentation for fiasco.
+Welcome to the documentation for fiasco **version |release|**
 
 fiasco provides a Python interface to the `CHIANTI atomic database`_.
 In addition to several high-level abstractions of the atomic data, fiasco also provides many common atomic physics calculations.
