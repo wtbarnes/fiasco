@@ -134,7 +134,7 @@ graphviz_dot_args = [
 
 # -- Database on RTD -----------------------------------------------
 ON_RTD = os.environ.get('READTHEDOCS') == 'True'
-ON_GHA = os.environ.get('CI') == 'true'
+ON_GHA = os.environ.get('GITHUB_ACTIONS') == 'true'
 
 # On Read the Docs and CI, download the database and build a minimal HDF5 version
 if ON_RTD or ON_GHA:
