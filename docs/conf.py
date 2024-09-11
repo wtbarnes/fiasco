@@ -14,12 +14,12 @@ from sphinx_gallery.sorting import ExplicitOrder
 
 # -- Project information -----------------------------------------------------
 project = 'fiasco'
-copyright = f'{datetime.datetime.utcnow().year}, Will Barnes'
 author = 'Will Barnes'
-# The full version, including alpha/beta/rc tags
+copyright = f'{datetime.datetime.utcnow().year}, {author}'
+
 from fiasco import __version__
 
-release = __version__
+version = release = __version__
 is_development = '.dev' in __version__
 
 # -- General configuration ---------------------------------------------------
