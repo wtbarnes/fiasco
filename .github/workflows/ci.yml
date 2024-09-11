@@ -11,33 +11,33 @@ on:
   workflow_dispatch:
 
 jobs:
-  #core:
-  #  uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
-  #  with:
-  #    posargs: '--ascii-dbase-root ~/.chianti'
-  #    toxdeps: tox-pypi-filter
-  #    envs: |
-  #      - linux: py312
-  #    coverage: 'codecov'
-  #    cache-path: ~/.chianti
-  #    cache-key: chianti-${{ github.event.number }}
-  #  secrets:
-  #    CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  # core:
+  #   uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+  #   with:
+  #     posargs: '--ascii-dbase-root ~/.chianti'
+  #     toxdeps: tox-pypi-filter
+  #     envs: |
+  #       - linux: py312
+  #     coverage: 'codecov'
+  #     cache-path: ~/.chianti
+  #     cache-key: chianti-${{ github.event.number }}
+  #   secrets:
+  #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  #tests:
-  #  needs: [core]
-  #  uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
-  #  with:
-  #    posargs: '--ascii-dbase-root ~/.chianti'
-  #    toxdeps: tox-pypi-filter
-  #    envs: |
-  #      - macos: py311
-  #      - windows: py310
-  #    coverage: 'codecov'
-  #    cache-path: ~/.chianti
-  #    cache-key: chianti-${{ github.event.number }}
-  #  secrets:
-  #    CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  # tests:
+  #   needs: [core]
+  #   uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+  #   with:
+  #     posargs: '--ascii-dbase-root ~/.chianti'
+  #     toxdeps: tox-pypi-filter
+  #     envs: |
+  #       - macos: py311
+  #       - windows: py310
+  #     coverage: 'codecov'
+  #     cache-path: ~/.chianti
+  #     cache-key: chianti-${{ github.event.number }}
+  #   secrets:
+  #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   test_full_database:
     if: |
@@ -50,7 +50,7 @@ jobs:
         github.event_name == 'pull_request' &&
         contains(github.event.pull_request.labels.*.name, 'Run full database tests')
       )
-    #needs: [tests]
+    # needs: [tests]
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       posargs: '--ascii-dbase-root ~/.chianti --include-all-files'
@@ -71,7 +71,7 @@ jobs:
         github.event_name == 'pull_request' &&
         contains(github.event.pull_request.labels.*.name, 'Run v7 tests')
       )
-    #needs: [tests]
+    # needs: [tests]
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       posargs: '--ascii-dbase-root ~/.chianti --ascii-dbase-url http://download.chiantidatabase.org/CHIANTI_v7.1.4_database.tar.gz --disable-file-hash --skip-version-check'
@@ -90,7 +90,7 @@ jobs:
         github.event_name == 'pull_request' &&
         contains(github.event.pull_request.labels.*.name, 'Run v9 tests')
       )
-    #needs: [tests]
+    # needs: [tests]
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       posargs: '--ascii-dbase-root ~/.chianti --ascii-dbase-url http://download.chiantidatabase.org/CHIANTI_v9.0.1_database.tar.gz --disable-file-hash --skip-version-check'
@@ -99,7 +99,7 @@ jobs:
         - linux: py311
 
   docs:
-    #needs: [tests]
+    # needs: [tests]
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       toxdeps: tox-pypi-filter
@@ -120,7 +120,7 @@ jobs:
         github.event_name == 'pull_request' &&
         contains(github.event.pull_request.labels.*.name, 'Run publish')
       )
-    needs: [tests,test_full_database]
+    # needs: [tests,test_full_database]
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/publish_pure_python.yml@main
     with:
       test_extras: 'dev'
