@@ -106,6 +106,8 @@ jobs:
       envs: |
         - linux: build_docs-gallery
           python-version: '3.12'
+          setenv: |
+            GITHUB_ACTIONS: true
 
   publish:
     # Build wheels when pushing to any branch except main
