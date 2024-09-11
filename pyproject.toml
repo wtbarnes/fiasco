@@ -84,6 +84,7 @@ dev = ["fiasco[test,docs]"]
 packages = ["fiasco"]
 
 [tool.setuptools_scm]
+write_to = "fiasco/version.py"
 
 [tool.pytest.ini_options]
 testpaths = [
