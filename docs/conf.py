@@ -134,10 +134,10 @@ graphviz_dot_args = [
 
 # -- Database on RTD -----------------------------------------------
 ON_RTD = os.environ.get('READTHEDOCS') == 'True'
-ON_GHA = os.environ.get('GITHUB_ACTIONS') == 'true'
+ON_GHA = os.environ.get('CI') == 'true'
 
 # On Read the Docs and CI, download the database and build a minimal HDF5 version
-if ON_RTD or ON_GHA:
+if (ON_RTD or ON_GHA):
     print('Setting up database on actions')
     from fiasco.util import build_hdf5_dbase, download_dbase, get_test_file_list
     from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
