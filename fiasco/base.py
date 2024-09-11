@@ -102,7 +102,17 @@ class ContinuumBase(Base):
     def _gffint(self):
         data_path = '/'.join(['continuum', 'gffint'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
-
+    
+    @property
+    def _itohintrel(self):
+        data_path = '/'.join(['continuum', 'itohintrel'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+    
+    @property
+    def _itohintnonrel(self):
+        data_path = '/'.join(['continuum', 'itohintnonrel'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+    
     @property
     def _klgfb(self):
         data_path = '/'.join(['continuum', 'klgfb'])
