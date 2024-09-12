@@ -138,16 +138,17 @@ ON_GHA = os.environ.get('CI') == 'true'
 
 # On Read the Docs and CI, download the database and build a minimal HDF5 version
 if (ON_RTD or ON_GHA):
-    from fiasco.util import build_hdf5_dbase, download_dbase, get_test_file_list
+    from fiasco.util import check_database, get_test_file_list
     from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
     from fiasco.util.util import FIASCO_HOME, FIASCO_RC
     FIASCO_HOME.mkdir(exist_ok=True, parents=True)
     ascii_dbase_root = FIASCO_HOME / 'chianti_dbase'
     hdf5_dbase_root = FIASCO_HOME / 'chianti_dbase.h5'
-    download_dbase(CHIANTI_URL.format(version=LATEST_VERSION), ascii_dbase_root)
-    build_hdf5_dbase(
-        ascii_dbase_root,
-        hdf5_dbase_root,
+    check_database(
+        hdf5_dbase_root=hdf5_dbase_root,
+        ascii_dbase_root=ascii_dbase_root,
+        ascii_dbase_url = CHIANTI_URL.format(version=LATEST_VERSION),
+        ask_before=False,
         files=get_test_file_list(),
     )
     with FIASCO_RC.open(mode='w') as f:
