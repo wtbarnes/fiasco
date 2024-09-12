@@ -94,31 +94,6 @@ class ContinuumBase(Base):
     """
 
     @property
-    def _gffgu(self):
-        data_path = '/'.join(['continuum', 'gffgu'])
-        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
-
-    @property
-    def _gffint(self):
-        data_path = '/'.join(['continuum', 'gffint'])
-        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
-    
-    @property
-    def _itohintrel(self):
-        data_path = '/'.join(['continuum', 'itohintrel'])
-        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
-    
-    @property
-    def _itohintnonrel(self):
-        data_path = '/'.join(['continuum', 'itohintnonrel'])
-        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
-    
-    @property
-    def _klgfb(self):
-        data_path = '/'.join(['continuum', 'klgfb'])
-        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
-
-    @property
     def _verner(self):
         data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, 'continuum',
                               'verner_short'])
