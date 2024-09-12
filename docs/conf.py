@@ -5,6 +5,7 @@ import configparser
 import datetime
 import os
 
+from packaging.version import Version
 from sphinx_gallery.sorting import ExplicitOrder
 
 # This file does only contain a selection of the most common options. For a
@@ -19,8 +20,13 @@ copyright = f'{datetime.datetime.utcnow().year}, {author}'
 
 from fiasco import __version__
 
-version = release = __version__
-is_development = '.dev' in __version__
+_version_ = Version(__version__)
+# NOTE: Avoid "post" appearing in version string in rendered docs
+if _version_.is_postrelease:
+    version = release = f'{_version_.major}.{_version_.minor}.{_version_.micro}'
+else:
+    version = release = str(_version_)
+is_development = _version_.is_devrelease
 
 # -- General configuration ---------------------------------------------------
 extensions = [
