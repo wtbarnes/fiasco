@@ -5,9 +5,14 @@ on:
     branches:
       - 'main'
       - '*.*'
+      - '!*backport*'
     tags:
       - 'v*'
+      - '!*dev*'
+      - '!*pre*'
+      - '!*post*'
   pull_request:
+  # Allow manual runs through the web UI
   workflow_dispatch:
 
 jobs:
