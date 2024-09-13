@@ -92,7 +92,7 @@ class GauntFactor():
         lower_u = const.h * const.c / const.k_B / tmp
         upper_u = 1. / 2.5 * (np.log10(lower_u) + 1.5)
         t = 1. / 1.25 * (log10_temperature - 7.25)
-        itoh_coefficients = ion._itoh['a']
+        itoh_coefficients = self._itoh['a'][atomic_number-1]
         # calculate Gaunt factor
         gf = u.Quantity(np.zeros(upper_u.shape))
         for j in range(11):

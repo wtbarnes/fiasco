@@ -1341,7 +1341,7 @@ Using Datasets:
         of :math:`F_k\approx1.42555669\times10^{-27}\,\mathrm{cm}^{5}\,\mathrm{g}\,\mathrm{K}^{-1/2}\,\mathrm{s}^{3}`.
         """
         prefactor = (16./3**1.5) * np.sqrt(2. * np.pi * const.k_B/(const.hbar**2 * const.m_e**3)) * (const.e.esu**6 / const.c**3)
-        gf = self.gaunt_factor.free_free_total(temperature, self.charge_state)
+        gf = self.gaunt_factor.free_free_total(self.temperature, self.charge_state)
         return (prefactor * self.charge_state**2 * gf * np.sqrt(self.temperature))
 
     @needs_dataset('fblvl', 'ip')
