@@ -5,9 +5,14 @@ on:
     branches:
       - 'main'
       - '*.*'
+      - '!*backport*'
     tags:
       - 'v*'
+      - '!*dev*'
+      - '!*pre*'
+      - '!*post*'
   pull_request:
+  # Allow manual runs through the web UI
   workflow_dispatch:
 
 jobs:
@@ -106,6 +111,9 @@ jobs:
       envs: |
         - linux: build_docs-gallery
           python-version: '3.12'
+      libraries: |
+        apt:
+          - graphviz
 
   publish:
     # Build wheels when pushing to any branch except main

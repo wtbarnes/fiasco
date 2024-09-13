@@ -4,8 +4,8 @@
 import configparser
 import datetime
 import os
-import pathlib
 
+from packaging.version import Version
 from sphinx_gallery.sorting import ExplicitOrder
 
 # This file does only contain a selection of the most common options. For a
@@ -15,13 +15,18 @@ from sphinx_gallery.sorting import ExplicitOrder
 
 # -- Project information -----------------------------------------------------
 project = 'fiasco'
-copyright = f'{datetime.datetime.utcnow().year}, Will Barnes'
 author = 'Will Barnes'
-# The full version, including alpha/beta/rc tags
+copyright = f'{datetime.datetime.utcnow().year}, {author}'
+
 from fiasco import __version__
 
-release = __version__
-is_development = '.dev' in __version__
+_version_ = Version(__version__)
+# NOTE: Avoid "post" appearing in version string in rendered docs
+if _version_.is_postrelease:
+    version = release = f'{_version_.major}.{_version_.minor}.{_version_.micro}'
+else:
+    version = release = str(_version_)
+is_development = _version_.is_devrelease
 
 # -- General configuration ---------------------------------------------------
 extensions = [
@@ -138,20 +143,21 @@ ON_RTD = os.environ.get('READTHEDOCS') == 'True'
 ON_GHA = os.environ.get('CI') == 'true'
 
 # On Read the Docs and CI, download the database and build a minimal HDF5 version
-if ON_RTD or ON_GHA:
-    from fiasco.util import build_hdf5_dbase, download_dbase, get_test_file_list
+if (ON_RTD or ON_GHA):
+    from fiasco.util import check_database, get_test_file_list
     from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
-    FIASCO_HOME = pathlib.Path.home() / '.fiasco'
+    from fiasco.util.util import FIASCO_HOME, FIASCO_RC
     FIASCO_HOME.mkdir(exist_ok=True, parents=True)
     ascii_dbase_root = FIASCO_HOME / 'chianti_dbase'
     hdf5_dbase_root = FIASCO_HOME / 'chianti_dbase.h5'
-    download_dbase(CHIANTI_URL.format(version=LATEST_VERSION), ascii_dbase_root)
-    build_hdf5_dbase(
-        ascii_dbase_root,
-        hdf5_dbase_root,
+    check_database(
+        hdf5_dbase_root=hdf5_dbase_root,
+        ascii_dbase_root=ascii_dbase_root,
+        ascii_dbase_url = CHIANTI_URL.format(version=LATEST_VERSION),
+        ask_before=False,
         files=get_test_file_list(),
     )
-    with (FIASCO_HOME / 'fiascorc').open('w') as f:
+    with FIASCO_RC.open(mode='w') as f:
         c = configparser.ConfigParser()
         c.add_section('database')
         c.set('database', 'ascii_dbase_root', str(ascii_dbase_root))
