@@ -281,24 +281,36 @@ class ItohParser(GenericParser):
 From Itoh, N., et al., ApJS, 2000, 128, 125"""
 
     def to_hdf5(self, hf, df, **kwargs):
-        for row in df:
-            el = plasmapy.particles.atomic_symbol(int(row['Z'])).lower()
-            grp_name = f'{el}/continuum/{self.filetype}'
-            if grp_name not in hf:
-                grp = hf.create_group(grp_name)
-                grp.attrs['chianti_version'] = df.meta['chianti_version']
-                grp.attrs['footer'] = df.meta['footer']
+        grp_name = '/'.join(['continuum', self.filetype])
+        if grp_name not in hf:
+            grp = hf.create_group(grp_name)
+            grp.attrs['chianti_version'] = df.meta['chianti_version']
+            grp.attrs['footer'] = df.meta['footer']
+        else:
+            grp = hf[grp_name]
+            
+        for name in df.colnames:
+            col = df[name]
+            if type(col) == u.Quantity:
+                data = col.value
             else:
-                grp = hf[grp_name]
-            for col in row.colnames:
-                if col == 'Z':
-                    continue
-                ds = grp.create_dataset(col, data=row[col])
-                ds.attrs['description'] = df.meta['descriptions'][col]
-                if not hasattr(row[col], 'unit'):
-                    ds.attrs['unit'] = 'SKIP'
+                data = col.data
+            if '<U' in data.dtype.str:
+                numchar = data.dtype.str[2:]
+                data = data.astype(f'|S{numchar}')
+            if name in grp:
+                ds = grp[name]
+            else:
+                if data.dtype == np.dtype('O'):
+                    ragged_dtype = h5py.special_dtype(vlen=np.dtype('float64'))
+                    ds = grp.create_dataset(name, data=data, dtype=ragged_dtype)
                 else:
-                    ds.attrs['unit'] = row[col].unit.to_string()
+                    ds = grp.create_dataset(name, data=data, dtype=data.dtype)
+            if col.unit is None:
+                ds.attrs['unit'] = 'SKIP'
+            else:
+                ds.attrs['unit'] = col.unit.to_string()
+            ds.attrs['description'] = df.meta['descriptions'][name]
 
 
 class HSeqParser(GenericParser):
