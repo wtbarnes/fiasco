@@ -6,11 +6,11 @@ import astropy.units as u
 import numpy as np
 
 from scipy.ndimage import map_coordinates
+from scipy.special import polygamma
 
 import fiasco
 
 from fiasco.io.datalayer import DataIndexer
-from fiasco.base import IonBase, ContinuumBase
 from fiasco.util import check_database, needs_dataset
 
 __all__ = ['GauntFactor']
@@ -19,7 +19,8 @@ class GauntFactor():
     """
     Class for calculating the Gaunt factor for various continuum processes.
     """
-    def __init__(self, ion, freefree=False, freebound=False, wavelength_integrated=False,
+    def __init__(self, ion, wavelength=None, freefree=False, freebound=False, 
+                    wavelength_integrated=False,
                     hdf5_dbase_root=None, *args, **kwargs):
         if hdf5_dbase_root is None:
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
@@ -31,8 +32,29 @@ class GauntFactor():
         self.freebound = freebound
         self.wavelength_integrated = wavelength_integrated
         
+        self.gf = None
+        if freefree and wavelength is not None and not wavelength_integrated:
+            self.gf = self.free_free(ion, wavelength)
+        elif freefree and wavelength_integrated:
+            self.gf = self.free_free_total(ion)
+        elif freebound and wavelength_integrated:
+            self.gf = self.free_bound_total(ion, **kwargs)
+        
     def __str__(self):
-        return "Gaunt factor!"
+        return f"{self.gf}"
+        
+    def __repr__(self):
+        if self.freefree:
+            gaunt_type = "Free-free"
+        elif self.freebound:
+            gaunt_type = "Free-bound"
+        
+        if self.wavelength_integrated:
+            wavelength_type = ", wavelength-integrated"
+        else:
+            wavelength_type = " as a function of wavelength"
+            
+        return f"{gaunt_type} Gaunt Factor{wavelength_type}"
             
     @property
     def _gffgu(self):
@@ -53,12 +75,7 @@ class GauntFactor():
     def _itohintnonrel(self):
         data_path = '/'.join(['continuum', 'itohintnonrel'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
-    
-    @property
-    def _klgfb(self):
-        data_path = '/'.join(['continuum', 'klgfb'])
-        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
-    
+        
     @u.quantity_input
     def free_free(self, ion, wavelength: u.angstrom) -> u.dimensionless_unscaled:
         r"""
@@ -86,7 +103,6 @@ class GauntFactor():
 
         return gf
         
-    #@needs_dataset('itoh')
     @u.quantity_input
     def _free_free_itoh(self, ion, wavelength: u.angstrom) -> u.dimensionless_unscaled:
         log10_temperature = np.log10(ion.temperature.to(u.K).value)
