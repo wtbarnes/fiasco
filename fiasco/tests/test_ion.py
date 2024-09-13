@@ -347,7 +347,7 @@ def test_free_free(ion):
     assert u.allclose(emission[0], 1.72804216e-29 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
 def test_gaunt_factor_free_free_total(ion):
-    gf = ion._gaunt_factor_free_free_total()
+    gf = fiasco.GauntFactor(ion, freefree=True, wavelength_integrated=True).gf
     assert gf.shape == ion.temperature.shape
     # This value has not been tested for correctness
     assert u.allclose(gf[0], 1.23584439 * u.dimensionless_unscaled)
@@ -365,10 +365,10 @@ def test_free_bound(ion):
     assert u.allclose(emission[0, 0], 9.7902609e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
 def test_gaunt_factor_free_bound_total(ion, h1, fe2):
-    ion_gf_0 = ion._gaunt_factor_free_bound_total()
-    ion_gf_1 = ion._gaunt_factor_free_bound_total(ground_state=False)
-    h1_gf = h1._gaunt_factor_free_bound_total()
-    fe2_gf = fe2._gaunt_factor_free_bound_total()
+    ion_gf_0 = fiasco.GauntFactor(ion, freebound=True, wavelength_integrated=True).gf
+    ion_gf_1 = fiasco.GauntFactor(ion, freebound=True, wavelength_integrated=True, ground_state=False).gf
+    h1_gf = fiasco.GauntFactor(h1, freebound=True, wavelength_integrated=True).gf
+    fe2_gf = fiasco.GauntFactor(fe2, freebound=True, wavelength_integrated=True).gf
     assert ion_gf_0.shape == ion.temperature.shape
     assert h1_gf.shape == h1.temperature.shape
     assert fe2_gf.shape == fe2.temperature.shape
@@ -389,7 +389,7 @@ def test_free_bound_gaunt_factor_low_temperature(gs, hdf5_dbase_root):
     # At low temperatures (~1e4 K), exponential terms in the gaunt factor used to compute the
     # free-bound radiative loss can blow up. This just tests to make sure those are handled correctly
     ion = fiasco.Ion('N 8', np.logspace(4,6,100)*u.K, hdf5_dbase_root=hdf5_dbase_root)
-    gf_fb_total = ion._gaunt_factor_free_bound_total(ground_state=gs)
+    gf_fb_total = fiasco.GauntFactor(ion, freebound=True, wavelength_integrated=True, ground_state=gs).gf
     assert not np.isinf(gf_fb_total).any()
 
 
