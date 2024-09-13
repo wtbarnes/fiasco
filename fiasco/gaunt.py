@@ -1,5 +1,5 @@
 """
-Gaunt factor object. 
+Gaunt factor object.
 """
 import astropy.constants as const
 import astropy.units as u
@@ -15,7 +15,7 @@ from fiasco.util import check_database, needs_dataset
 
 __all__ = ['GauntFactor']
 
-class GauntFactor():
+class GauntFactor:
     """
     Class for calculating the Gaunt factor for various continuum processes.
     """
@@ -25,13 +25,13 @@ class GauntFactor():
         else:
             self.hdf5_dbase_root = hdf5_dbase_root
         check_database(self.hdf5_dbase_root, **kwargs)
-                        
+
     def __str__(self):
         return "Gaunt factor object"
-        
-    def __repr__(self):            
+
+    def __repr__(self):
         return "Gaunt factor object"
-            
+
     @property
     def _gffgu(self):
         data_path = '/'.join(['continuum', 'gffgu'])
@@ -41,7 +41,7 @@ class GauntFactor():
     def _gffint(self):
         data_path = '/'.join(['continuum', 'gffint'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
-    
+
     @property
     def _itoh(self):
         data_path = '/'.join(['continuum', 'itoh'])
@@ -56,7 +56,7 @@ class GauntFactor():
     def _itohintnonrel(self):
         data_path = '/'.join(['continuum', 'itohintnonrel'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
-        
+
     @u.quantity_input
     def free_free(self, temperature: u.K, atomic_number, charge_state, wavelength: u.angstrom) -> u.dimensionless_unscaled:
         r"""
@@ -83,7 +83,7 @@ class GauntFactor():
         gf = np.where(np.isnan(gf_itoh), gf_sutherland, gf_itoh)
 
         return gf
-        
+
     @u.quantity_input
     def _free_free_itoh(self, temperature: u.K, atomic_number, wavelength: u.angstrom) -> u.dimensionless_unscaled:
         log10_temperature = np.log10(temperature.to(u.K).value)
@@ -104,7 +104,7 @@ class GauntFactor():
         gf[np.where(np.logical_or(log10_temperature <= 6.0, log10_temperature >= 8.5)), :] = np.nan
 
         return gf
-        
+
     @needs_dataset('gffgu')
     @u.quantity_input
     def _free_free_sutherland(self, temperature: u.K, charge_state, wavelength: u.angstrom) -> u.dimensionless_unscaled:
@@ -150,7 +150,7 @@ class GauntFactor():
             return self._gffint['gaunt_factor'][index] + delta * (self._gffint['s1'][index] + delta * (self._gffint['s2'][index] + delta * self._gffint['s3'][index]))
 
     @u.quantity_input
-    def free_bound_total(self, temperature: u.K, atomic_number, charge_state, n_0, 
+    def free_bound_total(self, temperature: u.K, atomic_number, charge_state, n_0,
                             ionization_potential: u.eV, ground_state=True) -> u.dimensionless_unscaled:
         r"""
         The total Gaunt factor for free-bound emission, using the expressions from :cite:t:`mewe_calculated_1986`.
@@ -160,16 +160,16 @@ class GauntFactor():
 
         Parameters
         ----------
-        temperature : 
+        temperature :
             The temperature(s) for which to calculate the Gaunt factor
         atomic_number : `int`
             The atomic number of the element
         charge_state : `int`,
             The charge state of the ion
-        n_0 : 
+        n_0 :
             The principal quantum number n of the ground state of the recombined ion
-        ionization_potential : 
-            The ionization potential of the recombined ion 
+        ionization_potential :
+            The ionization potential of the recombined ion
         ground_state : `bool`, optional
             If True (default), calculate the Gaunt factor for recombination onto the ground state :math: `n = 0`.
             Otherwise, calculate for recombination onto higher levels with :math: `n > 1`.  See Equation 16 of

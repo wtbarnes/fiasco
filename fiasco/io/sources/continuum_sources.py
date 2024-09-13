@@ -10,7 +10,7 @@ import plasmapy
 from fiasco.io.generic import GenericParser
 
 __all__ = ['GffguParser', 'GffintParser', 'ItohIntegratedGauntParser',
-           'ItohIntegratedGauntNonrelParser', 'KlgfbParser', 'VernerParser', 
+           'ItohIntegratedGauntNonrelParser', 'KlgfbParser', 'VernerParser',
            'ItohParser', 'HSeqParser', 'HeSeqParser']
 
 
@@ -288,7 +288,7 @@ From Itoh, N., et al., ApJS, 2000, 128, 125"""
             grp.attrs['footer'] = df.meta['footer']
         else:
             grp = hf[grp_name]
-            
+
         for name in df.colnames:
             col = df[name]
             if type(col) == u.Quantity:

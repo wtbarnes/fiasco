@@ -347,7 +347,7 @@ def test_free_free(ion):
     assert u.allclose(emission[0], 1.72804216e-29 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
 def test_gaunt_factor_free_free_total(ion):
-    gf = fiasco.GauntFactor(ion, freefree=True, wavelength_integrated=True).gf
+    gf = ion.gaunt_factor.free_free_total(ion.temperature, ion.charge_state)
     assert gf.shape == ion.temperature.shape
     # This value has not been tested for correctness
     assert u.allclose(gf[0], 1.23584439 * u.dimensionless_unscaled)
@@ -365,10 +365,10 @@ def test_free_bound(ion):
     assert u.allclose(emission[0, 0], 9.7902609e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
 def test_gaunt_factor_free_bound_total(ion, h1, fe2):
-    ion_gf_0 = fiasco.GauntFactor(ion, freebound=True, wavelength_integrated=True).gf
-    ion_gf_1 = fiasco.GauntFactor(ion, freebound=True, wavelength_integrated=True, ground_state=False).gf
-    h1_gf = fiasco.GauntFactor(h1, freebound=True, wavelength_integrated=True).gf
-    fe2_gf = fiasco.GauntFactor(fe2, freebound=True, wavelength_integrated=True).gf
+    ion_gf_0 = ion.gaunt_factor.free_bound_total(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=True)
+    ion_gf_1 = ion.gaunt_factor.free_bound_total(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=False)
+    h1_gf = h1.gaunt_factor.free_bound_total(h1.temperature, h1.atomic_number, h1.charge_state, h1.previous_ion()._fblvl['n'][0], h1.previous_ion().ip, ground_state=True)
+    fe2_gf = fe2.gaunt_factor.free_bound_total(fe2.temperature, fe2.atomic_number, fe2.charge_state, fe2.previous_ion()._fblvl['n'][0], fe2.previous_ion().ip, ground_state=True)
     assert ion_gf_0.shape == ion.temperature.shape
     assert h1_gf.shape == h1.temperature.shape
     assert fe2_gf.shape == fe2.temperature.shape
@@ -389,9 +389,8 @@ def test_free_bound_gaunt_factor_low_temperature(gs, hdf5_dbase_root):
     # At low temperatures (~1e4 K), exponential terms in the gaunt factor used to compute the
     # free-bound radiative loss can blow up. This just tests to make sure those are handled correctly
     ion = fiasco.Ion('N 8', np.logspace(4,6,100)*u.K, hdf5_dbase_root=hdf5_dbase_root)
-    gf_fb_total = fiasco.GauntFactor(ion, freebound=True, wavelength_integrated=True, ground_state=gs).gf
+    gf_fb_total = ion.gaunt_factor.free_bound_total(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=gs)
     assert not np.isinf(gf_fb_total).any()
-
 
 # The two-photon test currently fails for dbase_version >= 9 because it is missing c_5.reclvl
 @pytest.mark.requires_dbase_version('>= 8','<= 8.0.7')
