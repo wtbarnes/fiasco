@@ -60,6 +60,7 @@ class Ion(IonBase, ContinuumBase):
         self._dset_names['ioneq_filename'] = kwargs.get('ioneq_filename', 'chianti')
         self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
         self.abundance = abundance
+        self.gaunt_factor = GauntFactor()
 
     def _new_instance(self, temperature=None, **kwargs):
         """
@@ -282,25 +283,6 @@ Using Datasets:
         the temperature at which lines for this ion are formed.
         """
         return self.temperature[np.argmax(self.ioneq)]
-
-    @property
-    def _zeta_0(self) -> u.dimensionless_unscaled:
-        r"""
-        :math:`\zeta_{0}`, the number of vacancies in the ion, which is used to calculate
-        the free-bound Gaunt factor of an ion.
-
-        See Section 2.2 and Table 1 of :cite:t:`mewe_calculated_1986`.
-        """
-        difference = self.atomic_number - (self.charge_state + 1)
-        if difference <= 0:
-            max_vacancies = 1
-        elif difference <= 8 and difference > 0:
-            max_vacancies = 9
-        elif difference <= 22 and difference > 8:
-            max_vacancies = 27
-        else:
-            max_vacancies = 55
-        return max_vacancies - difference
 
     @cached_property
     @needs_dataset('scups')
@@ -1323,14 +1305,14 @@ Using Datasets:
 
         See Also
         --------
-        gaunt_factor_free_free
+        fiasco.GauntFactor.free_free
         fiasco.IonCollection.free_free: Includes abundance and ionization equilibrium
         """
         prefactor = (const.c / 3. / const.m_e * (const.alpha * const.h / np.pi)**3
                      * np.sqrt(2. * np.pi / 3. / const.m_e / const.k_B))
         tmp = np.outer(self.temperature, wavelength)
         exp_factor = np.exp(-const.h * const.c / const.k_B / tmp) / (wavelength**2)
-        gf = GauntFactor(self, wavelength, freefree=True, wavelength_integrated=False).gf
+        gf = self.gaunt_factor.free_free(self.temperature, self.atomic_number, self.charge_state, wavelength)
 
         return (prefactor * self.charge_state**2 * exp_factor * gf
                 / np.sqrt(self.temperature)[:, np.newaxis])
@@ -1359,7 +1341,7 @@ Using Datasets:
         of :math:`F_k\approx1.42555669\times10^{-27}\,\mathrm{cm}^{5}\,\mathrm{g}\,\mathrm{K}^{-1/2}\,\mathrm{s}^{3}`.
         """
         prefactor = (16./3**1.5) * np.sqrt(2. * np.pi * const.k_B/(const.hbar**2 * const.m_e**3)) * (const.e.esu**6 / const.c**3)
-        gf = GauntFactor(self, freefree=True, wavelength_integrated=True).gf
+        gf = self.gaunt_factor.free_free_total(temperature, self.charge_state)
         return (prefactor * self.charge_state**2 * gf * np.sqrt(self.temperature))
 
     @needs_dataset('fblvl', 'ip')
@@ -1488,14 +1470,14 @@ Using Datasets:
                 return u.Quantity(np.zeros(self.temperature.shape) * u.erg * u.cm**3 / u.s)
             C_ff = 64 * np.pi / 3.0 * np.sqrt(np.pi/6.) * (const.e.esu**6)/(const.c**2 * const.m_e**1.5 * const.k_B**0.5)
             prefactor = C_ff * const.k_B * np.sqrt(self.temperature) / (const.h*const.c)
-
+                
             E_obs = recombined._fblvl['E_obs']*const.h*const.c
             E_th = recombined._fblvl['E_th']*const.h*const.c
             E_fb = np.where(E_obs==0*u.erg, E_th, E_obs)
             wvl_n0 = const.h * const.c / (recombined.ip - E_fb[0])
             wvl_n1 = (recombined._fblvl['n'][0] + 1)**2 /(const.Ryd * z**2)
-            g_fb0 = GauntFactor(self, freebound=True, wavelength_integrated=True, ground_state=True).gf
-            g_fb1 = GauntFactor(self, freebound=True, wavelength_integrated=True, ground_state=False).gf
+            g_fb0 = self.gaunt_factor.free_bound_total(self.temperature, self.atomic_number, self.charge_state, recombined._fblvl['n'][0], recombined.ip, ground_state=True)
+            g_fb1 = self.gaunt_factor.free_bound_total(self.temperature, self.atomic_number, self.charge_state, recombined._fblvl['n'][0], recombined.ip, ground_state=False)
             term1 = g_fb0 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n0))
             term2 = g_fb1 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n1))
 

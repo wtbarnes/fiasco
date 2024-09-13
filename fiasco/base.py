@@ -104,11 +104,6 @@ class ContinuumBase(Base):
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @property
-    def _itoh(self):
-        data_path = '/'.join([self.atomic_symbol.lower(), 'continuum', 'itoh'])
-        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
-
-    @property
     def _hseq(self):
         data_path = '/'.join([self.atomic_symbol.lower(), 'continuum', 'hseq_2photon'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)

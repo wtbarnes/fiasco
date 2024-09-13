@@ -19,42 +19,18 @@ class GauntFactor():
     """
     Class for calculating the Gaunt factor for various continuum processes.
     """
-    def __init__(self, ion, wavelength=None, freefree=False, freebound=False, 
-                    wavelength_integrated=False,
-                    hdf5_dbase_root=None, *args, **kwargs):
+    def __init__(self, hdf5_dbase_root=None, *args, **kwargs):
         if hdf5_dbase_root is None:
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
             self.hdf5_dbase_root = hdf5_dbase_root
         check_database(self.hdf5_dbase_root, **kwargs)
-        
-        self.freefree = freefree
-        self.freebound = freebound
-        self.wavelength_integrated = wavelength_integrated
-        
-        self.gf = None
-        if freefree and wavelength is not None and not wavelength_integrated:
-            self.gf = self.free_free(ion, wavelength)
-        elif freefree and wavelength_integrated:
-            self.gf = self.free_free_total(ion)
-        elif freebound and wavelength_integrated:
-            self.gf = self.free_bound_total(ion, **kwargs)
-        
+                        
     def __str__(self):
-        return f"{self.gf}"
+        return "Gaunt factor object"
         
-    def __repr__(self):
-        if self.freefree:
-            gaunt_type = "Free-free"
-        elif self.freebound:
-            gaunt_type = "Free-bound"
-        
-        if self.wavelength_integrated:
-            wavelength_type = ", wavelength-integrated"
-        else:
-            wavelength_type = " as a function of wavelength"
-            
-        return f"{gaunt_type} Gaunt Factor{wavelength_type}"
+    def __repr__(self):            
+        return "Gaunt factor object"
             
     @property
     def _gffgu(self):
@@ -67,6 +43,11 @@ class GauntFactor():
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
     
     @property
+    def _itoh(self):
+        data_path = '/'.join(['continuum', 'itoh'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+
+    @property
     def _itohintrel(self):
         data_path = '/'.join(['continuum', 'itohintrel'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
@@ -77,7 +58,7 @@ class GauntFactor():
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
         
     @u.quantity_input
-    def free_free(self, ion, wavelength: u.angstrom) -> u.dimensionless_unscaled:
+    def free_free(self, temperature: u.K, atomic_number, charge_state, wavelength: u.angstrom) -> u.dimensionless_unscaled:
         r"""
         Free-free Gaunt factor as a function of wavelength.
 
@@ -97,17 +78,17 @@ class GauntFactor():
 
         where :math:`t=(\log{T} - 7.25)/1.25` and :math:`U=(\log{u} + 1.5)/2.5`.
         """
-        gf_itoh = self._free_free_itoh(ion, wavelength)
-        gf_sutherland = self._free_free_sutherland(ion, wavelength)
+        gf_itoh = self._free_free_itoh(temperature, atomic_number, wavelength)
+        gf_sutherland = self._free_free_sutherland(temperature, charge_state, wavelength)
         gf = np.where(np.isnan(gf_itoh), gf_sutherland, gf_itoh)
 
         return gf
         
     @u.quantity_input
-    def _free_free_itoh(self, ion, wavelength: u.angstrom) -> u.dimensionless_unscaled:
-        log10_temperature = np.log10(ion.temperature.to(u.K).value)
+    def _free_free_itoh(self, temperature: u.K, atomic_number, wavelength: u.angstrom) -> u.dimensionless_unscaled:
+        log10_temperature = np.log10(temperature.to(u.K).value)
         # calculate scaled energy and temperature
-        tmp = np.outer(ion.temperature, wavelength)
+        tmp = np.outer(temperature, wavelength)
         lower_u = const.h * const.c / const.k_B / tmp
         upper_u = 1. / 2.5 * (np.log10(lower_u) + 1.5)
         t = 1. / 1.25 * (log10_temperature - 7.25)
@@ -126,16 +107,16 @@ class GauntFactor():
         
     @needs_dataset('gffgu')
     @u.quantity_input
-    def _free_free_sutherland(self, ion, wavelength: u.angstrom) -> u.dimensionless_unscaled:
+    def _free_free_sutherland(self, temperature: u.K, charge_state, wavelength: u.angstrom) -> u.dimensionless_unscaled:
         Ry = const.h * const.c * const.Ryd
-        tmp = np.outer(ion.temperature, wavelength)
+        tmp = np.outer(temperature, wavelength)
         lower_u = const.h * const.c / const.k_B / tmp
-        gamma_squared = ((ion.charge_state**2) * Ry / const.k_B / ion.temperature[:, np.newaxis]
+        gamma_squared = ((charge_state**2) * Ry / const.k_B / temperature[:, np.newaxis]
                          * np.ones(lower_u.shape))
         # NOTE: This escape hatch avoids a divide-by-zero warning as we cannot take log10
         # of 0. This does not matter as the free-free continuum will be 0 for zero charge
         # state anyway.
-        if ion.charge_state == 0:
+        if charge_state == 0:
             return u.Quantity(np.zeros(lower_u.shape))
         # convert to index coordinates
         i_lower_u = (np.log10(lower_u) + 4.) * 10.
@@ -153,23 +134,24 @@ class GauntFactor():
 
     @needs_dataset('gffint')
     @u.quantity_input
-    def free_free_total(self, ion) -> u.dimensionless_unscaled:
+    def free_free_total(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
         """
         The total (wavelength-averaged) free-free Gaunt factor, used for calculating
         the total radiative losses from free-free emission.
         """
-        if ion.charge_state == 0:
-            return u.Quantity(np.zeros(ion.temperature.shape))
+        if charge_state == 0:
+            return u.Quantity(np.zeros(temperature.shape))
         else:
             Ry = const.h * const.c * const.Ryd
-            log_gamma_squared = np.log10((ion.charge_state**2 * Ry) / (const.k_B * ion.temperature))
+            log_gamma_squared = np.log10((charge_state**2 * Ry) / (const.k_B * temperature))
             index = [np.abs(self._gffint['log_gamma_squared'] - x).argmin() for x in log_gamma_squared]
             delta = log_gamma_squared - self._gffint['log_gamma_squared'][index]
             # The spline fit was pre-calculated by Sutherland 1998:
             return self._gffint['gaunt_factor'][index] + delta * (self._gffint['s1'][index] + delta * (self._gffint['s2'][index] + delta * self._gffint['s3'][index]))
 
     @u.quantity_input
-    def free_bound_total(self, ion, ground_state=True) -> u.dimensionless_unscaled:
+    def free_bound_total(self, temperature: u.K, atomic_number, charge_state, n_0, 
+                            ionization_potential: u.eV, ground_state=True) -> u.dimensionless_unscaled:
         r"""
         The total Gaunt factor for free-bound emission, using the expressions from :cite:t:`mewe_calculated_1986`.
 
@@ -178,6 +160,16 @@ class GauntFactor():
 
         Parameters
         ----------
+        temperature : 
+            The temperature(s) for which to calculate the Gaunt factor
+        atomic_number : `int`
+            The atomic number of the element
+        charge_state : `int`,
+            The charge state of the ion
+        n_0 : 
+            The principal quantum number n of the ground state of the recombined ion
+        ionization_potential : 
+            The ionization potential of the recombined ion 
         ground_state : `bool`, optional
             If True (default), calculate the Gaunt factor for recombination onto the ground state :math: `n = 0`.
             Otherwise, calculate for recombination onto higher levels with :math: `n > 1`.  See Equation 16 of
@@ -200,25 +192,21 @@ class GauntFactor():
 
         The final expression is therefore simplified and more accurate than :cite:t:`mewe_calculated_1986`.
         """
-        z = ion.charge_state
+        z = charge_state
         if z == 0:
-            return u.Quantity(np.zeros(ion.temperature.shape))
+            return u.Quantity(np.zeros(temperature.shape))
         else:
-            recombined = ion.previous_ion()
-            if not recombined._has_dataset('fblvl'):
-                return u.Quantity(np.zeros(ion.temperature.shape))
             Ry = const.h * const.c * const.Ryd
-            prefactor = (Ry / (const.k_B * ion.temperature)).decompose()
-            n_0 = recombined._fblvl['n'][0]
+            prefactor = (Ry / (const.k_B * temperature)).decompose()
             if ground_state:
                 g_n_0 = 0.9 # The ground state Gaunt factor, g_fb(n_0), prescribed by Mewe et al 1986
-                z_0 = n_0 * np.sqrt(recombined.ip / Ry).decompose()
+                z_0 = n_0 * np.sqrt(ionization_potential / Ry).decompose()
                 # NOTE: Low temperatures can lead to very large terms in the exponential and in some
                 # cases, the exponential term can exceed the maximum number expressible in double precision.
                 # These terms are eventually set to zero anyway since the ionization fraction is so small
                 # at these temperatures.
                 with np.errstate(over='ignore'):
-                    f_2 = g_n_0 * ion._zeta_0 * (z_0**4 / n_0**5) * np.exp((prefactor * z_0**2)/(n_0**2))
+                    f_2 = g_n_0 * self._zeta_0(atomic_number, charge_state) * (z_0**4 / n_0**5) * np.exp((prefactor * z_0**2)/(n_0**2))
             else:
                 f_1 = -0.5 * polygamma(2, n_0 + 1)
                 with np.errstate(over='ignore'):
@@ -229,3 +217,20 @@ class GauntFactor():
 
             return (prefactor * f_2)
 
+    def _zeta_0(self, atomic_number, charge_state) -> u.dimensionless_unscaled:
+        r"""
+        :math:`\zeta_{0}`, the number of vacancies in an ion, which is used to calculate
+        the wavelength-integrated free-bound Gaunt factor of that ion.
+
+        See Section 2.2 and Table 1 of :cite:t:`mewe_calculated_1986`.
+        """
+        difference = atomic_number - (charge_state + 1)
+        if difference <= 0:
+            max_vacancies = 1
+        elif difference <= 8 and difference > 0:
+            max_vacancies = 9
+        elif difference <= 22 and difference > 8:
+            max_vacancies = 27
+        else:
+            max_vacancies = 55
+        return max_vacancies - difference
