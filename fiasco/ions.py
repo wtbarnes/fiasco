@@ -60,7 +60,7 @@ class Ion(IonBase, ContinuumBase):
         self._dset_names['ioneq_filename'] = kwargs.get('ioneq_filename', 'chianti')
         self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
         self.abundance = abundance
-        self.gaunt_factor = GauntFactor()
+        self.gaunt_factor = GauntFactor(hdf5_dbase_root=self.hdf5_dbase_root)
 
     def _new_instance(self, temperature=None, **kwargs):
         """
