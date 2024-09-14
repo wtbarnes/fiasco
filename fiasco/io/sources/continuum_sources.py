@@ -100,26 +100,53 @@ class ItohIntegratedGauntParser(GenericParser):
     function of a scaled temperature and scaled atomic number.
     """
     filetype='itoh_integrated_gaunt'
-    dtypes=[float, float, float, float, float, float, float, float, float, float, float]
-    units = [u.dimensionless_unscaled, u.dimensionless_unscaled, u.dimensionless_unscaled,
-            u.dimensionless_unscaled, u.dimensionless_unscaled, u.dimensionless_unscaled,
-            u.dimensionless_unscaled, u.dimensionless_unscaled, u.dimensionless_unscaled,
-            u.dimensionless_unscaled, u.dimensionless_unscaled]
-    headings = ['a_i0','a_i1','a_i2','a_i3','a_i4','a_i5','a_i6','a_i7','a_i8','a_i9', 'a_i10']
-    descriptions = ['fitting coefficient','fitting coefficient', 'fitting coefficient',
-                'fitting coefficient', 'fitting coefficient', 'fitting coefficient',
-                'fitting coefficient', 'fitting coefficient', 'fitting coefficient',
-                'fitting coefficient', 'fitting coefficient']
+    dtypes=[float]
+    units = [u.dimensionless_unscaled]
+    headings = ['a_ik']
+    descriptions = ['fitting coefficient']
 
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
         self.full_path = pathlib.Path(kwargs.get('full_path',
                                     self.ascii_dbase_root / 'continuum' / filename))
 
+    def preprocessor(self, table, line, index):
+        a_matrix = np.array(line.strip().split()).reshape((11, 11))
+        table.append([a_matrix])
+
     def extract_footer(self, *args):
         return """Fit parameters for relativistic free-free Gaunt factors integrated over frequency.
 Itoh et al., 2002, A&A, 382, 722
 comment: These are the coefficients a_ik tabulated in Table 1."""
+
+    def to_hdf5(self, hf, df, **kwargs):
+        grp_name = '/'.join(['continuum', self.filetype])
+        if grp_name not in hf:
+            grp = hf.create_group(grp_name)
+            grp.attrs['chianti_version'] = df.meta['chianti_version']
+            grp.attrs['footer'] = df.meta['footer']
+        else:
+            grp = hf[grp_name]
+
+        for name in df.colnames:
+            col = df[name]
+            if type(col) == u.Quantity:
+                data = col.value
+            else:
+                data = col.data
+            if '<U' in data.dtype.str:
+                numchar = data.dtype.str[2:]
+                data = data.astype(f'|S{numchar}')
+            if name in grp:
+                ds = grp[name]
+            else:
+                if data.dtype == np.dtype('O'):
+                    ragged_dtype = h5py.special_dtype(vlen=np.dtype('float64'))
+                    ds = grp.create_dataset(name, data=data, dtype=ragged_dtype)
+                else:
+                    ds = grp.create_dataset(name, data=data, dtype=data.dtype)
+            ds.attrs['unit'] = col.unit.to_string()
+            ds.attrs['description'] = df.meta['descriptions'][name]
 
 
 class ItohIntegratedGauntNonrelParser(GenericParser):

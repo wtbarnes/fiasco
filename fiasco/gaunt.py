@@ -149,6 +149,43 @@ class GauntFactor:
             # The spline fit was pre-calculated by Sutherland 1998:
             return self._gffint['gaunt_factor'][index] + delta * (self._gffint['s1'][index] + delta * (self._gffint['s2'][index] + delta * self._gffint['s3'][index]))
 
+    @needs_dataset('itohintnonrel')
+    @u.quantity_input
+    def _free_free_itoh_integrated_nonrelativistic(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
+        """
+        The total (wavelength-averaged) non-relativistic free-free Gaunt factor, as specified by
+        :cite:t:`itoh_radiative_2002`.
+        """
+        Ry = const.h * const.c * const.Ryd
+        gamma_squared = (charge_state**2) * Ry / (const.k_B * temperature)
+        summation = u.Quantity(np.zeros(temperature.shape))
+        if np.log10(gamma_squared) < -3.0 or np.log10(gamma_squared) > 2.0:
+            return summation
+        Gamma = np.log10(gamma_squared + 0.5) / 2.5
+        for j in range(len(summation)):
+            for i in range(len(self._itohintnonrel['b_i'])):
+                summation[j] += self._itohintnonrel['b_i'][i] * Gamma**i
+        return summation
+
+    @needs_dataset('itohintrel')
+    @u.quantity_input
+    def _free_free_itoh_integrated_relativistic(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
+        """
+        The total (wavelength-averaged) relativistic free-free Gaunt factor, as specified by
+        :cite:t:`itoh_radiative_2002`.
+        """
+        z = (charge_state - 14.5) / 13.5
+        t = (np.log10(temperature)-7.25)/1.25
+        summation = u.Quantity(np.zeros(temperature.shape))
+        for j in range(len(summation)):
+            if np.log10(temperature[j].data) < 6.0 or np.log10(temperature[j].data) > 8.5:
+                continue
+            for i in range(len(self._itohintrel['a_ik'][:][0])):
+                for k in range(len(self._itohintrel['a_ik'][0][:])):
+                    summation[j] += self._itohintrel['a_ik'][i][k] * z**i * t**k
+        return summation
+
+
     @u.quantity_input
     def free_bound_total(self, temperature: u.K, atomic_number, charge_state, n_0,
                             ionization_potential: u.eV, ground_state=True) -> u.dimensionless_unscaled:
