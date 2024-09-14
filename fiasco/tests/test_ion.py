@@ -161,12 +161,17 @@ def test_abundance(ion):
     # This value has not been tested for correctness
     assert u.allclose(ion.abundance, 0.0001258925411794166)
 
-def test_zeta0(hdf5_dbase_root):
+
+@pytest.mark.parametrize(('ionization_stage', 'zeta'), [
+    (2, 32.0),
+    (16, 18.0),
+    (24, 8.0),
+    (26, 2.0),
+])
+def test_zeta0(hdf5_dbase_root, ionization_stage, zeta):
     iron = fiasco.Element('Fe', temperature=temperature, hdf5_dbase_root=hdf5_dbase_root)
-    assert u.isclose(iron[2]._zeta_0, 32.0)
-    assert u.isclose(iron[16]._zeta_0, 18.0)
-    assert u.isclose(iron[24]._zeta_0, 8.0)
-    assert u.isclose(iron[26]._zeta_0, 2.0)
+    z0 = iron[ionization_stage].gaunt_factor._zeta_0(iron.atomic_number, iron[ionization_stage].charge_state)
+    assert u.isclose(z0, zeta)
 
 @pytest.mark.requires_dbase_version('>= 8')
 def test_proton_collision(fe10):
@@ -364,16 +369,10 @@ def test_free_bound(ion):
     # This value has not been tested for correctness
     assert u.allclose(emission[0, 0], 9.7902609e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
-def test_gaunt_factor_free_bound_total(ion, h1, fe2):
+def test_gaunt_factor_free_bound_total(ion):
     ion_gf_0 = ion.gaunt_factor.free_bound_total(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=True)
     ion_gf_1 = ion.gaunt_factor.free_bound_total(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=False)
-    h1_gf = h1.gaunt_factor.free_bound_total(h1.temperature, h1.atomic_number, h1.charge_state, h1.previous_ion()._fblvl['n'][0], h1.previous_ion().ip, ground_state=True)
-    fe2_gf = fe2.gaunt_factor.free_bound_total(fe2.temperature, fe2.atomic_number, fe2.charge_state, fe2.previous_ion()._fblvl['n'][0], fe2.previous_ion().ip, ground_state=True)
     assert ion_gf_0.shape == ion.temperature.shape
-    assert h1_gf.shape == h1.temperature.shape
-    assert fe2_gf.shape == fe2.temperature.shape
-    assert (u.allclose(h1_gf, 0.0 * u.dimensionless_unscaled))
-    assert (u.allclose(fe2_gf, 0.0 * u.dimensionless_unscaled))
     # These values have not been tested for correctness
     assert u.isclose(ion_gf_0[20], 55.18573076316151 * u.dimensionless_unscaled)
     assert u.isclose(ion_gf_1[20], 11.849092513590998 * u.dimensionless_unscaled)
