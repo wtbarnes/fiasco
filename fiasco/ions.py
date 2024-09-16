@@ -6,7 +6,7 @@ import astropy.units as u
 import numpy as np
 
 from functools import cached_property
-from scipy.interpolate import CubicSpline, interp1d, PchipInterpolator, splev, splrep
+from scipy.interpolate import CubicSpline, interp1d, PchipInterpolator
 
 from fiasco import proton_electron_ratio
 from fiasco.base import ContinuumBase, IonBase
@@ -1507,7 +1507,6 @@ Using Datasets:
         return np.where(energy < self._verner['E_thresh'], 0.,
                         F.decompose().value) * self._verner['sigma_0']
 
-    @needs_dataset('klgfb')
     @u.quantity_input
     def _karzas_cross_section(self, photon_energy: u.erg, ionization_energy: u.erg, n, l) -> u.cm**2:
         """
@@ -1525,15 +1524,8 @@ Using Datasets:
             Orbital angular momentum number
         """
         prefactor = (2**4)*const.h*(const.e.gauss**2)/(3*np.sqrt(3)*const.m_e*const.c)
-        index_nl = np.where(np.logical_and(self._klgfb['n'] == n, self._klgfb['l'] == l))[0]
-        # If there is no Gaunt factor for n, l, set it to 1
-        if index_nl.shape == (0,):
-            gaunt_factor = 1
-        else:
-            E_scaled = np.log(photon_energy/ionization_energy)
-            gf_interp = splrep(self._klgfb['log_pe'][index_nl, :].squeeze(),
-                               self._klgfb['log_gaunt_factor'][index_nl, :].squeeze())
-            gaunt_factor = np.exp(splev(E_scaled, gf_interp))
+        E_scaled = np.log(photon_energy/ionization_energy)
+        gaunt_factor = self.gaunt_factor.free_bound(E_scaled, n, l)
         cross_section = prefactor * ionization_energy**2 * photon_energy**(-3) * gaunt_factor / n
         cross_section[np.where(photon_energy < ionization_energy)] = 0.*cross_section.unit
         return cross_section

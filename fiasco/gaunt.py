@@ -5,6 +5,7 @@ import astropy.constants as const
 import astropy.units as u
 import numpy as np
 
+from scipy.interpolate import splev, splrep
 from scipy.ndimage import map_coordinates
 from scipy.special import polygamma
 
@@ -18,6 +19,10 @@ __all__ = ['GauntFactor']
 class GauntFactor:
     """
     Class for calculating the Gaunt factor for various continuum processes.
+
+    The Gaunt factor is defined as the ratio of the true cross-section to the
+    semi-classical Kramers cross-section, and thus is essentially a multiplicative
+    correction for quantum mechanical effects.  It is a unitless quantity.
     """
     def __init__(self, hdf5_dbase_root=None, *args, **kwargs):
         if hdf5_dbase_root is None:
@@ -57,6 +62,11 @@ class GauntFactor:
         data_path = '/'.join(['continuum', 'itohintnonrel'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
+    @property
+    def _klgfb(self):
+        data_path = '/'.join(['continuum', 'klgfb'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+
     @u.quantity_input
     def free_free(self, temperature: u.K, atomic_number, charge_state, wavelength: u.angstrom) -> u.dimensionless_unscaled:
         r"""
@@ -77,6 +87,17 @@ class GauntFactor:
             g_{ff} = \sum_{i,j=0}^{10} a_{ij}t^iU^j,
 
         where :math:`t=(\log{T} - 7.25)/1.25` and :math:`U=(\log{u} + 1.5)/2.5`.
+
+        Parameters
+        ----------
+        temperature : `~astropy.units.Quantity`
+            The temperature(s) for which to calculate the Gaunt factor
+        atomic_number : `int`
+            The atomic number of the emitting element
+        charge_state : `int`,
+            The charge state of the emitting ion
+        wavelength : `~astropy.units.Quantity`
+            The wavelength(s) at which to calculate the Gaunt factor
         """
         gf_itoh = self._free_free_itoh(temperature, atomic_number, wavelength)
         gf_sutherland = self._free_free_sutherland(temperature, charge_state, wavelength)
@@ -138,6 +159,13 @@ class GauntFactor:
         """
         The total (wavelength-averaged) free-free Gaunt factor, used for calculating
         the total radiative losses from free-free emission.
+
+        Parameters
+        ----------
+        temperature : `~astropy.units.Quantity`
+            The temperature(s) for which to calculate the Gaunt factor
+        charge_state : `int`,
+            The charge state of the ion
         """
         if charge_state == 0:
             return u.Quantity(np.zeros(temperature.shape))
@@ -155,6 +183,13 @@ class GauntFactor:
         """
         The total (wavelength-averaged) non-relativistic free-free Gaunt factor, as specified by
         :cite:t:`itoh_radiative_2002`.
+
+        Parameters
+        ----------
+        temperature : `~astropy.units.Quantity`
+            The temperature(s) for which to calculate the Gaunt factor
+        charge_state : `int`,
+            The charge state of the ion
         """
         Ry = const.h * const.c * const.Ryd
         gamma_squared = (charge_state**2) * Ry / (const.k_B * temperature)
@@ -173,6 +208,13 @@ class GauntFactor:
         """
         The total (wavelength-averaged) relativistic free-free Gaunt factor, as specified by
         :cite:t:`itoh_radiative_2002`.
+
+        Parameters
+        ----------
+        temperature : `~astropy.units.Quantity`
+            The temperature(s) for which to calculate the Gaunt factor
+        charge_state : `int`,
+            The charge state of the ion
         """
         z = (charge_state - 14.5) / 13.5
         t = (np.log10(temperature)-7.25)/1.25
@@ -184,6 +226,34 @@ class GauntFactor:
                 for k in range(len(self._itohintrel['a_ik'][0][:])):
                     summation[j] += self._itohintrel['a_ik'][i][k] * z**i * t**k
         return summation
+
+    @needs_dataset('klgfb')
+    @u.quantity_input
+    def free_bound(self, E_scaled: u.dimensionless_unscaled, n, l) -> u.dimensionless_unscaled:
+        r"""
+        Free-bound Gaunt factor as a function of scaled energy.
+
+        The empirical fits are taken from Table 1 of :cite:t:`karzas_electron_1961`.
+
+        Parameters
+        ----------
+        E_scaled : `~astropy.units.Quantity`
+            A scaled energy, the ratio of photon energy divided by ionization energy.
+        n : `int`
+            The principal quantum number
+        l : `int`
+            The azimuthal quantum number
+        """
+        index_nl = np.where(np.logical_and(self._klgfb['n'] == n, self._klgfb['l'] == l))[0]
+        # If there is no Gaunt factor for n, l, set it to 1
+        if index_nl.shape == (0,):
+            gf = 1
+        else:
+            gf_interp = splrep(self._klgfb['log_pe'][index_nl, :].squeeze(),
+                               self._klgfb['log_gaunt_factor'][index_nl, :].squeeze())
+            gf = np.exp(splev(E_scaled, gf_interp))
+
+        return gf
 
 
     @u.quantity_input
@@ -197,13 +267,13 @@ class GauntFactor:
 
         Parameters
         ----------
-        temperature :
+        temperature : `~astropy.units.Quantity`
             The temperature(s) for which to calculate the Gaunt factor
         atomic_number : `int`
             The atomic number of the element
-        charge_state : `int`,
+        charge_state : `int`
             The charge state of the ion
-        n_0 :
+        n_0 : `int`
             The principal quantum number n of the ground state of the recombined ion
         ionization_potential :
             The ionization potential of the recombined ion

@@ -93,11 +93,6 @@ class ContinuumBase(Base):
               and primarily serves as a base class for `~fiasco.Ion`.
     """
     @property
-    def _klgfb(self):
-        data_path = '/'.join(['continuum', 'klgfb'])
-        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
-
-    @property
     def _verner(self):
         data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, 'continuum',
                               'verner_short'])
