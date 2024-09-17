@@ -194,12 +194,13 @@ class GauntFactor:
         Ry = const.h * const.c * const.Ryd
         gamma_squared = (charge_state**2) * Ry / (const.k_B * temperature)
         summation = u.Quantity(np.zeros(temperature.shape))
-        if np.log10(gamma_squared) < -3.0 or np.log10(gamma_squared) > 2.0:
-            return summation
-        Gamma = np.log10(gamma_squared + 0.5) / 2.5
+        Gamma = (np.log10(gamma_squared) + 0.5) / 2.5
         for j in range(len(summation)):
-            for i in range(len(self._itohintnonrel['b_i'])):
-                summation[j] += self._itohintnonrel['b_i'][i] * Gamma**i
+            if np.log10(gamma_squared[j]) < -3.0 or np.log10(gamma_squared[j]) > 2.0:
+                continue
+            else:
+                for i in range(len(self._itohintnonrel['b_i'])):
+                    summation[j] += self._itohintnonrel['b_i'][i] * Gamma[j]**i
         return summation
 
     @needs_dataset('itohintrel')
@@ -217,14 +218,14 @@ class GauntFactor:
             The charge state of the ion
         """
         z = (charge_state - 14.5) / 13.5
-        t = (np.log10(temperature)-7.25)/1.25
+        t = (np.log10(temperature.data)-7.25)/1.25
         summation = u.Quantity(np.zeros(temperature.shape))
         for j in range(len(summation)):
             if np.log10(temperature[j].data) < 6.0 or np.log10(temperature[j].data) > 8.5:
                 continue
             for i in range(len(self._itohintrel['a_ik'][:][0])):
                 for k in range(len(self._itohintrel['a_ik'][0][:])):
-                    summation[j] += self._itohintrel['a_ik'][i][k] * z**i * t**k
+                    summation[j] += self._itohintrel['a_ik'][i][k] * z**i * t[j]**k
         return summation
 
     @needs_dataset('klgfb')
