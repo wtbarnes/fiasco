@@ -54,12 +54,12 @@ class GauntFactor:
 
     @property
     def _itohintrel(self):
-        data_path = '/'.join(['continuum', 'itohintrel'])
+        data_path = '/'.join(['continuum', 'itoh_integrated_gaunt'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @property
     def _itohintnonrel(self):
-        data_path = '/'.join(['continuum', 'itohintnonrel'])
+        data_path = '/'.join(['continuum', 'itoh_integrated_gaunt_nonrel'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @property

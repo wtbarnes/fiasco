@@ -111,8 +111,9 @@ class ItohIntegratedGauntParser(GenericParser):
                                     self.ascii_dbase_root / 'continuum' / filename))
 
     def preprocessor(self, table, line, index):
-        a_matrix = np.array(line.strip().split()).reshape((11, 11))
-        table.append([a_matrix])
+        line = line.strip().split()
+        gf = np.array(line, dtype=float)
+        table.append([line])
 
     def extract_footer(self, *args):
         return """Fit parameters for relativistic free-free Gaunt factors integrated over frequency.
@@ -170,7 +171,36 @@ class ItohIntegratedGauntNonrelParser(GenericParser):
 Itoh et al. (2002, A&A, 382, 722)
 Comment: Data taken from Table 2 of this work."""
 
-
+    def to_hdf5(self, hf, df, **kwargs):
+        grp_name = '/'.join(['continuum', self.filetype])
+        if grp_name not in hf:
+            grp = hf.create_group(grp_name)
+            grp.attrs['chianti_version'] = df.meta['chianti_version']
+            grp.attrs['footer'] = df.meta['footer']
+        else:
+            grp = hf[grp_name]
+        
+        for name in df.colnames:
+            col = df[name]
+            if type(col) == u.Quantity:
+                data = col.value
+            else:
+                data = col.data
+            if '<U' in data.dtype.str:
+                numchar = data.dtype.str[2:]
+                data = data.astype(f'|S{numchar}')
+            if name in grp:
+                ds = grp[name]
+            else:
+                if data.dtype == np.dtype('O'):
+                    ragged_dtype = h5py.special_dtype(vlen=np.dtype('float64'))
+                    ds = grp.create_dataset(name, data=data, dtype=ragged_dtype)
+                else:
+                    ds = grp.create_dataset(name, data=data, dtype=data.dtype)
+            ds.attrs['unit'] = col.unit.to_string()
+            ds.attrs['description'] = df.meta['descriptions'][name]
+            
+            
 class KlgfbParser(GenericParser):
     """
     Free-bound gaunt factor as a function of photon energy for several different energy levels.
