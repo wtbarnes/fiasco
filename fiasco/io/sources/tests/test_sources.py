@@ -52,6 +52,8 @@ def test_ion_sources(ascii_dbase_root, filename,):
     'klgfb.dat',
     'verner_short.txt',
     'flare.dem',
+    pytest.param('itoh_integrated_gaunt.dat', marks=pytest.mark.requires_dbase_version('>= 9.0.1')),
+    pytest.param('itoh_integrated_gaunt_nonrel.dat', marks=pytest.mark.requires_dbase_version('>= 9.0.1')),
 ])
 def test_non_ion_sources(ascii_dbase_root, filename):
     parser = fiasco.io.Parser(filename, ascii_dbase_root=ascii_dbase_root)
