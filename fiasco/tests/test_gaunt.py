@@ -13,6 +13,10 @@ temperature = np.logspace(5, 8, 100)*u.K
 def ion(hdf5_dbase_root):
     return fiasco.Ion('Fe 5', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
+@pytest.fixture
+def gaunt_factor(hdf5_dbase_root):
+    return fiasco.GauntFactor()
+
 @pytest.mark.parametrize(('ionization_stage', 'zeta'), [
     (2, 32.0),
     (16, 18.0),
@@ -24,21 +28,22 @@ def test_zeta0(hdf5_dbase_root, ionization_stage, zeta):
     z0 = iron[ionization_stage].gaunt_factor._zeta_0(iron.atomic_number, iron[ionization_stage].charge_state)
     assert u.isclose(z0, zeta)
 
-
-def test_gaunt_factor_free_free_total(ion):
-    gf = ion.gaunt_factor.free_free_total(ion.temperature, ion.charge_state)
-    assert gf.shape == ion.temperature.shape
+@pytest.mark.parametrize(('charge_state', 'expected'),
+                        [(1, 1.41409406), (2, 1.3265169), (3, 1.27165875)])
+def test_gaunt_factor_free_free_total(gaunt_factor, charge_state, expected):
+    gf = gaunt_factor.free_free_total(temperature, charge_state)
+    assert gf.shape == temperature.shape
     # This value has not been tested for correctness
-    assert u.allclose(gf[0], 1.23584439 * u.dimensionless_unscaled)
+    assert u.allclose(gf[0], expected * u.dimensionless_unscaled)
 
 @pytest.mark.requires_dbase_version('>= 9.0.1')
-@pytest.mark.parametrize(('itoh','relativistic','index','expected'),
-                        [(True, True, 0, 1.23197349), (True, False, 0, 1.23197349),
-                        (False, False, 0, 1.23584439), (True, True, 75, 1.38634339),
-                        (True, False, 75, 1.38655511), (False, False, 75, 1.39036545)])
-def test_gaunt_factor_free_free_total_itoh(ion, itoh, relativistic, index, expected):
-    gf = ion.gaunt_factor.free_free_total(ion.temperature, ion.charge_state, itoh, relativistic)
-    assert gf.shape == ion.temperature.shape
+@pytest.mark.parametrize(('charge_state','itoh','relativistic','index','expected'),
+                        [(3, True, True, 0, 1.2673757), (3, True, False, 0, 1.2673757),
+                        (3, False, False, 0, 1.27165875), (3, True, True, 75, 1.3466916),
+                        (3, True, False, 75, 1.34662286), (3, False, False, 75, 1.35061768)])
+def test_gaunt_factor_free_free_total_itoh(gaunt_factor, charge_state, itoh, relativistic, index, expected):
+    gf = gaunt_factor.free_free_total(temperature, charge_state, itoh, relativistic)
+    assert gf.shape == temperature.shape
     # This value has not been tested for correctness
     assert u.allclose(gf[index], expected * u.dimensionless_unscaled)
 
@@ -57,4 +62,3 @@ def test_free_bound_gaunt_factor_low_temperature(gs, hdf5_dbase_root):
     ion = fiasco.Ion('N 8', np.logspace(4,6,100)*u.K, hdf5_dbase_root=hdf5_dbase_root)
     gf_fb_total = ion.gaunt_factor.free_bound_total(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=gs)
     assert not np.isinf(gf_fb_total).any()
-

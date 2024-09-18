@@ -31,11 +31,10 @@ class GauntFactor:
             self.hdf5_dbase_root = hdf5_dbase_root
         check_database(self.hdf5_dbase_root, **kwargs)
 
-    def __str__(self):
-        return "Gaunt factor object"
-
     def __repr__(self):
-        return "Gaunt factor object"
+        return f"""Gaunt factor object
+---------------------
+HDF5 Database: {self.hdf5_dbase_root}"""
 
     @property
     def _gffgu(self):
@@ -283,7 +282,7 @@ class GauntFactor:
 
         Parameters
         ----------
-        E_scaled :
+        E_scaled : `float`
             A scaled energy, the ratio of photon energy divided by ionization energy.
         n : `int`
             The principal quantum number
