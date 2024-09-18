@@ -167,7 +167,7 @@ class GauntFactor:
             The charge state of the ion
         itoh : `bool`, optional
             Specify whether to use the approximations specified by :cite:t:`itoh_radiative_2002`.
-            If true, use the forms by :cite:t:`itoh_radiative_2002`.  If false, use the forms by
+            If true, use the forms by :cite:t:`itoh_radiative_2002`.  If false (default), use the forms by
             :cite:t:`sutherland_accurate_1998`.
         relativistic : `bool`, optional
             If using the :cite:t:`itoh_radiative_2002` approximations, use the relativistic form
