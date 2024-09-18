@@ -282,7 +282,7 @@ class GauntFactor:
 
         Parameters
         ----------
-        E_scaled : `~astropy.units.Quantity`
+        E_scaled :
             A scaled energy, the ratio of photon energy divided by ionization energy.
         n : `int`
             The principal quantum number
@@ -308,7 +308,7 @@ class GauntFactor:
         The total Gaunt factor for free-bound emission, using the expressions from :cite:t:`mewe_calculated_1986`.
 
         The Gaunt factor is not calculated for individual levels, except that the ground state has
-        been specified to be :math: `g_{fb}(n_{0}) = 0.9` following :cite:t:`mewe_calculated_1986`.
+        been specified to be :math:`g_{fb}(n_{0}) = 0.9` following :cite:t:`mewe_calculated_1986`.
 
         Parameters
         ----------
@@ -320,26 +320,30 @@ class GauntFactor:
             The charge state of the ion
         n_0 : `int`
             The principal quantum number n of the ground state of the recombined ion
-        ionization_potential :
+        ionization_potential : `~astropy.units.Quantity`
             The ionization potential of the recombined ion
         ground_state : `bool`, optional
-            If True (default), calculate the Gaunt factor for recombination onto the ground state :math: `n = 0`.
-            Otherwise, calculate for recombination onto higher levels with :math: `n > 1`.  See Equation 16 of
+            If True (default), calculate the Gaunt factor for recombination onto the ground state :math:`n = 0`.
+            Otherwise, calculate for recombination onto higher levels with :math:`n > 1`.  See Equation 16 of
             :cite:t:`mewe_calculated_1986`.
 
         Notes
         -----
         Equation 14 of :cite:t:`mewe_calculated_1986` has a simple
         analytic solution.  They approximate
+
         .. math::
+
             f_{1}(Z, n, n_{0} ) = \sum_{1}^{\infty} n^{-3} - \sum_{1}^{n_{0}} n^{-3} = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} \approx 0.21 n_{0}^{-1.5}
 
-        where :math: `\zeta(x)` is the Riemann zeta function.
+        where :math:`\zeta(x)` is the Riemann zeta function.
 
-        However, the second sum is analytic, :math: `\sum_{1}^{n_{0}} n^{-3} = \zeta(3) + \frac{1}{2}\psi^{(2)}(n_{0}+1)`
-        where :math: `\psi^{n}(x)` is the n-th derivative of the digamma function (a.k.a. the polygamma function).
+        However, the second sum is analytic, :math:`\sum_{1}^{n_{0}} n^{-3} = \zeta(3) + \frac{1}{2}\psi^{(2)}(n_{0}+1)`
+        where :math:`\psi^{n}(x)` is the n-th derivative of the digamma function (a.k.a. the polygamma function).
         So, we can write the full solution as:
+
         .. math::
+
             f_{1}(Z, n, n_{0}) = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} = - \frac{1}{2}\psi^{(2)}(n_{0}+1)
 
         The final expression is therefore simplified and more accurate than :cite:t:`mewe_calculated_1986`.
