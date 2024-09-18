@@ -153,9 +153,8 @@ class GauntFactor:
 
         return u.Quantity(np.where(gf < 0., 0., gf))
 
-    @needs_dataset('gffint')
     @u.quantity_input
-    def free_free_total(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
+    def free_free_total(self, temperature: u.K, charge_state, itoh=False, relativistic=True) -> u.dimensionless_unscaled:
         """
         The total (wavelength-averaged) free-free Gaunt factor, used for calculating
         the total radiative losses from free-free emission.
@@ -166,24 +165,35 @@ class GauntFactor:
             The temperature(s) for which to calculate the Gaunt factor
         charge_state : `int`,
             The charge state of the ion
+        itoh : `bool`, optional
+            Specify whether to use the approximations specified by :cite:t:`itoh_radiative_2002`.  
+            If true, use the forms by :cite:t:`itoh_radiative_2002`.  If false, use the forms by
+            :cite:t:`sutherland_accurate_1998`.
+        relativistic : `bool`, optional
+            If using the :cite:t:`itoh_radiative_2002` approximations, use the relativistic form
+            instead of the non-relativistic form.
         """
         if charge_state == 0:
             return u.Quantity(np.zeros(temperature.shape))
         else:
-            Ry = const.h * const.c * const.Ryd
-            log_gamma_squared = np.log10((charge_state**2 * Ry) / (const.k_B * temperature))
-            index = [np.abs(self._gffint['log_gamma_squared'] - x).argmin() for x in log_gamma_squared]
-            delta = log_gamma_squared - self._gffint['log_gamma_squared'][index]
-            # The spline fit was pre-calculated by Sutherland 1998:
-            return self._gffint['gaunt_factor'][index] + delta * (self._gffint['s1'][index] + delta * (self._gffint['s2'][index] + delta * self._gffint['s3'][index]))
+            if not itoh:
+                return self._free_free_sutherland_integrated(temperature, charge_state)
+            else:
+                if relativistic:
+                    return self._free_free_itoh_integrated_relativistic(temperature, charge_state)
+                else:
+                    return self._free_free_itoh_integrated_nonrelativistic(temperature, charge_state)
 
-    @needs_dataset('itohintnonrel')
+    @needs_dataset('gffint')
     @u.quantity_input
-    def _free_free_itoh_integrated_nonrelativistic(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
+    def _free_free_sutherland_integrated(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
         """
-        The total (wavelength-averaged) non-relativistic free-free Gaunt factor, as specified by
-        :cite:t:`itoh_radiative_2002`.
-
+        The total (wavelength-averaged) free-free Gaunt factor, as specified by :cite:t:`sutherland_accurate_1998`,
+        in Section 2.4 of that work.
+        
+        This is the default option used by CHIANTI for integrated free-free Gaunt factor, and we also use it 
+        where the other versions are not valid.
+        
         Parameters
         ----------
         temperature : `~astropy.units.Quantity`
@@ -191,13 +201,40 @@ class GauntFactor:
         charge_state : `int`,
             The charge state of the ion
         """
+        temperature = np.atleast_1d(temperature)
+        Ry = const.h * const.c * const.Ryd
+        log_gamma_squared = np.log10((charge_state**2 * Ry) / (const.k_B * temperature))
+        index = [np.abs(self._gffint['log_gamma_squared'] - x).argmin() for x in log_gamma_squared]
+        delta = log_gamma_squared - self._gffint['log_gamma_squared'][index]
+        # The spline fit was pre-calculated by Sutherland 1998:
+        return self._gffint['gaunt_factor'][index] + delta * (self._gffint['s1'][index] + delta * (self._gffint['s2'][index] + delta * self._gffint['s3'][index]))
+
+
+    @needs_dataset('itohintnonrel')
+    @u.quantity_input
+    def _free_free_itoh_integrated_nonrelativistic(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
+        """
+        The total (wavelength-averaged) non-relativistic free-free Gaunt factor, as specified by
+        :cite:t:`itoh_radiative_2002`.
+        
+        This form is only valid between :math:`-3.0 \leq \log_{10} \gamma^{2} \leq 2.0`.  We use the form
+        specified by :cite:t:`sutherland_accurate_1998` outside of this range.  
+        
+        Parameters
+        ----------
+        temperature : `~astropy.units.Quantity`
+            The temperature(s) for which to calculate the Gaunt factor
+        charge_state : `int`,
+            The charge state of the ion
+        """
+        temperature = np.atleast_1d(temperature)
         Ry = const.h * const.c * const.Ryd
         gamma_squared = (charge_state**2) * Ry / (const.k_B * temperature)
         summation = u.Quantity(np.zeros(temperature.shape))
         Gamma = (np.log10(gamma_squared) + 0.5) / 2.5
         for j in range(len(summation)):
             if np.log10(gamma_squared[j]) < -3.0 or np.log10(gamma_squared[j]) > 2.0:
-                continue
+                summation[j] = self._free_free_sutherland_integrated(temperature[j], charge_state)
             else:
                 for i in range(len(self._itohintnonrel['b_i'])):
                     summation[j] += self._itohintnonrel['b_i'][i] * Gamma[j]**i
@@ -210,6 +247,10 @@ class GauntFactor:
         The total (wavelength-averaged) relativistic free-free Gaunt factor, as specified by
         :cite:t:`itoh_radiative_2002`.
 
+        The relativistic approximation is only valid between :math:`6.0 \leq \log_{10} T_{e} \leq 8.5`, and charges between 1 and 28.
+        At cooler temperatures, the calculation uses the non-relativistic form, while at higher temperatures it defaults back to the 
+        expressions from :cite:t:`sutherland_accurate_1998`.
+
         Parameters
         ----------
         temperature : `~astropy.units.Quantity`
@@ -217,15 +258,19 @@ class GauntFactor:
         charge_state : `int`,
             The charge state of the ion
         """
+        temperature = np.atleast_1d(temperature)
         z = (charge_state - 14.5) / 13.5
         t = (np.log10(temperature.data)-7.25)/1.25
         summation = u.Quantity(np.zeros(temperature.shape))
         for j in range(len(summation)):
-            if np.log10(temperature[j].data) < 6.0 or np.log10(temperature[j].data) > 8.5:
-                continue
-            for i in range(len(self._itohintrel['a_ik'][:][0])):
-                for k in range(len(self._itohintrel['a_ik'][0][:])):
-                    summation[j] += self._itohintrel['a_ik'][i][k] * z**i * t[j]**k
+            if np.log10(temperature[j].data) < 6.0:
+                summation[j] = self._free_free_itoh_integrated_nonrelativistic(temperature[j], charge_state)
+            elif np.log10(temperature[j].data) > 8.5:
+                summation[j] = self._free_free_sutherland_integrated(temperature[j], charge_state)
+            else:
+                for i in range(len(self._itohintrel['a_ik'][:][0])):
+                    for k in range(len(self._itohintrel['a_ik'][0][:])):
+                        summation[j] += self._itohintrel['a_ik'][i][k] * z**i * t[j]**k
         return summation
 
     @needs_dataset('klgfb')
