@@ -113,7 +113,7 @@ class ItohIntegratedGauntParser(GenericParser):
     def preprocessor(self, table, line, index):
         line = line.strip().split()
         gf = np.array(line, dtype=float)
-        table.append([line])
+        table.append([gf])
 
     def extract_footer(self, *args):
         return """Fit parameters for relativistic free-free Gaunt factors integrated over frequency.
@@ -179,7 +179,7 @@ Comment: Data taken from Table 2 of this work."""
             grp.attrs['footer'] = df.meta['footer']
         else:
             grp = hf[grp_name]
-        
+
         for name in df.colnames:
             col = df[name]
             if type(col) == u.Quantity:
@@ -199,8 +199,8 @@ Comment: Data taken from Table 2 of this work."""
                     ds = grp.create_dataset(name, data=data, dtype=data.dtype)
             ds.attrs['unit'] = col.unit.to_string()
             ds.attrs['description'] = df.meta['descriptions'][name]
-            
-            
+
+
 class KlgfbParser(GenericParser):
     """
     Free-bound gaunt factor as a function of photon energy for several different energy levels.

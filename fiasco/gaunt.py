@@ -166,7 +166,7 @@ class GauntFactor:
         charge_state : `int`,
             The charge state of the ion
         itoh : `bool`, optional
-            Specify whether to use the approximations specified by :cite:t:`itoh_radiative_2002`.  
+            Specify whether to use the approximations specified by :cite:t:`itoh_radiative_2002`.
             If true, use the forms by :cite:t:`itoh_radiative_2002`.  If false, use the forms by
             :cite:t:`sutherland_accurate_1998`.
         relativistic : `bool`, optional
@@ -176,13 +176,12 @@ class GauntFactor:
         if charge_state == 0:
             return u.Quantity(np.zeros(temperature.shape))
         else:
-            if not itoh:
-                return self._free_free_sutherland_integrated(temperature, charge_state)
+            if itoh and relativistic:
+                return self._free_free_itoh_integrated_relativistic(temperature, charge_state)
+            elif itoh and not relativistic:
+                return self._free_free_itoh_integrated_nonrelativistic(temperature, charge_state)
             else:
-                if relativistic:
-                    return self._free_free_itoh_integrated_relativistic(temperature, charge_state)
-                else:
-                    return self._free_free_itoh_integrated_nonrelativistic(temperature, charge_state)
+                return self._free_free_sutherland_integrated(temperature, charge_state)
 
     @needs_dataset('gffint')
     @u.quantity_input
@@ -190,10 +189,10 @@ class GauntFactor:
         """
         The total (wavelength-averaged) free-free Gaunt factor, as specified by :cite:t:`sutherland_accurate_1998`,
         in Section 2.4 of that work.
-        
-        This is the default option used by CHIANTI for integrated free-free Gaunt factor, and we also use it 
+
+        This is the default option used by CHIANTI for integrated free-free Gaunt factor, and we also use it
         where the other versions are not valid.
-        
+
         Parameters
         ----------
         temperature : `~astropy.units.Quantity`
@@ -213,13 +212,13 @@ class GauntFactor:
     @needs_dataset('itohintnonrel')
     @u.quantity_input
     def _free_free_itoh_integrated_nonrelativistic(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
-        """
+        r"""
         The total (wavelength-averaged) non-relativistic free-free Gaunt factor, as specified by
         :cite:t:`itoh_radiative_2002`.
-        
+
         This form is only valid between :math:`-3.0 \leq \log_{10} \gamma^{2} \leq 2.0`.  We use the form
-        specified by :cite:t:`sutherland_accurate_1998` outside of this range.  
-        
+        specified by :cite:t:`sutherland_accurate_1998` outside of this range.
+
         Parameters
         ----------
         temperature : `~astropy.units.Quantity`
@@ -243,12 +242,12 @@ class GauntFactor:
     @needs_dataset('itohintrel')
     @u.quantity_input
     def _free_free_itoh_integrated_relativistic(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
-        """
+        r"""
         The total (wavelength-averaged) relativistic free-free Gaunt factor, as specified by
         :cite:t:`itoh_radiative_2002`.
 
         The relativistic approximation is only valid between :math:`6.0 \leq \log_{10} T_{e} \leq 8.5`, and charges between 1 and 28.
-        At cooler temperatures, the calculation uses the non-relativistic form, while at higher temperatures it defaults back to the 
+        At cooler temperatures, the calculation uses the non-relativistic form, while at higher temperatures it defaults back to the
         expressions from :cite:t:`sutherland_accurate_1998`.
 
         Parameters
