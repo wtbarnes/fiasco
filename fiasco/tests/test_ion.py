@@ -161,18 +161,6 @@ def test_abundance(ion):
     # This value has not been tested for correctness
     assert u.allclose(ion.abundance, 0.0001258925411794166)
 
-
-@pytest.mark.parametrize(('ionization_stage', 'zeta'), [
-    (2, 32.0),
-    (16, 18.0),
-    (24, 8.0),
-    (26, 2.0),
-])
-def test_zeta0(hdf5_dbase_root, ionization_stage, zeta):
-    iron = fiasco.Element('Fe', temperature=temperature, hdf5_dbase_root=hdf5_dbase_root)
-    z0 = iron[ionization_stage].gaunt_factor._zeta_0(iron.atomic_number, iron[ionization_stage].charge_state)
-    assert u.isclose(z0, zeta)
-
 @pytest.mark.requires_dbase_version('>= 8')
 def test_proton_collision(fe10):
     rate = fe10.proton_collision_excitation_rate
@@ -351,11 +339,6 @@ def test_free_free(ion):
     # This value has not been tested for correctness
     assert u.allclose(emission[0], 1.72804216e-29 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
-def test_gaunt_factor_free_free_total(ion):
-    gf = ion.gaunt_factor.free_free_total(ion.temperature, ion.charge_state)
-    assert gf.shape == ion.temperature.shape
-    # This value has not been tested for correctness
-    assert u.allclose(gf[0], 1.23584439 * u.dimensionless_unscaled)
 
 def test_free_free_radiative_loss(h1, fe20):
     assert fe20.free_free_radiative_loss().shape == fe20.temperature.shape
@@ -363,19 +346,23 @@ def test_free_free_radiative_loss(h1, fe20):
     # This value has not been tested for correctness
     assert u.isclose(fe20.free_free_radiative_loss()[0], 1.79093013e-22 * u.erg * u.cm**3 / u.s)
 
+@pytest.mark.requires_dbase_version('>= 9.0.1')
+@pytest.mark.parametrize(('itoh','relativistic','index','expected'),
+                        [(True, True, 0, 1.79093013e-22), (True, False, 0, 1.79093013e-22),
+                        (False, False, 0, 1.79093013e-22), (True, True, 75, 3.05586194e-21),
+                        (True, False, 75, 3.05628894e-21), (False, False, 75, 3.06577525e-21)])
+def test_free_free_radiative_loss_itoh(h1, fe20, itoh, relativistic, index, expected):
+    assert fe20.free_free_radiative_loss(itoh, relativistic).shape == fe20.temperature.shape
+    assert u.allclose(h1.free_free_radiative_loss(), 0.0 * u.erg * u.cm**3 / u.s)
+    # This value has not been tested for correctness
+    assert u.isclose(fe20.free_free_radiative_loss(itoh, relativistic)[index], expected * u.erg * u.cm**3 / u.s)
+
 def test_free_bound(ion):
     emission = ion.free_bound(200 * u.Angstrom)
     assert emission.shape == ion.temperature.shape + (1, )
     # This value has not been tested for correctness
     assert u.allclose(emission[0, 0], 9.7902609e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
-def test_gaunt_factor_free_bound_total(ion):
-    ion_gf_0 = ion.gaunt_factor.free_bound_total(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=True)
-    ion_gf_1 = ion.gaunt_factor.free_bound_total(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=False)
-    assert ion_gf_0.shape == ion.temperature.shape
-    # These values have not been tested for correctness
-    assert u.isclose(ion_gf_0[20], 55.18573076316151 * u.dimensionless_unscaled)
-    assert u.isclose(ion_gf_1[20], 11.849092513590998 * u.dimensionless_unscaled)
 
 def test_free_bound_radiative_loss(ion, h1):
     assert ion.free_bound_radiative_loss().shape == ion.temperature.shape
@@ -383,13 +370,6 @@ def test_free_bound_radiative_loss(ion, h1):
     # This value has not been tested for correctness
     assert u.isclose(ion.free_bound_radiative_loss()[20], 1.977311794139327e-23 * u.erg * u.cm**3 / u.s)
 
-@pytest.mark.parametrize('gs', [True, False])
-def test_free_bound_gaunt_factor_low_temperature(gs, hdf5_dbase_root):
-    # At low temperatures (~1e4 K), exponential terms in the gaunt factor used to compute the
-    # free-bound radiative loss can blow up. This just tests to make sure those are handled correctly
-    ion = fiasco.Ion('N 8', np.logspace(4,6,100)*u.K, hdf5_dbase_root=hdf5_dbase_root)
-    gf_fb_total = ion.gaunt_factor.free_bound_total(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=gs)
-    assert not np.isinf(gf_fb_total).any()
 
 # The two-photon test currently fails for dbase_version >= 9 because it is missing c_5.reclvl
 @pytest.mark.requires_dbase_version('>= 8','<= 8.0.7')

@@ -105,6 +105,7 @@ class GauntFactor:
 
         return gf
 
+    @needs_dataset('itoh')
     @u.quantity_input
     def _free_free_itoh(self, temperature: u.K, atomic_number, wavelength: u.angstrom) -> u.dimensionless_unscaled:
         log10_temperature = np.log10(temperature.to(u.K).value)
