@@ -15,7 +15,7 @@ def ion(hdf5_dbase_root):
 
 @pytest.fixture
 def gaunt_factor(hdf5_dbase_root):
-    return fiasco.GauntFactor()
+    return fiasco.GauntFactor(hdf5_dbase_root=hdf5_dbase_root)
 
 @pytest.mark.parametrize(('ionization_stage', 'zeta'), [
     (2, 32.0),
