@@ -284,7 +284,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
 
         Parameters
         ----------
-        E_scaled : `float`
+        E_scaled : `~astropy.units.Quantity`
             A scaled energy, the ratio of photon energy divided by ionization energy.
         n : `int`
             The principal quantum number
