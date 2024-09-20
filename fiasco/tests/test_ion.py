@@ -339,23 +339,28 @@ def test_free_free(ion):
     # This value has not been tested for correctness
     assert u.allclose(emission[0], 1.72804216e-29 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
-
-def test_free_free_radiative_loss(h1, fe20):
+@pytest.mark.parametrize(('index','expected'),
+                        [(0, 1.79093013e-22), 
+                        (75, 3.06577525e-21), ])
+def test_free_free_radiative_loss(h1, fe20, index, expected):
     assert fe20.free_free_radiative_loss().shape == fe20.temperature.shape
     assert u.allclose(h1.free_free_radiative_loss(), 0.0 * u.erg * u.cm**3 / u.s)
     # This value has not been tested for correctness
-    assert u.isclose(fe20.free_free_radiative_loss()[0], 1.79093013e-22 * u.erg * u.cm**3 / u.s)
+    assert u.isclose(fe20.free_free_radiative_loss()[index], expected * u.erg * u.cm**3 / u.s)
 
 @pytest.mark.requires_dbase_version('>= 9.0.1')
-@pytest.mark.parametrize(('itoh','relativistic','index','expected'),
-                        [(True, True, 0, 1.79093013e-22), (True, False, 0, 1.79093013e-22),
-                        (False, False, 0, 1.79093013e-22), (True, True, 75, 3.05586194e-21),
-                        (True, False, 75, 3.05628894e-21), (False, False, 75, 3.06577525e-21)])
-def test_free_free_radiative_loss_itoh(h1, fe20, itoh, relativistic, index, expected):
-    assert fe20.free_free_radiative_loss(itoh, relativistic).shape == fe20.temperature.shape
-    assert u.allclose(h1.free_free_radiative_loss(), 0.0 * u.erg * u.cm**3 / u.s)
+@pytest.mark.parametrize(('index','expected'),
+                        [(0, 1.79093013e-22), 
+                        (75, 3.05628894e-21), ])
+def test_free_free_radiative_loss_itoh(h1, fe20, index, expected):
+    """
+    For database versions >= 9.0.1, the Itoh Gaunt factors give a different 
+    result for the free-free radiative loss at temperature > 1 MK.
+    """
+    assert fe20.free_free_radiative_loss(use_itoh=True).shape == fe20.temperature.shape
+    assert u.allclose(h1.free_free_radiative_loss(use_itoh=True), 0.0 * u.erg * u.cm**3 / u.s)
     # This value has not been tested for correctness
-    assert u.isclose(fe20.free_free_radiative_loss(itoh, relativistic)[index], expected * u.erg * u.cm**3 / u.s)
+    assert u.isclose(fe20.free_free_radiative_loss(use_itoh=True)[index], expected * u.erg * u.cm**3 / u.s)
 
 def test_free_bound(ion):
     emission = ion.free_bound(200 * u.Angstrom)

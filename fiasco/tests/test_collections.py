@@ -142,19 +142,25 @@ def test_radiative_loss_bound_bound(collection, hdf5_dbase_root):
     u.allclose(rl[0], [3.90235371e-24, 4.06540902e-24, 4.08411295e-24] * u.erg * u.cm**3 / u.s)
 
 @pytest.mark.requires_dbase_version('>= 8')
-def test_radiative_loss_free_free(collection):
+@pytest.mark.parametrize(('index','expected'),
+                        [(0, 2.72706455e-35), 
+                        (75, 5.59153955e-31),])
+def test_radiative_loss_free_free(collection, index, expected):
     rl = collection.free_free_radiative_loss()
     assert rl.shape == collection.temperature.shape
     # This value has not been checked for correctness
-    u.isclose(rl[0], 2.72706455e-35 * u.erg * u.cm**3 / u.s)
+    u.isclose(rl[index], expected * u.erg * u.cm**3 / u.s)
 
 @pytest.mark.requires_dbase_version('>= 9.0.1')
-@pytest.mark.parametrize(('itoh','relativistic','index','expected'),
-                        [(True, True, 0, 2.71800458e-35), (True, False, 0, 2.71800458e-35),
-                        (False, False, 0, 2.72706455e-35), (True, True, 75, 5.57512083e-31),
-                        (True, False, 75, 5.57346003e-31), (False, False, 75, 5.59153955e-31)])
-def test_radiative_loss_free_free_itoh(collection, itoh, relativistic, index, expected):
-    rl = collection.free_free_radiative_loss(itoh, relativistic)
+@pytest.mark.parametrize(('index','expected'),
+                        [(0, 2.71800458e-35), 
+                        (75, 5.57346003e-31),])
+def test_radiative_loss_free_free_itoh(collection, index, expected):
+    """
+    For database versions >= 9.0.1, the Itoh Gaunt factors give a different 
+    result for the free-free radiative loss.
+    """
+    rl = collection.free_free_radiative_loss(use_itoh=True)
     assert rl.shape == collection.temperature.shape
     # This value has not been checked for correctness
     u.isclose(rl[index], expected * u.erg * u.cm**3 / u.s)

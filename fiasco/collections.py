@@ -303,7 +303,7 @@ Available Ions
         return wavelength, spectrum
 
     @u.quantity_input
-    def radiative_loss(self, density: u.cm**(-3), **kwargs) -> u.Unit('erg cm3 s-1'):
+    def radiative_loss(self, density: u.cm**(-3), use_itoh=False, **kwargs) -> u.Unit('erg cm3 s-1'):
         r"""
         Calculate the total wavelength-integrated radiative loss rate including the
         bound-bound, free-bound, and free-free emission contributions
@@ -315,14 +315,8 @@ Available Ions
         ----------
         density : `~astropy.units.Quantity`
             Electron number density
-        itoh : `bool`, optional
-            Specify whether to use the approximations specified by :cite:t:`itoh_radiative_2002` to
-            calculate the wavelength-integrated free-free Gaunt factor.
-            If true, use the forms by :cite:t:`itoh_radiative_2002`.  If false (default), use the forms by
-            :cite:t:`sutherland_accurate_1998`.
-        relativistic : `bool`, optional
-            If using the :cite:t:`itoh_radiative_2002` approximations, use the relativistic form
-            instead of the non-relativistic form.
+        use_itoh : `bool`, optional
+            Whether to use the Itoh Gaunt Factors for free-free.  Defaults to false.
 
         Returns
         -------
@@ -330,7 +324,7 @@ Available Ions
             The total bolometric radiative loss rate
         """
         rad_loss_bound_bound = self.bound_bound_radiative_loss(density, **kwargs)
-        rad_loss_free_free = self.free_free_radiative_loss()
+        rad_loss_free_free = self.free_free_radiative_loss(use_itoh)
         rad_loss_free_bound = self.free_bound_radiative_loss()
 
         rad_loss_total = (rad_loss_bound_bound
@@ -371,21 +365,15 @@ Available Ions
         return rad_loss
 
     @u.quantity_input
-    def free_free_radiative_loss(self, itoh=False, relativistic=True) -> u.Unit('erg cm3 s-1'):
+    def free_free_radiative_loss(self, use_itoh=False) -> u.Unit('erg cm3 s-1'):
         r"""
         Calculate the radiative loss rate from free-free emission (bremsstrahlung)
         integrated over wavelength.
 
         Parameters
         ----------
-        itoh : `bool`, optional
-            Specify whether to use the approximations specified by :cite:t:`itoh_radiative_2002` to
-            calculate the wavelength-integrated free-free Gaunt factor.
-            If true, use the forms by :cite:t:`itoh_radiative_2002`.  If false (default), use the forms by
-            :cite:t:`sutherland_accurate_1998`.
-        relativistic : `bool`, optional
-            If using the :cite:t:`itoh_radiative_2002` approximations, use the relativistic form
-            instead of the non-relativistic form.
+        use_itoh : `bool`, optional
+            Whether to use the Itoh Gaunt Factors.  Defaults to false.
 
         Returns
         -------
@@ -395,7 +383,7 @@ Available Ions
         free_free = u.Quantity(np.zeros(self.temperature.shape), 'erg cm^3 s^-1')
         for ion in self:
             try:
-                ff = ion.free_free_radiative_loss(itoh, relativistic)
+                ff = ion.free_free_radiative_loss(use_itoh)
                 abundance = ion.abundance
                 ioneq = ion.ioneq
             except MissingDatasetException as e:

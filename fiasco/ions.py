@@ -1318,7 +1318,7 @@ Using Datasets:
                 / np.sqrt(self.temperature)[:, np.newaxis])
 
     @u.quantity_input
-    def free_free_radiative_loss(self, itoh=False, relativistic=True) -> u.erg * u.cm**3 / u.s:
+    def free_free_radiative_loss(self, use_itoh=False) -> u.erg * u.cm**3 / u.s:
         r"""
         Free-free continuum radiative losses as a function of temperature.
 
@@ -1339,20 +1339,14 @@ Using Datasets:
         wavelength-integrated free-free Gaunt factor.  The prefactor :math:`F_{k}`
         is defined in Equation 19 of :cite:t:`sutherland_accurate_1998`, with a value
         of :math:`F_k\approx1.42555669\times10^{-27}\,\mathrm{cm}^{5}\,\mathrm{g}\,\mathrm{K}^{-1/2}\,\mathrm{s}^{3}`.
-
+        
         Parameters
         ----------
-        itoh : `bool`, optional
-            Specify whether to use the approximations specified by :cite:t:`itoh_radiative_2002` to
-            calculate the wavelength-integrated free-free Gaunt factor.
-            If true, use the forms by :cite:t:`itoh_radiative_2002`.  If false (default), use the forms by
-            :cite:t:`sutherland_accurate_1998`.
-        relativistic : `bool`, optional
-            If using the :cite:t:`itoh_radiative_2002` approximations, use the relativistic form
-            instead of the non-relativistic form.
+        use_itoh : `bool`, optional
+            Whether to use the Itoh Gaunt Factors.  Defaults to false.
         """
         prefactor = (16./3**1.5) * np.sqrt(2. * np.pi * const.k_B/(const.hbar**2 * const.m_e**3)) * (const.e.esu**6 / const.c**3)
-        gf = self.gaunt_factor.free_free_integrated(self.temperature, self.charge_state, itoh, relativistic)
+        gf = self.gaunt_factor.free_free_integrated(self.temperature, self.charge_state, use_itoh)
         return (prefactor * self.charge_state**2 * gf * np.sqrt(self.temperature))
 
     @needs_dataset('fblvl', 'ip')

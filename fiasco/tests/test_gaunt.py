@@ -37,12 +37,13 @@ def test_gaunt_factor_free_free_integrated(gaunt_factor, charge_state, expected)
     assert u.allclose(gf[0], expected * u.dimensionless_unscaled)
 
 @pytest.mark.requires_dbase_version('>= 9.0.1')
-@pytest.mark.parametrize(('charge_state','itoh','relativistic','index','expected'),
-                        [(3, True, True, 0, 1.2673757), (3, True, False, 0, 1.2673757),
-                        (3, False, False, 0, 1.27165875), (3, True, True, 75, 1.3466916),
-                        (3, True, False, 75, 1.34662286), (3, False, False, 75, 1.35061768)])
-def test_gaunt_factor_free_free_integrated_itoh(gaunt_factor, charge_state, itoh, relativistic, index, expected):
-    gf = gaunt_factor.free_free_integrated(temperature, charge_state, itoh, relativistic)
+@pytest.mark.parametrize(('charge_state','index','expected'),
+                        [(1, 0, 1.40965757), (1, 75, 1.20459895),
+                         (2, 0, 1.32203268), (2, 75, 1.28680539),
+                         (3, 0, 1.2673757), (3, 75, 1.34662286),
+                        ])
+def test_gaunt_factor_free_free_integrated_itoh(gaunt_factor, charge_state, index, expected):
+    gf = gaunt_factor.free_free_integrated(temperature, charge_state, use_itoh=True)
     assert gf.shape == temperature.shape
     # This value has not been tested for correctness
     assert u.allclose(gf[index], expected * u.dimensionless_unscaled)

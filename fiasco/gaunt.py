@@ -154,7 +154,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         return u.Quantity(np.where(gf < 0., 0., gf))
 
     @u.quantity_input
-    def free_free_integrated(self, temperature: u.K, charge_state, itoh=False, relativistic=True) -> u.dimensionless_unscaled:
+    def free_free_integrated(self, temperature: u.K, charge_state, use_itoh=False) -> u.dimensionless_unscaled:
         """
         The wavelength-integrated free-free Gaunt factor, used for calculating
         the total radiative losses from free-free emission.
@@ -165,24 +165,18 @@ HDF5 Database: {self.hdf5_dbase_root}"""
             The temperature(s) for which to calculate the Gaunt factor
         charge_state : `int`,
             The charge state of the ion
-        itoh : `bool`, optional
-            Specify whether to use the approximations specified by :cite:t:`itoh_radiative_2002`.
-            If true, use the forms by :cite:t:`itoh_radiative_2002`.  If false (default), use the forms by
-            :cite:t:`sutherland_accurate_1998`.
-        relativistic : `bool`, optional
-            If using the :cite:t:`itoh_radiative_2002` approximations, use the relativistic form
-            instead of the non-relativistic form.
+        use_itoh : `bool`, optional
+            Whether to use the Itoh Gaunt Factors.  Defaults to false.
         """
         if charge_state == 0:
             return u.Quantity(np.zeros(temperature.shape))
         else:
-            if itoh and relativistic:
-                return self._free_free_itoh_integrated_relativistic(temperature, charge_state)
-            elif itoh and not relativistic:
-                return self._free_free_itoh_integrated_nonrelativistic(temperature, charge_state)
-            else:
-                return self._free_free_sutherland_integrated(temperature, charge_state)
-
+            gf = self._free_free_sutherland_integrated(temperature, charge_state)
+            if use_itoh:
+                gf_itoh = self._free_free_itoh_integrated(temperature, charge_state)
+                gf = np.where(np.isnan(gf_itoh), gf, gf_itoh)
+            return gf
+            
     @needs_dataset('gffint')
     @u.quantity_input
     def _free_free_sutherland_integrated(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
@@ -208,6 +202,28 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         # The spline fit was pre-calculated by Sutherland 1998:
         return self._gffint['gaunt_factor'][index] + delta * (self._gffint['s1'][index] + delta * (self._gffint['s2'][index] + delta * self._gffint['s3'][index]))
 
+    @u.quantity_input
+    def _free_free_itoh_integrated(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
+        r"""
+        The wavelength-integrated free-free Gaunt factor, as specified by :cite:t:`itoh_radiative_2002`.
+
+        Parameters
+        ----------
+        temperature : `~astropy.units.Quantity`
+            The temperature(s) for which to calculate the Gaunt factor
+        charge_state : `int`,
+            The charge state of the ion
+        """
+        temperature = np.atleast_1d(temperature)
+        try:
+            gf_relativistic = self._free_free_itoh_integrated_relativistic(temperature, charge_state)
+        except MissingDatasetException:
+            gf_relativistic = np.full(len(temperature), np.nan)
+        try:
+            gf_nonrelativistic = self._free_free_itoh_integrated_nonrelativistic(temperature, charge_state)
+        except MissingDatasetException:
+            gf_nonrelativistic = np.full(len(temperature), np.nan)
+        return np.where(np.isnan(gf_nonrelativistic), gf_relativistic, gf_nonrelativistic)
 
     @needs_dataset('itoh_integrated_gaunt_nonrel')
     @u.quantity_input
@@ -233,7 +249,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         Gamma = (np.log10(gamma_squared) + 0.5) / 2.5
         for j in range(len(summation)):
             if np.log10(gamma_squared[j]) < -3.0 or np.log10(gamma_squared[j]) > 2.0:
-                summation[j] = self._free_free_sutherland_integrated(temperature[j], charge_state)
+                summation[j] = np.nan
             else:
                 b_array = self._itoh_integrated_gaunt_nonrel['b_i']
                 G_array = np.array([Gamma[j]**i for i in range(len(b_array))])
@@ -263,10 +279,8 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         t = (np.log10(temperature.data)-7.25)/1.25
         summation = u.Quantity(np.zeros(temperature.shape))
         for j in range(len(summation)):
-            if np.log10(temperature[j].data) < 6.0:
-                summation[j] = self._free_free_itoh_integrated_nonrelativistic(temperature[j], charge_state)
-            elif np.log10(temperature[j].data) > 8.5:
-                summation[j] = self._free_free_sutherland_integrated(temperature[j], charge_state)
+            if np.log10(temperature[j].data) < 6.0 or np.log10(temperature[j].data) > 8.5:
+                summation[j] = np.nan
             else:
                 a_matrix = self._itoh_integrated_gaunt['a_ik']
                 z_array = np.array([z**i for i in range(len(a_matrix[:,0]))])
