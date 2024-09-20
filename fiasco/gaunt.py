@@ -52,12 +52,12 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @property
-    def _itohintrel(self):
+    def _itoh_integrated_gaunt(self):
         data_path = '/'.join(['continuum', 'itoh_integrated_gaunt'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @property
-    def _itohintnonrel(self):
+    def _itoh_integrated_gaunt_nonrel(self):
         data_path = '/'.join(['continuum', 'itoh_integrated_gaunt_nonrel'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
@@ -209,7 +209,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         return self._gffint['gaunt_factor'][index] + delta * (self._gffint['s1'][index] + delta * (self._gffint['s2'][index] + delta * self._gffint['s3'][index]))
 
 
-    @needs_dataset('itohintnonrel')
+    @needs_dataset('itoh_integrated_gaunt_nonrel')
     @u.quantity_input
     def _free_free_itoh_integrated_nonrelativistic(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
         r"""
@@ -235,12 +235,12 @@ HDF5 Database: {self.hdf5_dbase_root}"""
             if np.log10(gamma_squared[j]) < -3.0 or np.log10(gamma_squared[j]) > 2.0:
                 summation[j] = self._free_free_sutherland_integrated(temperature[j], charge_state)
             else:
-                b_array = self._itohintnonrel['b_i']
+                b_array = self._itoh_integrated_gaunt_nonrel['b_i']
                 G_array = np.array([Gamma[j]**i for i in range(len(b_array))])
                 summation[j] = np.einsum("i,i",b_array,G_array)
         return summation
 
-    @needs_dataset('itohintrel')
+    @needs_dataset('itoh_integrated_gaunt')
     @u.quantity_input
     def _free_free_itoh_integrated_relativistic(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
         r"""
@@ -268,7 +268,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
             elif np.log10(temperature[j].data) > 8.5:
                 summation[j] = self._free_free_sutherland_integrated(temperature[j], charge_state)
             else:
-                a_matrix = self._itohintrel['a_ik']
+                a_matrix = self._itoh_integrated_gaunt['a_ik']
                 z_array = np.array([z**i for i in range(len(a_matrix[:,0]))])
                 t_array = np.array([t[j]**k for k in range(len(a_matrix[0,:]))])
                 summation[j] = np.einsum("i,k,ik", z_array, t_array, a_matrix)
