@@ -154,9 +154,9 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         return u.Quantity(np.where(gf < 0., 0., gf))
 
     @u.quantity_input
-    def free_free_total(self, temperature: u.K, charge_state, itoh=False, relativistic=True) -> u.dimensionless_unscaled:
+    def free_free_integrated(self, temperature: u.K, charge_state, itoh=False, relativistic=True) -> u.dimensionless_unscaled:
         """
-        The total (wavelength-averaged) free-free Gaunt factor, used for calculating
+        The wavelength-integrated free-free Gaunt factor, used for calculating
         the total radiative losses from free-free emission.
 
         Parameters
@@ -187,7 +187,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
     @u.quantity_input
     def _free_free_sutherland_integrated(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
         """
-        The total (wavelength-averaged) free-free Gaunt factor, as specified by :cite:t:`sutherland_accurate_1998`,
+        The wavelength-integrated free-free Gaunt factor, as specified by :cite:t:`sutherland_accurate_1998`,
         in Section 2.4 of that work.
 
         This is the default option used by CHIANTI for integrated free-free Gaunt factor, and we also use it
@@ -213,7 +213,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
     @u.quantity_input
     def _free_free_itoh_integrated_nonrelativistic(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
         r"""
-        The total (wavelength-averaged) non-relativistic free-free Gaunt factor, as specified by
+        The wavelength-integrated non-relativistic free-free Gaunt factor, as specified by
         :cite:t:`itoh_radiative_2002`.
 
         This form is only valid between :math:`-3.0 \leq \log_{10} \gamma^{2} \leq 2.0`.  We use the form
@@ -244,7 +244,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
     @u.quantity_input
     def _free_free_itoh_integrated_relativistic(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:
         r"""
-        The total (wavelength-averaged) relativistic free-free Gaunt factor, as specified by
+        The wavelength-integrated relativistic free-free Gaunt factor, as specified by
         :cite:t:`itoh_radiative_2002`.
 
         The relativistic approximation is only valid between :math:`6.0 \leq \log_{10} T_{e} \leq 8.5`, and charges between 1 and 28.
@@ -304,10 +304,11 @@ HDF5 Database: {self.hdf5_dbase_root}"""
 
 
     @u.quantity_input
-    def free_bound_total(self, temperature: u.K, atomic_number, charge_state, n_0,
+    def free_bound_integrated(self, temperature: u.K, atomic_number, charge_state, n_0,
                             ionization_potential: u.eV, ground_state=True) -> u.dimensionless_unscaled:
         r"""
-        The total Gaunt factor for free-bound emission, using the expressions from :cite:t:`mewe_calculated_1986`.
+        The wavelength-integrated Gaunt factor for free-bound emission, using the expressions
+        from :cite:t:`mewe_calculated_1986`.
 
         The Gaunt factor is not calculated for individual levels, except that the ground state has
         been specified to be :math:`g_{fb}(n_{0}) = 0.9` following :cite:t:`mewe_calculated_1986`.

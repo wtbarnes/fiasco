@@ -30,8 +30,8 @@ def test_zeta0(hdf5_dbase_root, ionization_stage, zeta):
 
 @pytest.mark.parametrize(('charge_state', 'expected'),
                         [(1, 1.41409406), (2, 1.3265169), (3, 1.27165875)])
-def test_gaunt_factor_free_free_total(gaunt_factor, charge_state, expected):
-    gf = gaunt_factor.free_free_total(temperature, charge_state)
+def test_gaunt_factor_free_free_integrated(gaunt_factor, charge_state, expected):
+    gf = gaunt_factor.free_free_integrated(temperature, charge_state)
     assert gf.shape == temperature.shape
     # This value has not been tested for correctness
     assert u.allclose(gf[0], expected * u.dimensionless_unscaled)
@@ -41,15 +41,15 @@ def test_gaunt_factor_free_free_total(gaunt_factor, charge_state, expected):
                         [(3, True, True, 0, 1.2673757), (3, True, False, 0, 1.2673757),
                         (3, False, False, 0, 1.27165875), (3, True, True, 75, 1.3466916),
                         (3, True, False, 75, 1.34662286), (3, False, False, 75, 1.35061768)])
-def test_gaunt_factor_free_free_total_itoh(gaunt_factor, charge_state, itoh, relativistic, index, expected):
-    gf = gaunt_factor.free_free_total(temperature, charge_state, itoh, relativistic)
+def test_gaunt_factor_free_free_integrated_itoh(gaunt_factor, charge_state, itoh, relativistic, index, expected):
+    gf = gaunt_factor.free_free_integrated(temperature, charge_state, itoh, relativistic)
     assert gf.shape == temperature.shape
     # This value has not been tested for correctness
     assert u.allclose(gf[index], expected * u.dimensionless_unscaled)
 
-def test_gaunt_factor_free_bound_total(ion):
-    ion_gf_0 = ion.gaunt_factor.free_bound_total(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=True)
-    ion_gf_1 = ion.gaunt_factor.free_bound_total(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=False)
+def test_gaunt_factor_free_bound_integrated(ion):
+    ion_gf_0 = ion.gaunt_factor.free_bound_integrated(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=True)
+    ion_gf_1 = ion.gaunt_factor.free_bound_integrated(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=False)
     assert ion_gf_0.shape == ion.temperature.shape
     # These values have not been tested for correctness
     assert u.isclose(ion_gf_0[20], 55.18573076316151 * u.dimensionless_unscaled)
@@ -60,5 +60,5 @@ def test_free_bound_gaunt_factor_low_temperature(gs, hdf5_dbase_root):
     # At low temperatures (~1e4 K), exponential terms in the gaunt factor used to compute the
     # free-bound radiative loss can blow up. This just tests to make sure those are handled correctly
     ion = fiasco.Ion('N 8', np.logspace(4,6,100)*u.K, hdf5_dbase_root=hdf5_dbase_root)
-    gf_fb_total = ion.gaunt_factor.free_bound_total(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=gs)
-    assert not np.isinf(gf_fb_total).any()
+    gf_fb_int = ion.gaunt_factor.free_bound_integrated(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=gs)
+    assert not np.isinf(gf_fb_int).any()

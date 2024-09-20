@@ -1336,7 +1336,7 @@ Using Datasets:
 
         where :math:`T_{e}` is the electron temperature, :math:`F_{k}` is a constant,
         :math:`Z` is the ionization stage, and :math:`\langle g_{t,ff}\rangle` is the
-        total (wavelength-averaged) free-free Gaunt factor.  The prefactor :math:`F_{k}`
+        wavelength-integrated free-free Gaunt factor.  The prefactor :math:`F_{k}`
         is defined in Equation 19 of :cite:t:`sutherland_accurate_1998`, with a value
         of :math:`F_k\approx1.42555669\times10^{-27}\,\mathrm{cm}^{5}\,\mathrm{g}\,\mathrm{K}^{-1/2}\,\mathrm{s}^{3}`.
 
@@ -1352,7 +1352,7 @@ Using Datasets:
             instead of the non-relativistic form.
         """
         prefactor = (16./3**1.5) * np.sqrt(2. * np.pi * const.k_B/(const.hbar**2 * const.m_e**3)) * (const.e.esu**6 / const.c**3)
-        gf = self.gaunt_factor.free_free_total(self.temperature, self.charge_state, itoh, relativistic)
+        gf = self.gaunt_factor.free_free_integrated(self.temperature, self.charge_state, itoh, relativistic)
         return (prefactor * self.charge_state**2 * gf * np.sqrt(self.temperature))
 
     @needs_dataset('fblvl', 'ip')
@@ -1487,8 +1487,8 @@ Using Datasets:
             E_fb = np.where(E_obs==0*u.erg, E_th, E_obs)
             wvl_n0 = const.h * const.c / (recombined.ip - E_fb[0])
             wvl_n1 = (recombined._fblvl['n'][0] + 1)**2 /(const.Ryd * z**2)
-            g_fb0 = self.gaunt_factor.free_bound_total(self.temperature, self.atomic_number, self.charge_state, recombined._fblvl['n'][0], recombined.ip, ground_state=True)
-            g_fb1 = self.gaunt_factor.free_bound_total(self.temperature, self.atomic_number, self.charge_state, recombined._fblvl['n'][0], recombined.ip, ground_state=False)
+            g_fb0 = self.gaunt_factor.free_bound_integrated(self.temperature, self.atomic_number, self.charge_state, recombined._fblvl['n'][0], recombined.ip, ground_state=True)
+            g_fb1 = self.gaunt_factor.free_bound_integrated(self.temperature, self.atomic_number, self.charge_state, recombined._fblvl['n'][0], recombined.ip, ground_state=False)
             term1 = g_fb0 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n0))
             term2 = g_fb1 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n1))
 
