@@ -17,16 +17,18 @@ def needs_dataset(*names):
 
     def decorator(func):
         """
-        func is a method of `fiasco.Ion`.
+        func is a method of an object that requires a dataset, e.g Ion.
         """
         @wraps(func)
         def func_wrapper(*args, **kwargs):
-            ion = args[0]
+            obj = args[0]
             for n in names:
                 try:
-                    _ = ion.__getattribute__(n)
+                    _ = obj.__getattribute__(n)
                 except KeyError:
-                    raise MissingDatasetException(f'{n} dataset missing for {ion.ion_name}.')
+                    raise MissingDatasetException(
+                        f"{n} dataset missing for {getattr(obj, 'ion_name', obj)}."
+                    )
 
             return func(*args, **kwargs)
         return func_wrapper
