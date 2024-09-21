@@ -1339,7 +1339,7 @@ Using Datasets:
         wavelength-integrated free-free Gaunt factor.  The prefactor :math:`F_{k}`
         is defined in Equation 19 of :cite:t:`sutherland_accurate_1998`, with a value
         of :math:`F_k\approx1.42555669\times10^{-27}\,\mathrm{cm}^{5}\,\mathrm{g}\,\mathrm{K}^{-1/2}\,\mathrm{s}^{3}`.
-        
+
         Parameters
         ----------
         use_itoh : `bool`, optional

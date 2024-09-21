@@ -340,7 +340,7 @@ def test_free_free(ion):
     assert u.allclose(emission[0], 1.72804216e-29 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
 @pytest.mark.parametrize(('index','expected'),
-                        [(0, 1.79093013e-22), 
+                        [(0, 1.79093013e-22),
                         (75, 3.06577525e-21), ])
 def test_free_free_radiative_loss(h1, fe20, index, expected):
     assert fe20.free_free_radiative_loss().shape == fe20.temperature.shape
@@ -350,11 +350,11 @@ def test_free_free_radiative_loss(h1, fe20, index, expected):
 
 @pytest.mark.requires_dbase_version('>= 9.0.1')
 @pytest.mark.parametrize(('index','expected'),
-                        [(0, 1.79093013e-22), 
+                        [(0, 1.79093013e-22),
                         (75, 3.05628894e-21), ])
 def test_free_free_radiative_loss_itoh(h1, fe20, index, expected):
     """
-    For database versions >= 9.0.1, the Itoh Gaunt factors give a different 
+    For database versions >= 9.0.1, the Itoh Gaunt factors give a different
     result for the free-free radiative loss at temperature > 1 MK.
     """
     assert fe20.free_free_radiative_loss(use_itoh=True).shape == fe20.temperature.shape

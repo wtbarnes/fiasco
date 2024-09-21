@@ -177,7 +177,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
                 gf_itoh = self._free_free_itoh_integrated(temperature, charge_state)
                 gf = np.where(np.isnan(gf_itoh), gf, gf_itoh)
             return gf
-            
+
     @needs_dataset('gffint')
     @u.quantity_input
     def _free_free_sutherland_integrated(self, temperature: u.K, charge_state) -> u.dimensionless_unscaled:

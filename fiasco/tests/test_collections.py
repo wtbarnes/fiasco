@@ -143,7 +143,7 @@ def test_radiative_loss_bound_bound(collection, hdf5_dbase_root):
 
 @pytest.mark.requires_dbase_version('>= 8')
 @pytest.mark.parametrize(('index','expected'),
-                        [(0, 2.72706455e-35), 
+                        [(0, 2.72706455e-35),
                         (75, 5.59153955e-31),])
 def test_radiative_loss_free_free(collection, index, expected):
     rl = collection.free_free_radiative_loss()
@@ -153,11 +153,11 @@ def test_radiative_loss_free_free(collection, index, expected):
 
 @pytest.mark.requires_dbase_version('>= 9.0.1')
 @pytest.mark.parametrize(('index','expected'),
-                        [(0, 2.71800458e-35), 
+                        [(0, 2.71800458e-35),
                         (75, 5.57346003e-31),])
 def test_radiative_loss_free_free_itoh(collection, index, expected):
     """
-    For database versions >= 9.0.1, the Itoh Gaunt factors give a different 
+    For database versions >= 9.0.1, the Itoh Gaunt factors give a different
     result for the free-free radiative loss.
     """
     rl = collection.free_free_radiative_loss(use_itoh=True)

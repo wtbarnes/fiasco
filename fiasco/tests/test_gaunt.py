@@ -48,10 +48,15 @@ def test_gaunt_factor_free_free_integrated_itoh(gaunt_factor, charge_state, inde
     # This value has not been tested for correctness
     assert u.allclose(gf[index], expected * u.dimensionless_unscaled)
 
-def test_gaunt_factor_free_bound_integrated(ion):
+def test_gaunt_factor_free_bound_nl_missing(gaunt_factor):
+    #test cases where n or l is not in the klgfb data
+    assert u.isclose(gaunt_factor.free_bound(0.5, 10, 1), 1.0 * u.dimensionless_unscaled)
+
+def test_gaunt_factor_free_bound_integrated(gaunt_factor, ion):
     ion_gf_0 = ion.gaunt_factor.free_bound_integrated(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=True)
     ion_gf_1 = ion.gaunt_factor.free_bound_integrated(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=False)
     assert ion_gf_0.shape == ion.temperature.shape
+    assert u.allclose(gaunt_factor.free_bound_integrated(temperature, 1, 0, 1, 13.6*u.eV), 0.0 * u.dimensionless_unscaled)
     # These values have not been tested for correctness
     assert u.isclose(ion_gf_0[20], 55.18573076316151 * u.dimensionless_unscaled)
     assert u.isclose(ion_gf_1[20], 11.849092513590998 * u.dimensionless_unscaled)
