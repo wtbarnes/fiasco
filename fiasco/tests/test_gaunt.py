@@ -7,6 +7,8 @@ import pytest
 
 import fiasco
 
+from fiasco.util.exceptions import MissingDatasetException
+
 temperature = np.logspace(5, 8, 100)*u.K
 
 @pytest.fixture
@@ -25,6 +27,9 @@ def test_properties_exist(gaunt_factor, property):
 @pytest.mark.parametrize(('property'), [('_itoh_integrated_gaunt'), ('_itoh_integrated_gaunt_nonrel')])
 def test_itoh_properties_exist(gaunt_factor, property):
     assert hasattr(gaunt_factor, property)
+
+def test_repr(gaunt_factor):
+    assert 'Gaunt factor' in gaunt_factor.__repr__()
 
 @pytest.mark.parametrize(('ionization_stage', 'zeta'), [
     (2, 32.0),
@@ -56,6 +61,16 @@ def test_gaunt_factor_free_free_integrated_itoh(gaunt_factor, charge_state, inde
     assert gf.shape == temperature.shape
     # This value has not been tested for correctness
     assert u.allclose(gf[index], expected * u.dimensionless_unscaled)
+
+@pytest.mark.requires_dbase_version('< 9.0.1')
+def test_free_free_integrated_itoh_missing_data(gaunt_factor):
+    gf = gaunt_factor._free_free_itoh_integrated(temperature, 1)
+    assert gf.shape == temperature.shape
+    assert np.isnan(gf[0])
+    with pytest.raises(MissingDatasetException):
+        gf = gaunt_factor._free_free_itoh_integrated_relativistic(temperature, 1)
+    with pytest.raises(MissingDatasetException):
+        gf = gaunt_factor._free_free_itoh_integrated_nonrelativistic(temperature, 1)
 
 def test_gaunt_factor_free_bound_nl_missing(gaunt_factor):
     #test cases where n or l is not in the klgfb data
