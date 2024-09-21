@@ -21,7 +21,7 @@ def gaunt_factor(hdf5_dbase_root):
 def test_properties_exist(gaunt_factor, property):
     assert hasattr(gaunt_factor, property)
 
-#@pytest.mark.requires_dbase_version('>= 9.0.1')
+@pytest.mark.requires_dbase_version('>= 9.0.1')
 @pytest.mark.parametrize(('property'), [('_itoh_integrated_gaunt'), ('_itoh_integrated_gaunt_nonrel')])
 def test_itoh_properties_exist(gaunt_factor, property):
     assert hasattr(gaunt_factor, property)
