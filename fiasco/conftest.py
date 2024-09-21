@@ -14,12 +14,6 @@ except ImportError:
 else:
     matplotlib.use('Agg')
 
-
-# Minimal set of CHIANTI files needed to run the tests
-# NOTE: need some way for this to be flexible depending on the supplied database version
-#TEST_FILES = get_test_file_list()
-
-
 @pytest.fixture(scope='session')
 def ascii_dbase_tree(tmpdir_factory, request):
     path = request.config.getoption('--ascii-dbase-root')

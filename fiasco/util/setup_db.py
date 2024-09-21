@@ -171,7 +171,7 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=F
         tmp = get_chianti_catalog(ascii_dbase_root)
         for k in tmp:
             files += tmp[k]
-    else:
+    elif len(files) == 0:
         version = read_chianti_version(ascii_dbase_root)
         files = get_test_file_list(version)
     if check_hash:
