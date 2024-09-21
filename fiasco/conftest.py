@@ -4,7 +4,7 @@ import pytest
 
 from packaging.version import Version
 
-from fiasco.util import check_database, get_test_file_list, read_chianti_version
+from fiasco.util import check_database, read_chianti_version
 
 # Force MPL to use non-gui backends for testing.
 try:
@@ -17,7 +17,7 @@ else:
 
 # Minimal set of CHIANTI files needed to run the tests
 # NOTE: need some way for this to be flexible depending on the supplied database version
-TEST_FILES = get_test_file_list()
+#TEST_FILES = get_test_file_list()
 
 
 @pytest.fixture(scope='session')
@@ -47,7 +47,7 @@ def hdf5_dbase_root(ascii_dbase_tree, tmpdir_factory, request):
     if request.config.getoption('--include-all-files'):
         test_files = None
     else:
-        test_files = TEST_FILES
+        test_files = list() # empty list only to signify not None
     check_hash = not request.config.getoption('--disable-file-hash')
     # Optionally use a different URL for the database (e.g. for testing different versions)
     ascii_dbase_url = request.config.getoption('--ascii-dbase-url')
