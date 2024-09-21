@@ -13,6 +13,7 @@ import fiasco
 
 from fiasco.io.datalayer import DataIndexer
 from fiasco.util import check_database, needs_dataset
+from fiasco.util.exceptions import MissingDatasetException
 
 __all__ = ['GauntFactor']
 
