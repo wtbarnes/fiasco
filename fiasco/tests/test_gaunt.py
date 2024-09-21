@@ -17,6 +17,15 @@ def ion(hdf5_dbase_root):
 def gaunt_factor(hdf5_dbase_root):
     return fiasco.GauntFactor(hdf5_dbase_root=hdf5_dbase_root)
 
+@pytest.mark.parametrize(('property'), [('_itoh'), ('_klgfb'), ('_gffint'), ('_gffgu')])
+def test_properties_exist(gaunt_factor, property):
+    assert hasattr(gaunt_factor, property)
+
+#@pytest.mark.requires_dbase_version('>= 9.0.1')
+@pytest.mark.parametrize(('property'), [('_itoh_integrated_gaunt'), ('_itoh_integrated_gaunt_nonrel')])
+def test_itoh_properties_exist(gaunt_factor, property):
+    assert hasattr(gaunt_factor, property)
+
 @pytest.mark.parametrize(('ionization_stage', 'zeta'), [
     (2, 32.0),
     (16, 18.0),
