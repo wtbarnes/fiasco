@@ -291,7 +291,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
 
     @needs_dataset('klgfb')
     @u.quantity_input
-    def free_bound(self, E_scaled: u.dimensionless_unscaled, n, l) -> u.dimensionless_unscaled:
+    def free_bound(self, E_scaled, n, l) -> u.dimensionless_unscaled:
         r"""
         Free-bound Gaunt factor as a function of scaled energy.
 
@@ -299,7 +299,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
 
         Parameters
         ----------
-        E_scaled : `~astropy.units.Quantity`
+        E_scaled : `float`
             A scaled energy, the ratio of photon energy divided by ionization energy.
         n : `int`
             The principal quantum number

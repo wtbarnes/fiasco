@@ -43,7 +43,7 @@ def test_zeta0(hdf5_dbase_root, ionization_stage, zeta):
     assert u.isclose(z0, zeta)
 
 @pytest.mark.parametrize(('charge_state', 'expected'),
-                        [(1, 1.41409406), (2, 1.3265169), (3, 1.27165875)])
+                        [(0, 0.0), (1, 1.41409406), (2, 1.3265169), (3, 1.27165875)])
 def test_gaunt_factor_free_free_integrated(gaunt_factor, charge_state, expected):
     gf = gaunt_factor.free_free_integrated(temperature, charge_state)
     assert gf.shape == temperature.shape
@@ -71,6 +71,14 @@ def test_free_free_integrated_itoh_missing_data(gaunt_factor):
         gf = gaunt_factor._free_free_itoh_integrated_relativistic(temperature, 1)
     with pytest.raises(MissingDatasetException):
         gf = gaunt_factor._free_free_itoh_integrated_nonrelativistic(temperature, 1)
+
+@pytest.mark.requires_dbase_version('>= 9.0.1')
+@pytest.mark.parametrize(('T'), [(1e3,1e9)])
+def test_gaunt_factor_free_free_integrated_itoh_invalid_temperature(gaunt_factor, T):
+    gf = gaunt_factor._free_free_itoh_integrated_relativistic(T*u.K, 1)
+    assert np.isnan(gf[0])
+    gf = gaunt_factor._free_free_itoh_integrated_nonrelativistic(T*u.K, 1)
+    assert np.isnan(gf[0])
 
 def test_gaunt_factor_free_bound_nl_missing(gaunt_factor):
     #test cases where n or l is not in the klgfb data
