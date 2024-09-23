@@ -9,9 +9,17 @@ import plasmapy
 
 from fiasco.io.generic import GenericParser
 
-__all__ = ['GffguParser', 'GffintParser', 'ItohIntegratedGauntParser',
-           'ItohIntegratedGauntNonrelParser', 'KlgfbParser', 'VernerParser',
-           'ItohParser', 'HSeqParser', 'HeSeqParser']
+__all__ = [
+    'GffguParser',
+    'GffintParser', 
+    'ItohIntegratedGauntParser',
+    'ItohIntegratedGauntNonrelParser',
+    'KlgfbParser', 
+    'VernerParser',
+    'ItohParser',
+    'HSeqParser', 
+    'HeSeqParser'
+]
 
 
 class GffguParser(GenericParser):
