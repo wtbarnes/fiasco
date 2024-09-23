@@ -325,7 +325,7 @@ Available Ions
             The total bolometric radiative loss rate
         """
         rad_loss_bound_bound = self.bound_bound_radiative_loss(density, **kwargs)
-        rad_loss_free_free = self.free_free_radiative_loss(use_itoh)
+        rad_loss_free_free = self.free_free_radiative_loss(use_itoh=use_itoh)
         rad_loss_free_bound = self.free_bound_radiative_loss()
 
         rad_loss_total = (rad_loss_bound_bound
