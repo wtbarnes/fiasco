@@ -24,6 +24,13 @@ class GauntFactor:
     The Gaunt factor is defined as the ratio of the true cross-section to the
     semi-classical Kramers cross-section, and thus is essentially a multiplicative
     correction for quantum mechanical effects.  It is a unitless quantity.
+    
+    Parameters
+    ------------
+    hdf5_dbase_root: path-like, optional
+        Path to built database
+   kwargs:
+        All keyword arguments to `fiasco.util.check_database` are also supported here
     """
     def __init__(self, hdf5_dbase_root=None, *args, **kwargs):
         if hdf5_dbase_root is None:
