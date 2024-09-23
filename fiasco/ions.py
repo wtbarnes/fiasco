@@ -1343,10 +1343,11 @@ Using Datasets:
         Parameters
         ----------
         use_itoh : `bool`, optional
-            Whether to use the Itoh Gaunt Factors.  Defaults to false.
+            Whether to use Gaunt factors taken from :cite:t:`itoh_radiative_2002`.
+            Defaults to false.
         """
         prefactor = (16./3**1.5) * np.sqrt(2. * np.pi * const.k_B/(const.hbar**2 * const.m_e**3)) * (const.e.esu**6 / const.c**3)
-        gf = self.gaunt_factor.free_free_integrated(self.temperature, self.charge_state, use_itoh)
+        gf = self.gaunt_factor.free_free_integrated(self.temperature, self.charge_state, use_itoh=use_itoh)
         return (prefactor * self.charge_state**2 * gf * np.sqrt(self.temperature))
 
     @needs_dataset('fblvl', 'ip')
