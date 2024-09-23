@@ -316,7 +316,8 @@ Available Ions
         density : `~astropy.units.Quantity`
             Electron number density
         use_itoh : `bool`, optional
-            Whether to use the Itoh Gaunt Factors for free-free.  Defaults to false.
+            Whether to use Gaunt factors taken from :cite:t:`itoh_radiative_2002` for the calculation
+            of free-free emission.  Defaults to false.
 
         Returns
         -------
@@ -373,17 +374,22 @@ Available Ions
         Parameters
         ----------
         use_itoh : `bool`, optional
-            Whether to use the Itoh Gaunt Factors.  Defaults to false.
+            Whether to use Gaunt factors taken from :cite:t:`itoh_radiative_2002`.
+            Defaults to false.
 
         Returns
         -------
         rad_loss : `~astropy.units.Quantity`
             The bolometric free-free radiative loss rate per unit emission measure
+
+        See Also
+        --------
+        fiasco.GauntFactor.free_free_integrated
         """
         free_free = u.Quantity(np.zeros(self.temperature.shape), 'erg cm^3 s^-1')
         for ion in self:
             try:
-                ff = ion.free_free_radiative_loss(use_itoh)
+                ff = ion.free_free_radiative_loss(use_itoh=use_itoh)
                 abundance = ion.abundance
                 ioneq = ion.ioneq
             except MissingDatasetException as e:

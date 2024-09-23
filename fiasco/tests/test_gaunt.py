@@ -82,7 +82,7 @@ def test_gaunt_factor_free_bound_integrated(ion, ground_state, expected):
     # These values have not been tested for correctness
     assert u.isclose(gf[20], expected * u.dimensionless_unscaled)
 
-def test_free_bound_zero_charge(gaunt_factor):
+def test_free_bound_integrated_zero_charge(gaunt_factor):
     assert u.allclose(gaunt_factor.free_bound_integrated(temperature, 1, 0, 1, 13.6*u.eV), 0.0 * u.dimensionless_unscaled)
 
 @pytest.mark.parametrize('gs', [True, False])
