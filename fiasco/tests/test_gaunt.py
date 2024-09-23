@@ -19,15 +19,6 @@ def ion(hdf5_dbase_root):
 def gaunt_factor(hdf5_dbase_root):
     return fiasco.GauntFactor(hdf5_dbase_root=hdf5_dbase_root)
 
-@pytest.mark.parametrize(('property'), [('_itoh'), ('_klgfb'), ('_gffint'), ('_gffgu')])
-def test_properties_exist(gaunt_factor, property):
-    assert hasattr(gaunt_factor, property)
-
-@pytest.mark.requires_dbase_version('>= 9.0.1')
-@pytest.mark.parametrize(('property'), [('_itoh_integrated_gaunt'), ('_itoh_integrated_gaunt_nonrel')])
-def test_itoh_properties_exist(gaunt_factor, property):
-    assert hasattr(gaunt_factor, property)
-
 def test_repr(gaunt_factor):
     assert 'Gaunt factor' in gaunt_factor.__repr__()
 
@@ -84,14 +75,15 @@ def test_gaunt_factor_free_bound_nl_missing(gaunt_factor):
     #test cases where n or l is not in the klgfb data
     assert u.isclose(gaunt_factor.free_bound(0.5, 10, 1), 1.0 * u.dimensionless_unscaled)
 
-def test_gaunt_factor_free_bound_integrated(gaunt_factor, ion):
-    ion_gf_0 = ion.gaunt_factor.free_bound_integrated(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=True)
-    ion_gf_1 = ion.gaunt_factor.free_bound_integrated(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=False)
-    assert ion_gf_0.shape == ion.temperature.shape
-    assert u.allclose(gaunt_factor.free_bound_integrated(temperature, 1, 0, 1, 13.6*u.eV), 0.0 * u.dimensionless_unscaled)
+@pytest.mark.parametrize(('ground_state', 'expected'), [(True, 55.18573076316151), (False, 11.849092513590998)])
+def test_gaunt_factor_free_bound_integrated(ion, ground_state, expected):
+    gf = ion.gaunt_factor.free_bound_integrated(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=ground_state)
+    assert gf.shape == ion.temperature.shape
     # These values have not been tested for correctness
-    assert u.isclose(ion_gf_0[20], 55.18573076316151 * u.dimensionless_unscaled)
-    assert u.isclose(ion_gf_1[20], 11.849092513590998 * u.dimensionless_unscaled)
+    assert u.isclose(gf[20], expected * u.dimensionless_unscaled)
+
+def test_free_bound_zero_charge(gaunt_factor):
+    assert u.allclose(gaunt_factor.free_bound_integrated(temperature, 1, 0, 1, 13.6*u.eV), 0.0 * u.dimensionless_unscaled)
 
 @pytest.mark.parametrize('gs', [True, False])
 def test_free_bound_gaunt_factor_low_temperature(gs, hdf5_dbase_root):
