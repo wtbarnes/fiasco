@@ -51,7 +51,6 @@ __all__ = [
     "Ion",
     "Level",
     "Transitions",
-    "GauntFactor",
     "defaults",
     "log",
     "__version__",
