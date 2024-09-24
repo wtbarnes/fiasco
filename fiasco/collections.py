@@ -381,6 +381,10 @@ Available Ions
         -------
         rad_loss : `~astropy.units.Quantity`
             The bolometric free-free radiative loss rate per unit emission measure
+            
+        See Also
+        -------
+        fiasco.GauntFactor.free_free_integrated
         """
         free_free = u.Quantity(np.zeros(self.temperature.shape), 'erg cm^3 s^-1')
         for ion in self:

@@ -1305,6 +1305,7 @@ Using Datasets:
 
         See Also
         --------
+        fiasco.GauntFactor.free_free
         fiasco.IonCollection.free_free: Includes abundance and ionization equilibrium
         """
         prefactor = (const.c / 3. / const.m_e * (const.alpha * const.h / np.pi)**3
