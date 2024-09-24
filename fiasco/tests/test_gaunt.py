@@ -7,6 +7,7 @@ import pytest
 
 import fiasco
 
+from fiasco.gaunt import GauntFactor
 from fiasco.util.exceptions import MissingDatasetException
 
 temperature = np.logspace(5, 8, 100)*u.K
@@ -17,7 +18,7 @@ def ion(hdf5_dbase_root):
 
 @pytest.fixture
 def gaunt_factor(hdf5_dbase_root):
-    return fiasco.GauntFactor(hdf5_dbase_root=hdf5_dbase_root)
+    return GauntFactor(hdf5_dbase_root=hdf5_dbase_root)
 
 def test_repr(gaunt_factor):
     assert 'Gaunt factor' in gaunt_factor.__repr__()

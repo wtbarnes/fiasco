@@ -4,7 +4,6 @@ fiasco: A Python interface to the CHIANTI atomic database
 from fiasco.collections import IonCollection
 from fiasco.elements import Element
 from fiasco.fiasco import list_elements, list_ions, proton_electron_ratio
-from fiasco.gaunt import GauntFactor
 from fiasco.ions import Ion
 from fiasco.levels import Level, Transitions
 from fiasco.util.util import setup_paths
