@@ -307,6 +307,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         l : `int`
             The azimuthal quantum number
         """
+        E_scaled = np.atleast_1d(E_scaled)
         index_nl = np.where(np.logical_and(self._klgfb['n'] == n, self._klgfb['l'] == l))[0]
         # If there is no Gaunt factor for n, l, set it to 1
         if index_nl.shape == (0,):
