@@ -167,6 +167,13 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         The wavelength-integrated free-free Gaunt factor, used for calculating
         the total radiative losses from free-free emission.
 
+        By default, this calculation is done with the form specified in :cite:t:`sutherland_accurate_1998`,
+        which is valid over a wide range of temperatures.  The `use_itoh` option substitutes the form
+        specified by :cite:t:`itoh_radiative_2002`, which is more accurate but has a more limited range
+        of validity.  The difference between the two forms is small, as shown in :cite:t:`young_chianti_2019-1`.
+        The CHIANTI atomic database only uses the :cite:t:`sutherland_accurate_1998` form as a result, but
+        includes the data sets for both forms.
+
         Parameters
         ----------
         temperature : `~astropy.units.Quantity`
