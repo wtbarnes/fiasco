@@ -11,13 +11,13 @@ from fiasco.io.generic import GenericParser
 
 __all__ = [
     'GffguParser',
-    'GffintParser', 
+    'GffintParser',
     'ItohIntegratedGauntParser',
     'ItohIntegratedGauntNonrelParser',
-    'KlgfbParser', 
+    'KlgfbParser',
     'VernerParser',
     'ItohParser',
-    'HSeqParser', 
+    'HSeqParser',
     'HeSeqParser'
 ]
 

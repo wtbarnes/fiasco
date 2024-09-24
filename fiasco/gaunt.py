@@ -24,7 +24,7 @@ class GauntFactor:
     The Gaunt factor is defined as the ratio of the true cross-section to the
     semi-classical Kramers cross-section, and thus is essentially a multiplicative
     correction for quantum mechanical effects.  It is a unitless quantity.
-    
+
     Parameters
     ------------
     hdf5_dbase_root: path-like, optional
@@ -252,16 +252,13 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         temperature = np.atleast_1d(temperature)
         Ry = const.h * const.c * const.Ryd
         gamma_squared = (charge_state**2) * Ry / (const.k_B * temperature)
-        summation = u.Quantity(np.zeros(temperature.shape))
+        gf = u.Quantity(np.zeros(temperature.shape))
         Gamma = (np.log10(gamma_squared) + 0.5) / 2.5
-        for j in range(len(summation)):
-            if np.log10(gamma_squared[j]) < -3.0 or np.log10(gamma_squared[j]) > 2.0:
-                summation[j] = np.nan
-            else:
-                b_array = self._itoh_integrated_gaunt_nonrel['b_i']
-                G_array = np.array([Gamma[j]**i for i in range(len(b_array))])
-                summation[j] = np.einsum("i,i",b_array,G_array)
-        return summation
+        b_array = self._itoh_integrated_gaunt_nonrel['b_i']
+        for i in range(b_array.shape[0]):
+            gf += b_array[i] * Gamma**i
+        not_valid = np.logical_or(np.log10(gamma_squared) < -3.0, np.log10(gamma_squared) > 2.0)
+        return np.where(not_valid, np.nan, gf)
 
     @needs_dataset('itoh_integrated_gaunt')
     @u.quantity_input
@@ -282,18 +279,16 @@ HDF5 Database: {self.hdf5_dbase_root}"""
             The charge state of the ion
         """
         temperature = np.atleast_1d(temperature)
+        log_temperature = np.log10(temperature.to_value('K'))
         z = (charge_state - 14.5) / 13.5
-        t = (np.log10(temperature.data)-7.25)/1.25
-        summation = u.Quantity(np.zeros(temperature.shape))
-        for j in range(len(summation)):
-            if np.log10(temperature[j].data) < 6.0 or np.log10(temperature[j].data) > 8.5:
-                summation[j] = np.nan
-            else:
-                a_matrix = self._itoh_integrated_gaunt['a_ik']
-                z_array = np.array([z**i for i in range(len(a_matrix[:,0]))])
-                t_array = np.array([t[j]**k for k in range(len(a_matrix[0,:]))])
-                summation[j] = np.einsum("i,k,ik", z_array, t_array, a_matrix)
-        return summation
+        t = (log_temperature-7.25)/1.25
+        gf = u.Quantity(np.zeros(temperature.shape))
+        a_matrix = self._itoh_integrated_gaunt['a_ik']
+        for i in range(a_matrix.shape[0]):
+            for k in range(a_matrix.shape[1]):
+                gf += a_matrix[i,k] * z**i * t**k
+        not_valid = np.logical_or(log_temperature < 6.0, log_temperature > 8.5)
+        return np.where(not_valid, np.nan, gf)
 
     @needs_dataset('klgfb')
     @u.quantity_input
