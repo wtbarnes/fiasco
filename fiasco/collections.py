@@ -381,7 +381,7 @@ Available Ions
         -------
         rad_loss : `~astropy.units.Quantity`
             The bolometric free-free radiative loss rate per unit emission measure
-            
+
         See Also
         -------
         fiasco.GauntFactor.free_free_integrated

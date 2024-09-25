@@ -181,7 +181,9 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         charge_state : `int`,
             The charge state of the ion
         use_itoh : `bool`, optional
-            Whether to use the Itoh Gaunt Factors.  Defaults to false.
+            Whether to use the :cite:t:`itoh_radiative_2002` Gaunt factors.
+            Defaults to false, which uses the :cite:t:`sutherland_accurate_1998`
+            instead.
         """
         if charge_state == 0:
             return u.Quantity(np.zeros(temperature.shape))
@@ -198,8 +200,8 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         The wavelength-integrated free-free Gaunt factor, as specified by :cite:t:`sutherland_accurate_1998`,
         in Section 2.4 of that work.
 
-        This is the default option used by CHIANTI for integrated free-free Gaunt factor, and we also use it
-        where the other versions are not valid.
+        This is the option used by CHIANTI for integrated free-free Gaunt factor.  It is also the default
+        used outside the range of validity of the :cite:t:`itoh_radiative_2002` specification.
 
         Parameters
         ----------
