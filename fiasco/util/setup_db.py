@@ -128,9 +128,9 @@ def _get_hash_table(version):
     return hash_table
 
 
-def get_test_file_list(version):
+def get_test_file_list():
     data_dir = pathlib.Path(get_pkg_data_path('data', package='fiasco.util'))
-    file_path = data_dir / f'test_file_list_v{version}.json'
+    file_path = data_dir / 'test_file_list.json'
     with open(file_path) as f:
         hash_table = json.load(f)
     return hash_table['test_files']
@@ -171,9 +171,6 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=F
         tmp = get_chianti_catalog(ascii_dbase_root)
         for k in tmp:
             files += tmp[k]
-    elif len(files) == 0:
-        version = read_chianti_version(ascii_dbase_root)
-        files = get_test_file_list(version)
     if check_hash:
         version = read_chianti_version(ascii_dbase_root)
         hash_table = _get_hash_table(version)
