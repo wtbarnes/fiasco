@@ -77,7 +77,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
     @u.quantity_input
     def free_free(self, temperature: u.K, wavelength: u.angstrom, atomic_number, charge_state) -> u.dimensionless_unscaled:
         r"""
-        Free-free Gaunt factor as a function of temperature and wavelength.
+        The Gaunt factor for free-free emission as a function of temperature and wavelength.
 
         The free-free Gaunt factor is calculated from a lookup table of temperature averaged
         free-free Gaunt factors from Table 2 of :cite:t:`sutherland_accurate_1998` as a function
@@ -165,7 +165,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
     @u.quantity_input
     def free_free_integrated(self, temperature: u.K, charge_state, use_itoh=False) -> u.dimensionless_unscaled:
         r"""
-        The wavelength-integrated Gaunt factor for free-free emission.
+        The wavelength-integrated Gaunt factor for free-free emission as a function of temperature.
 
         The wavelength-integrated Gaunt factor is primarily used for calculating the total radiative losses from
         free-free emission.
@@ -322,7 +322,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         Parameters
         ----------
         E_scaled : `float`
-            A scaled energy, the ratio of photon energy divided by ionization energy.
+            Rratio of photon energy to the ionization energy.
         n : `int`
             The principal quantum number
         l : `int`
@@ -349,7 +349,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
     def free_bound_integrated(self, temperature: u.K, atomic_number, charge_state, n_0,
                             ionization_potential: u.eV, ground_state=True) -> u.dimensionless_unscaled:
         r"""
-        The wavelength-integrated Gaunt factor for free-bound emission.
+        The wavelength-integrated Gaunt factor for free-bound emission as a function of temperature.
 
         The wavelength-integrated free-bound Gaunt factor is calculated using the approach of
         :cite:t:`mewe_calculated_1986`.
