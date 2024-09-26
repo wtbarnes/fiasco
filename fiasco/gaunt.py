@@ -29,7 +29,7 @@ class GauntFactor:
     ------------
     hdf5_dbase_root: path-like, optional
         Path to built database
-   kwargs:
+    kwargs:
         All keyword arguments to `fiasco.util.check_database` are also supported here
     """
     def __init__(self, hdf5_dbase_root=None, *args, **kwargs):
