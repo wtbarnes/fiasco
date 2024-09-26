@@ -32,7 +32,7 @@ class GauntFactor:
     kwargs:
         All keyword arguments to `fiasco.util.check_database` are also supported here
     """
-    def __init__(self, hdf5_dbase_root=None, *args, **kwargs):
+    def __init__(self, hdf5_dbase_root=None, **kwargs):
         if hdf5_dbase_root is None:
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
@@ -75,9 +75,9 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     @u.quantity_input
-    def free_free(self, temperature: u.K, atomic_number, charge_state, wavelength: u.angstrom) -> u.dimensionless_unscaled:
+    def free_free(self, temperature: u.K, wavelength: u.angstrom, atomic_number, charge_state) -> u.dimensionless_unscaled:
         r"""
-        Free-free Gaunt factor as a function of wavelength.
+        Free-free Gaunt factor as a function of temperature and wavelength.
 
         The free-free Gaunt factor is calculated from a lookup table of temperature averaged
         free-free Gaunt factors from Table 2 of :cite:t:`sutherland_accurate_1998` as a function
@@ -99,22 +99,25 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         ----------
         temperature : `~astropy.units.Quantity`
             The temperature(s) for which to calculate the Gaunt factor
+        wavelength : `~astropy.units.Quantity`
+            The wavelength(s) at which to calculate the Gaunt factor
         atomic_number : `int`
             The atomic number of the emitting element
         charge_state : `int`
             The charge state of the emitting ion
-        wavelength : `~astropy.units.Quantity`
-            The wavelength(s) at which to calculate the Gaunt factor
-        """
-        gf_itoh = self._free_free_itoh(temperature, atomic_number, wavelength)
-        gf_sutherland = self._free_free_sutherland(temperature, charge_state, wavelength)
-        gf = np.where(np.isnan(gf_itoh), gf_sutherland, gf_itoh)
 
+        See Also
+        --------
+        fiasco.Ion.free_free
+        """
+        gf_itoh = self._free_free_itoh(temperature, wavelength, atomic_number)
+        gf_sutherland = self._free_free_sutherland(temperature, wavelength, charge_state)
+        gf = np.where(np.isnan(gf_itoh), gf_sutherland, gf_itoh)
         return gf
 
     @needs_dataset('itoh')
     @u.quantity_input
-    def _free_free_itoh(self, temperature: u.K, atomic_number, wavelength: u.angstrom) -> u.dimensionless_unscaled:
+    def _free_free_itoh(self, temperature: u.K, wavelength: u.angstrom, atomic_number) -> u.dimensionless_unscaled:
         log10_temperature = np.log10(temperature.to(u.K).value)
         # calculate scaled energy and temperature
         tmp = np.outer(temperature, wavelength)
@@ -131,12 +134,11 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         gf = np.where(np.logical_and(np.log10(lower_u) >= -4., np.log10(lower_u) <= 1.0),
                       gf, np.nan)
         gf[np.where(np.logical_or(log10_temperature <= 6.0, log10_temperature >= 8.5)), :] = np.nan
-
         return gf
 
     @needs_dataset('gffgu')
     @u.quantity_input
-    def _free_free_sutherland(self, temperature: u.K, charge_state, wavelength: u.angstrom) -> u.dimensionless_unscaled:
+    def _free_free_sutherland(self, temperature: u.K, wavelength: u.angstrom, charge_state) -> u.dimensionless_unscaled:
         Ry = const.h * const.c * const.Ryd
         tmp = np.outer(temperature, wavelength)
         lower_u = const.h * const.c / const.k_B / tmp
@@ -158,21 +160,30 @@ HDF5 Database: {self.hdf5_dbase_root}"""
             np.unique(self._gffgu['gamma_squared']).shape[0],
         )
         gf = map_coordinates(gf_data, indices, order=1, mode='nearest').reshape(lower_u.shape)
-
         return u.Quantity(np.where(gf < 0., 0., gf))
 
     @u.quantity_input
     def free_free_integrated(self, temperature: u.K, charge_state, use_itoh=False) -> u.dimensionless_unscaled:
-        """
-        The wavelength-integrated free-free Gaunt factor, used for calculating
-        the total radiative losses from free-free emission.
+        r"""
+        The wavelength-integrated Gaunt factor for free-free emission.
 
+        The wavelength-integrated Gaunt factor is primarily used for calculating the total radiative losses from
+        free-free emission.
         By default, this calculation is done with the form specified in :cite:t:`sutherland_accurate_1998`,
-        which is valid over a wide range of temperatures.  The ``use_itoh`` option substitutes the form
-        specified by :cite:t:`itoh_radiative_2002`, which is more accurate but has a more limited range
-        of validity.  The difference between the two forms is small, as shown in :cite:t:`young_chianti_2019-1`.
+        which is valid over a wide range of temperatures.
+        The ``use_itoh`` option substitutes the form specified by :cite:t:`itoh_radiative_2002`, which is more
+        accurate but has a more limited range of validity.
+        The difference between the two forms is small, as shown in :cite:t:`young_chianti_2019-1`.
         The CHIANTI atomic database only uses the :cite:t:`sutherland_accurate_1998` form as a result, but
         includes the data sets for both forms.
+
+        .. note:: The Gaunt factor calculation of :cite:t:`itoh_radiative_2002` includes both a relativistic
+                  (Eq. 5) and non-relativistic (Eq. 13) form.
+                  The relativistic form is valid over the temperature range :math:`6.0\leq\log_{10}T\leq8.5`
+                  and for charge states :math:`1\le z\le 28`.
+                  The nonrelativistic form is valid over :math:`-3\leq\log_{10}\gamma^{2}\leq 2` where
+                  :math:`\gamma^2=z^2\mathrm{Ry}/k_BT`.
+                  Outside of these ranges, the form of :cite:t:`sutherland_accurate_1998` is used.
 
         Parameters
         ----------
@@ -181,9 +192,12 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         charge_state : `int`
             The charge state of the ion
         use_itoh : `bool`, optional
-            If true, use the :cite:t:`itoh_radiative_2002` Gaunt factors.
-            If false (default), use the :cite:t:`sutherland_accurate_1998`
-            Gaunt factors instead.
+            If true, use the :cite:t:`itoh_radiative_2002` Gaunt factors over valid ranges.
+            If false (default), use the :cite:t:`sutherland_accurate_1998` Gaunt factors instead.
+
+        See Also
+        --------
+        fiasco.Ion.free_free_radiative_loss
         """
         if charge_state == 0:
             return u.Quantity(np.zeros(temperature.shape))
@@ -199,9 +213,6 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         """
         The wavelength-integrated free-free Gaunt factor, as specified by :cite:t:`sutherland_accurate_1998`,
         in Section 2.4 of that work.
-
-        This is the option used by CHIANTI for integrated free-free Gaunt factor.  It is also the default
-        used outside the range of validity of the :cite:t:`itoh_radiative_2002` specification.
 
         Parameters
         ----------
@@ -303,9 +314,10 @@ HDF5 Database: {self.hdf5_dbase_root}"""
     @u.quantity_input
     def free_bound(self, E_scaled, n, l) -> u.dimensionless_unscaled:
         r"""
-        Free-bound Gaunt factor as a function of scaled energy.
+        The Gaunt factor for free-bound emission as a function of scaled energy.
 
         The empirical fits are taken from Table 1 of :cite:t:`karzas_electron_1961`.
+        In CHIANTI, this is used to compute the cross-sections in the free-bound continuum.
 
         Parameters
         ----------
@@ -315,6 +327,10 @@ HDF5 Database: {self.hdf5_dbase_root}"""
             The principal quantum number
         l : `int`
             The azimuthal quantum number
+
+        See Also
+        --------
+        fiasco.Ion.free_bound
         """
         E_scaled = np.atleast_1d(E_scaled)
         index_nl = np.where(np.logical_and(self._klgfb['n'] == n, self._klgfb['l'] == l))[0]
@@ -333,11 +349,13 @@ HDF5 Database: {self.hdf5_dbase_root}"""
     def free_bound_integrated(self, temperature: u.K, atomic_number, charge_state, n_0,
                             ionization_potential: u.eV, ground_state=True) -> u.dimensionless_unscaled:
         r"""
-        The wavelength-integrated Gaunt factor for free-bound emission, using the expressions
-        from :cite:t:`mewe_calculated_1986`.
+        The wavelength-integrated Gaunt factor for free-bound emission.
 
+        The wavelength-integrated free-bound Gaunt factor is calculated using the approach of
+        :cite:t:`mewe_calculated_1986`.
         The Gaunt factor is not calculated for individual levels, except that the ground state has
         been specified to be :math:`g_{fb}(n_{0}) = 0.9` following :cite:t:`mewe_calculated_1986`.
+        For more details on this calculation, see :ref:`fiasco-topic-guide-freebound-gaunt-factor`.
 
         Parameters
         ----------
@@ -356,26 +374,9 @@ HDF5 Database: {self.hdf5_dbase_root}"""
             Otherwise, calculate for recombination onto higher levels with :math:`n > 1`.  See Equation 16 of
             :cite:t:`mewe_calculated_1986`.
 
-        Notes
-        -----
-        Equation 14 of :cite:t:`mewe_calculated_1986` has a simple
-        analytic solution.  They approximate
-
-        .. math::
-
-            f_{1}(Z, n, n_{0} ) = \sum_{1}^{\infty} n^{-3} - \sum_{1}^{n_{0}} n^{-3} = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} \approx 0.21 n_{0}^{-1.5}
-
-        where :math:`\zeta(x)` is the Riemann zeta function.
-
-        However, the second sum is analytic, :math:`\sum_{1}^{n_{0}} n^{-3} = \zeta(3) + \frac{1}{2}\psi^{(2)}(n_{0}+1)`
-        where :math:`\psi^{n}(x)` is the n-th derivative of the digamma function (a.k.a. the polygamma function).
-        So, we can write the full solution as:
-
-        .. math::
-
-            f_{1}(Z, n, n_{0}) = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} = - \frac{1}{2}\psi^{(2)}(n_{0}+1)
-
-        The final expression is therefore simplified and more accurate than :cite:t:`mewe_calculated_1986`.
+        See Also
+        --------
+        fiasco.Ion.free_bound_radiative_loss
         """
         z = charge_state
         if z == 0:

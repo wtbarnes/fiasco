@@ -1299,20 +1299,16 @@ Using Datasets:
         ----------
         wavelength : `~astropy.units.Quantity`
 
-        Notes
-        -----
-        The result does not include ionization equilibrium or abundance factors.
-
         See Also
         --------
-        fiasco.GauntFactor.free_free
-        fiasco.IonCollection.free_free: Includes abundance and ionization equilibrium
+        fiasco.GauntFactor.free_free: Calculation of :math:`\langle g_{ff}\rangle`.
+        fiasco.IonCollection.free_free: Includes abundance and ionization equilibrium.
         """
         prefactor = (const.c / 3. / const.m_e * (const.alpha * const.h / np.pi)**3
                      * np.sqrt(2. * np.pi / 3. / const.m_e / const.k_B))
         tmp = np.outer(self.temperature, wavelength)
         exp_factor = np.exp(-const.h * const.c / const.k_B / tmp) / (wavelength**2)
-        gf = self.gaunt_factor.free_free(self.temperature, self.atomic_number, self.charge_state, wavelength)
+        gf = self.gaunt_factor.free_free(self.temperature, wavelength, self.atomic_number, self.charge_state, )
 
         return (prefactor * self.charge_state**2 * exp_factor * gf
                 / np.sqrt(self.temperature)[:, np.newaxis])
@@ -1332,19 +1328,27 @@ Using Datasets:
 
         .. math::
 
-            R_{ff}(T_e) = F_{k} \sqrt{(T_{e})} Z^{2} \langle g_{t,ff}\rangle
+            R_{ff}(T_e) = F_{k} \sqrt{(T_{e})} z^{2} \langle g_{t,ff}\rangle
 
         where :math:`T_{e}` is the electron temperature, :math:`F_{k}` is a constant,
-        :math:`Z` is the ionization stage, and :math:`\langle g_{t,ff}\rangle` is the
-        wavelength-integrated free-free Gaunt factor.  The prefactor :math:`F_{k}`
-        is defined in Equation 19 of :cite:t:`sutherland_accurate_1998`, with a value
-        of :math:`F_k\approx1.42555669\times10^{-27}\,\mathrm{cm}^{5}\,\mathrm{g}\,\mathrm{K}^{-1/2}\,\mathrm{s}^{3}`.
+        :math:`z` is the charge state, and :math:`\langle g_{t,ff}\rangle` is the
+        wavelength-integrated free-free Gaunt factor.
+        The prefactor :math:`F_{k}` is defined in Equation 19 of :cite:t:`sutherland_accurate_1998`,
+
+        .. math::
+
+            F_k =& \frac{16e^6}{3^{3/2}c^3}\sqrt{\frac{2\pi k_B}{\hbar^2m_e^3}}\\
+                \approx& 1.42555669\times10^{-27}\,\mathrm{cm}^{5}\,\mathrm{g}\,\mathrm{K}^{-1/2}\,\mathrm{s}^{3}.
 
         Parameters
         ----------
         use_itoh : `bool`, optional
             Whether to use Gaunt factors taken from :cite:t:`itoh_radiative_2002`.
             Defaults to false.
+
+        See Also
+        --------
+        fiasco.GauntFactor.free_free_integrated: Calculation of :math:`\langle g_{t,ff}\rangle`.
         """
         prefactor = (16./3**1.5) * np.sqrt(2. * np.pi * const.k_B/(const.hbar**2 * const.m_e**3)) * (const.e.esu**6 / const.c**3)
         gf = self.gaunt_factor.free_free_integrated(self.temperature, self.charge_state, use_itoh=use_itoh)
@@ -1446,26 +1450,35 @@ Using Datasets:
         Since the form of the Gaunt factor used by :cite:t:`mewe_calculated_1986` does not
         depend on wavelength, the integral is straightforward.
 
-        The continuum intensity (per unit EM) is given by:
+        The continuum intensity per unit emission measure is given by:
 
         .. math::
 
-            P_{fb}(\lambda, T) = \frac{C_{ff} G_{fb}}{\lambda^{2}\ T^{1/2}} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
+            C_{fb}(\lambda, T) = \frac{F g_{fb}}{\lambda^{2}\ T^{1/2}} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
 
         where
 
         .. math::
 
-            C_{ff} = \frac{64 \pi}{3} \sqrt{\frac{\pi}{6}} \frac{q_{e}^{6}}{c^{2} m_{e}^{2} k_{B}^{1/2}}
+            F = \frac{64 \pi}{3} \sqrt{\frac{\pi}{6}} \frac{q_{e}^{6}}{c^{2} m_{e}^{2} k_{B}^{1/2}}
 
         is a constant :cite:p:`gronenschild_calculated_1978`.
         Integrating in wavelength space gives the free-bound loss rate,
 
         .. math::
 
-            R_{fb} = \frac{C_{ff} k_{B} G_{fb} T^{1/2}}{h c} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
+            R_{fb} = \frac{F k_{B} g_{fb} T^{1/2}}{h c} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
 
-        We have dropped the factor of :math:`n_{e}^{2}` here to make the loss rate per unit EM.
+        We have dropped the factor of :math:`n_{e}^{2}` here to make the loss rate per unit emission measure.
+
+        .. note:: The form of :math:`C_{fb}` used by :cite:t:`mewe_calculated_1986` and given above is slightly
+                  different than the form used in `~fiasco.Ion.free_bound` and as such the two approaches are
+                  not entirely self-consistent. This particular form is used, rather than calling
+                  `~fiasco.Ion.free_bound` and integrating the result, for the sake of efficiency.
+
+        See Also
+        --------
+        fiasco.GauntFactor.free_bound_integrated: Calculation of :math:`g_{fb}`
         """
         z = self.charge_state
         if z == 0:
