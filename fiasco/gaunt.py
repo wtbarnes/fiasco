@@ -101,7 +101,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
             The temperature(s) for which to calculate the Gaunt factor
         atomic_number : `int`
             The atomic number of the emitting element
-        charge_state : `int`,
+        charge_state : `int`
             The charge state of the emitting ion
         wavelength : `~astropy.units.Quantity`
             The wavelength(s) at which to calculate the Gaunt factor
@@ -178,12 +178,12 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         ----------
         temperature : `~astropy.units.Quantity`
             The temperature(s) for which to calculate the Gaunt factor
-        charge_state : `int`,
+        charge_state : `int`
             The charge state of the ion
         use_itoh : `bool`, optional
-            Whether to use the :cite:t:`itoh_radiative_2002` Gaunt factors.
-            Defaults to false, which uses the :cite:t:`sutherland_accurate_1998`
-            instead.
+            If true, use the :cite:t:`itoh_radiative_2002` Gaunt factors.
+            If false (default), use the :cite:t:`sutherland_accurate_1998`
+            Gaunt factors instead.
         """
         if charge_state == 0:
             return u.Quantity(np.zeros(temperature.shape))
@@ -207,7 +207,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         ----------
         temperature : `~astropy.units.Quantity`
             The temperature(s) for which to calculate the Gaunt factor
-        charge_state : `int`,
+        charge_state : `int`
             The charge state of the ion
         """
         temperature = np.atleast_1d(temperature)
@@ -227,7 +227,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         ----------
         temperature : `~astropy.units.Quantity`
             The temperature(s) for which to calculate the Gaunt factor
-        charge_state : `int`,
+        charge_state : `int`
             The charge state of the ion
         """
         temperature = np.atleast_1d(temperature)
@@ -255,7 +255,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         ----------
         temperature : `~astropy.units.Quantity`
             The temperature(s) for which to calculate the Gaunt factor
-        charge_state : `int`,
+        charge_state : `int`
             The charge state of the ion
         """
         temperature = np.atleast_1d(temperature)
@@ -284,7 +284,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         ----------
         temperature : `~astropy.units.Quantity`
             The temperature(s) for which to calculate the Gaunt factor
-        charge_state : `int`,
+        charge_state : `int`
             The charge state of the ion
         """
         temperature = np.atleast_1d(temperature)
