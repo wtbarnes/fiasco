@@ -1430,13 +1430,17 @@ Using Datasets:
             # NOTE: Scaled energy can blow up at low temperatures such that taking an
             # exponential yields numbers too high to be expressed with double precision.
             # At these temperatures, the cross-section is 0 anyway so we can just zero
-            # these terms
-            with np.errstate(over='ignore'):
+            # these terms. Just multiplying by 0 is not sufficient because 0*inf=inf
+            with np.errstate(over='ignore', invalid='ignore'):
                 exp_ip_ratio = np.exp(E_ionize/(const.k_B*self.temperature))
-            exp_ip_ratio = np.where(np.isinf(exp_ip_ratio), 0.0, exp_ip_ratio)
-            sum_factor += omega / omega_0 * exp_energy_ratio * exp_ip_ratio[:,np.newaxis] * cross_section
+                xs_exp_ip_ratio = np.outer(exp_ip_ratio, cross_section)
+            xs_exp_ip_ratio[:,cross_section==0.0*u.cm**2] = 0.0 * u.cm**2
+            sum_factor += omega * xs_exp_ip_ratio
 
-        return prefactor * np.outer(self.temperature**(-3/2), E_photon**5) * sum_factor
+        return (prefactor
+                * np.outer(self.temperature**(-3/2), E_photon**5)
+                * exp_energy_ratio
+                * sum_factor / omega_0)
 
     @u.quantity_input
     def free_bound_radiative_loss(self) -> u.erg * u.cm**3 / u.s:
