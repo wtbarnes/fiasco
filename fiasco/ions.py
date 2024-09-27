@@ -1402,7 +1402,8 @@ Using Datasets:
         recombining = self.next_ion()
         omega_0 = recombining._fblvl['multiplicity'][0] if recombining._has_dataset('fblvl') else 1.0
         E_photon = const.h * const.c / wavelength
-        energy_temperature_factor = np.outer(self.temperature**(-3/2), E_photon**5)
+        # Precompute this here to avoid repeated outer product calculations
+        exp_energy_ratio = np.exp(-np.outer(1/(const.k_B*self.temperature), E_photon))
         # Fill in observed energies with theoretical energies
         E_obs = self._fblvl['E_obs']*const.h*const.c
         E_th = self._fblvl['E_th']*const.h*const.c
@@ -1426,12 +1427,16 @@ Using Datasets:
                 cross_section = self._verner_cross_section(E_photon)
             else:
                 cross_section = self._karzas_cross_section(E_photon, E_ionize, n, L)
-            E_scaled = np.outer(1/(const.k_B*self.temperature), E_photon - E_ionize)
-            # Scaled energy can blow up at low temperatures; not an issue when cross-section is 0
-            E_scaled[:, np.where(cross_section == 0*cross_section.unit)] = 0.0
-            sum_factor += omega / omega_0 * np.exp(-E_scaled) * cross_section
+            # NOTE: Scaled energy can blow up at low temperatures such that taking an
+            # exponential yields numbers too high to be expressed with double precision.
+            # At these temperatures, the cross-section is 0 anyway so we can just zero
+            # these terms
+            with np.errstate(over='ignore'):
+                exp_ip_ratio = np.exp(E_ionize/(const.k_B*self.temperature))
+            exp_ip_ratio = np.where(np.isinf(exp_ip_ratio), 0.0, exp_ip_ratio)
+            sum_factor += omega / omega_0 * exp_energy_ratio * exp_ip_ratio[:,np.newaxis] * cross_section
 
-        return (prefactor * energy_temperature_factor * sum_factor)
+        return prefactor * np.outer(self.temperature**(-3/2), E_photon**5) * sum_factor
 
     @u.quantity_input
     def free_bound_radiative_loss(self) -> u.erg * u.cm**3 / u.s:
