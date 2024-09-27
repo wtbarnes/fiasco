@@ -14,12 +14,6 @@ except ImportError:
 else:
     matplotlib.use('Agg')
 
-
-# Minimal set of CHIANTI files needed to run the tests
-# NOTE: need some way for this to be flexible depending on the supplied database version
-TEST_FILES = get_test_file_list()
-
-
 @pytest.fixture(scope='session')
 def ascii_dbase_tree(tmpdir_factory, request):
     path = request.config.getoption('--ascii-dbase-root')
@@ -47,7 +41,7 @@ def hdf5_dbase_root(ascii_dbase_tree, tmpdir_factory, request):
     if request.config.getoption('--include-all-files'):
         test_files = None
     else:
-        test_files = TEST_FILES
+        test_files = get_test_file_list()
     check_hash = not request.config.getoption('--disable-file-hash')
     # Optionally use a different URL for the database (e.g. for testing different versions)
     ascii_dbase_url = request.config.getoption('--ascii-dbase-url')

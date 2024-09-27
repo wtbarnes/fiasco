@@ -303,7 +303,7 @@ Available Ions
         return wavelength, spectrum
 
     @u.quantity_input
-    def radiative_loss(self, density: u.cm**(-3), **kwargs) -> u.Unit('erg cm3 s-1'):
+    def radiative_loss(self, density: u.cm**(-3), use_itoh=False, **kwargs) -> u.Unit('erg cm3 s-1'):
         r"""
         Calculate the total wavelength-integrated radiative loss rate including the
         bound-bound, free-bound, and free-free emission contributions
@@ -315,6 +315,9 @@ Available Ions
         ----------
         density : `~astropy.units.Quantity`
             Electron number density
+        use_itoh : `bool`, optional
+            Whether to use Gaunt factors taken from :cite:t:`itoh_radiative_2002` for the calculation
+            of free-free emission.  Defaults to false.
 
         Returns
         -------
@@ -322,7 +325,7 @@ Available Ions
             The total bolometric radiative loss rate
         """
         rad_loss_bound_bound = self.bound_bound_radiative_loss(density, **kwargs)
-        rad_loss_free_free = self.free_free_radiative_loss()
+        rad_loss_free_free = self.free_free_radiative_loss(use_itoh=use_itoh)
         rad_loss_free_bound = self.free_bound_radiative_loss()
 
         rad_loss_total = (rad_loss_bound_bound
@@ -363,20 +366,30 @@ Available Ions
         return rad_loss
 
     @u.quantity_input
-    def free_free_radiative_loss(self) -> u.Unit('erg cm3 s-1'):
+    def free_free_radiative_loss(self, use_itoh=False) -> u.Unit('erg cm3 s-1'):
         r"""
         Calculate the radiative loss rate from free-free emission (bremsstrahlung)
         integrated over wavelength.
+
+        Parameters
+        ----------
+        use_itoh : `bool`, optional
+            Whether to use Gaunt factors taken from :cite:t:`itoh_radiative_2002`.
+            Defaults to false.
 
         Returns
         -------
         rad_loss : `~astropy.units.Quantity`
             The bolometric free-free radiative loss rate per unit emission measure
+
+        See Also
+        -------
+        fiasco.GauntFactor.free_free_integrated
         """
         free_free = u.Quantity(np.zeros(self.temperature.shape), 'erg cm^3 s^-1')
         for ion in self:
             try:
-                ff = ion.free_free_radiative_loss()
+                ff = ion.free_free_radiative_loss(use_itoh=use_itoh)
                 abundance = ion.abundance
                 ioneq = ion.ioneq
             except MissingDatasetException as e:

@@ -56,7 +56,7 @@ class GenericParser:
                 self.preprocessor(table, line, i)
 
         df = QTable(data=list(map(list, zip(*table))), names=self.headings)
-        # This cataches a warning thrown when we convert a staggered array into
+        # This catches a warning thrown when we convert a staggered array into
         # a unitful column. This happens in several of the scups files for the
         # bt_t, bt_type, bt_upsilon columns.
         with warnings.catch_warnings():

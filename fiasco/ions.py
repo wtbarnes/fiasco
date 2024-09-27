@@ -6,13 +6,12 @@ import astropy.units as u
 import numpy as np
 
 from functools import cached_property
-from scipy.interpolate import CubicSpline, interp1d, PchipInterpolator, splev, splrep
-from scipy.ndimage import map_coordinates
-from scipy.special import polygamma
+from scipy.interpolate import CubicSpline, interp1d, PchipInterpolator
 
 from fiasco import proton_electron_ratio
 from fiasco.base import ContinuumBase, IonBase
 from fiasco.collections import IonCollection
+from fiasco.gaunt import GauntFactor
 from fiasco.levels import Level, Transitions
 from fiasco.util import (
     burgess_tully_descale,
@@ -61,6 +60,7 @@ class Ion(IonBase, ContinuumBase):
         self._dset_names['ioneq_filename'] = kwargs.get('ioneq_filename', 'chianti')
         self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
         self.abundance = abundance
+        self.gaunt_factor = GauntFactor(hdf5_dbase_root=self.hdf5_dbase_root)
 
     def _new_instance(self, temperature=None, **kwargs):
         """
@@ -283,25 +283,6 @@ Using Datasets:
         the temperature at which lines for this ion are formed.
         """
         return self.temperature[np.argmax(self.ioneq)]
-
-    @property
-    def _zeta_0(self) -> u.dimensionless_unscaled:
-        r"""
-        :math:`\zeta_{0}`, the number of vacancies in the ion, which is used to calculate
-        the free-bound Gaunt factor of an ion.
-
-        See Section 2.2 and Table 1 of :cite:t:`mewe_calculated_1986`.
-        """
-        difference = self.atomic_number - (self.charge_state + 1)
-        if difference <= 0:
-            max_vacancies = 1
-        elif difference <= 8 and difference > 0:
-            max_vacancies = 9
-        elif difference <= 22 and difference > 8:
-            max_vacancies = 27
-        else:
-            max_vacancies = 55
-        return max_vacancies - difference
 
     @cached_property
     @needs_dataset('scups')
@@ -1318,26 +1299,22 @@ Using Datasets:
         ----------
         wavelength : `~astropy.units.Quantity`
 
-        Notes
-        -----
-        The result does not include ionization equilibrium or abundance factors.
-
         See Also
         --------
-        gaunt_factor_free_free
-        fiasco.IonCollection.free_free: Includes abundance and ionization equilibrium
+        fiasco.GauntFactor.free_free: Calculation of :math:`\langle g_{ff}\rangle`.
+        fiasco.IonCollection.free_free: Includes abundance and ionization equilibrium.
         """
         prefactor = (const.c / 3. / const.m_e * (const.alpha * const.h / np.pi)**3
                      * np.sqrt(2. * np.pi / 3. / const.m_e / const.k_B))
         tmp = np.outer(self.temperature, wavelength)
         exp_factor = np.exp(-const.h * const.c / const.k_B / tmp) / (wavelength**2)
-        gf = self.gaunt_factor_free_free(wavelength)
+        gf = self.gaunt_factor.free_free(self.temperature, wavelength, self.atomic_number, self.charge_state, )
 
         return (prefactor * self.charge_state**2 * exp_factor * gf
                 / np.sqrt(self.temperature)[:, np.newaxis])
 
     @u.quantity_input
-    def free_free_radiative_loss(self) -> u.erg * u.cm**3 / u.s:
+    def free_free_radiative_loss(self, use_itoh=False) -> u.erg * u.cm**3 / u.s:
         r"""
         Free-free continuum radiative losses as a function of temperature.
 
@@ -1351,111 +1328,31 @@ Using Datasets:
 
         .. math::
 
-            R_{ff}(T_e) = F_{k} \sqrt{(T_{e})} Z^{2} \langle g_{t,ff}\rangle
+            R_{ff}(T_e) = F_{k} \sqrt{(T_{e})} z^{2} \langle g_{t,ff}\rangle
 
         where :math:`T_{e}` is the electron temperature, :math:`F_{k}` is a constant,
-        :math:`Z` is the ionization stage, and :math:`\langle g_{t,ff}\rangle` is the
-        total (wavelength-averaged) free-free Gaunt factor.  The prefactor :math:`F_{k}`
-        is defined in Equation 19 of :cite:t:`sutherland_accurate_1998`, with a value
-        of :math:`F_k\approx1.42555669\times10^{-27}\,\mathrm{cm}^{5}\,\mathrm{g}\,\mathrm{K}^{-1/2}\,\mathrm{s}^{3}`.
-        """
-        prefactor = (16./3**1.5) * np.sqrt(2. * np.pi * const.k_B/(const.hbar**2 * const.m_e**3)) * (const.e.esu**6 / const.c**3)
-        gf = self._gaunt_factor_free_free_total()
-        return (prefactor * self.charge_state**2 * gf * np.sqrt(self.temperature))
-
-    @u.quantity_input
-    def gaunt_factor_free_free(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
-        r"""
-        Free-free Gaunt factor as a function of wavelength.
-
-        The free-free Gaunt factor is calculated from a lookup table of temperature averaged
-        free-free Gaunt factors from Table 2 of :cite:t:`sutherland_accurate_1998` as a function
-        of :math:`\log{\gamma^2},\log{u}`, where :math:`\gamma^2=Z^2\mathrm{Ry}/k_BT`
-        and :math:`u=hc/\lambda k_BT`.
-
-        For the regime, :math:`6<\log_{10}(T)< 8.5` and :math:`-4<\log_{10}(u)<1`, the above
-        prescription is replaced with the fitting formula of :cite:t:`itoh_relativistic_2000`
-        for the relativistic free-free Gaunt factor. This is given by Eq. 4 of
-        :cite:t:`itoh_relativistic_2000`,
+        :math:`z` is the charge state, and :math:`\langle g_{t,ff}\rangle` is the
+        wavelength-integrated free-free Gaunt factor.
+        The prefactor :math:`F_{k}` is defined in Equation 19 of :cite:t:`sutherland_accurate_1998`,
 
         .. math::
 
-            g_{ff} = \sum_{i,j=0}^{10} a_{ij}t^iU^j,
+            F_k =& \frac{16e^6}{3^{3/2}c^3}\sqrt{\frac{2\pi k_B}{\hbar^2m_e^3}}\\
+                \approx& 1.42555669\times10^{-27}\,\mathrm{cm}^{5}\,\mathrm{g}\,\mathrm{K}^{-1/2}\,\mathrm{s}^{3}.
 
-        where :math:`t=(\log{T} - 7.25)/1.25` and :math:`U=(\log{u} + 1.5)/2.5`.
+        Parameters
+        ----------
+        use_itoh : `bool`, optional
+            Whether to use Gaunt factors taken from :cite:t:`itoh_radiative_2002`.
+            Defaults to false.
+
+        See Also
+        --------
+        fiasco.GauntFactor.free_free_integrated: Calculation of :math:`\langle g_{t,ff}\rangle`.
         """
-        gf_itoh = self._gaunt_factor_free_free_itoh(wavelength)
-        gf_sutherland = self._gaunt_factor_free_free_sutherland(wavelength)
-        gf = np.where(np.isnan(gf_itoh), gf_sutherland, gf_itoh)
-
-        return gf
-
-    @needs_dataset('itoh')
-    @u.quantity_input
-    def _gaunt_factor_free_free_itoh(self, wavelength: u.angstrom) -> u.dimensionless_unscaled:
-        log10_temperature = np.log10(self.temperature.to(u.K).value)
-        # calculate scaled energy and temperature
-        tmp = np.outer(self.temperature, wavelength)
-        lower_u = const.h * const.c / const.k_B / tmp
-        upper_u = 1. / 2.5 * (np.log10(lower_u) + 1.5)
-        t = 1. / 1.25 * (log10_temperature - 7.25)
-        itoh_coefficients = self._itoh['a']
-        # calculate Gaunt factor
-        gf = u.Quantity(np.zeros(upper_u.shape))
-        for j in range(11):
-            for i in range(11):
-                gf += (itoh_coefficients[i, j] * (t**i))[:, np.newaxis] * (upper_u**j)
-        # apply NaNs where Itoh approximation is not valid
-        gf = np.where(np.logical_and(np.log10(lower_u) >= -4., np.log10(lower_u) <= 1.0),
-                      gf, np.nan)
-        gf[np.where(np.logical_or(log10_temperature <= 6.0, log10_temperature >= 8.5)), :] = np.nan
-
-        return gf
-
-    @needs_dataset('gffgu')
-    @u.quantity_input
-    def _gaunt_factor_free_free_sutherland(self,
-                                           wavelength: u.angstrom) -> u.dimensionless_unscaled:
-        Ry = const.h * const.c * const.Ryd
-        tmp = np.outer(self.temperature, wavelength)
-        lower_u = const.h * const.c / const.k_B / tmp
-        gamma_squared = ((self.charge_state**2) * Ry / const.k_B / self.temperature[:, np.newaxis]
-                         * np.ones(lower_u.shape))
-        # NOTE: This escape hatch avoids a divide-by-zero warning as we cannot take log10
-        # of 0. This does not matter as the free-free continuum will be 0 for zero charge
-        # state anyway.
-        if self.charge_state == 0:
-            return u.Quantity(np.zeros(lower_u.shape))
-        # convert to index coordinates
-        i_lower_u = (np.log10(lower_u) + 4.) * 10.
-        i_gamma_squared = (np.log10(gamma_squared) + 4.) * 5.
-        indices = [i_gamma_squared.flatten(), i_lower_u.flatten()]
-        # interpolate data to scaled quantities
-        # FIXME: interpolate without reshaping?
-        gf_data = self._gffgu['gaunt_factor'].reshape(
-            np.unique(self._gffgu['u']).shape[0],
-            np.unique(self._gffgu['gamma_squared']).shape[0],
-        )
-        gf = map_coordinates(gf_data, indices, order=1, mode='nearest').reshape(lower_u.shape)
-
-        return u.Quantity(np.where(gf < 0., 0., gf))
-
-    @needs_dataset('gffint')
-    @u.quantity_input
-    def _gaunt_factor_free_free_total(self) -> u.dimensionless_unscaled:
-        """
-        The total (wavelength-averaged) free-free Gaunt factor, used for calculating
-        the total radiative losses from free-free emission.
-        """
-        if self.charge_state == 0:
-            return u.Quantity(np.zeros(self.temperature.shape))
-        else:
-            Ry = const.h * const.c * const.Ryd
-            log_gamma_squared = np.log10((self.charge_state**2 * Ry) / (const.k_B * self.temperature))
-            index = [np.abs(self._gffint['log_gamma_squared'] - x).argmin() for x in log_gamma_squared]
-            delta = log_gamma_squared - self._gffint['log_gamma_squared'][index]
-            # The spline fit was pre-calculated by Sutherland 1998:
-            return self._gffint['gaunt_factor'][index] + delta * (self._gffint['s1'][index] + delta * (self._gffint['s2'][index] + delta * self._gffint['s3'][index]))
+        prefactor = (16./3**1.5) * np.sqrt(2. * np.pi * const.k_B/(const.hbar**2 * const.m_e**3)) * (const.e.esu**6 / const.c**3)
+        gf = self.gaunt_factor.free_free_integrated(self.temperature, self.charge_state, use_itoh=use_itoh)
+        return (prefactor * self.charge_state**2 * gf * np.sqrt(self.temperature))
 
     @needs_dataset('fblvl', 'ip')
     @u.quantity_input
@@ -1553,26 +1450,35 @@ Using Datasets:
         Since the form of the Gaunt factor used by :cite:t:`mewe_calculated_1986` does not
         depend on wavelength, the integral is straightforward.
 
-        The continuum intensity (per unit EM) is given by:
+        The continuum intensity per unit emission measure is given by:
 
         .. math::
 
-            P_{fb}(\lambda, T) = \frac{C_{ff} G_{fb}}{\lambda^{2}\ T^{1/2}} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
+            C_{fb}(\lambda, T) = \frac{F g_{fb}}{\lambda^{2}\ T^{1/2}} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
 
         where
 
         .. math::
 
-            C_{ff} = \frac{64 \pi}{3} \sqrt{\frac{\pi}{6}} \frac{q_{e}^{6}}{c^{2} m_{e}^{2} k_{B}^{1/2}}
+            F = \frac{64 \pi}{3} \sqrt{\frac{\pi}{6}} \frac{q_{e}^{6}}{c^{2} m_{e}^{2} k_{B}^{1/2}}
 
         is a constant :cite:p:`gronenschild_calculated_1978`.
         Integrating in wavelength space gives the free-bound loss rate,
 
         .. math::
 
-            R_{fb} = \frac{C_{ff} k_{B} G_{fb} T^{1/2}}{h c} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
+            R_{fb} = \frac{F k_{B} g_{fb} T^{1/2}}{h c} \exp{\Big(\frac{-h c}{\lambda k_{B} T}\Big)}
 
-        We have dropped the factor of :math:`n_{e}^{2}` here to make the loss rate per unit EM.
+        We have dropped the factor of :math:`n_{e}^{2}` here to make the loss rate per unit emission measure.
+
+        .. note:: The form of :math:`C_{fb}` used by :cite:t:`mewe_calculated_1986` and given above is slightly
+                  different than the form used in `~fiasco.Ion.free_bound` and as such the two approaches are
+                  not entirely self-consistent. This particular form is used, rather than calling
+                  `~fiasco.Ion.free_bound` and integrating the result, for the sake of efficiency.
+
+        See Also
+        --------
+        fiasco.GauntFactor.free_bound_integrated: Calculation of :math:`g_{fb}`
         """
         z = self.charge_state
         if z == 0:
@@ -1589,8 +1495,8 @@ Using Datasets:
             E_fb = np.where(E_obs==0*u.erg, E_th, E_obs)
             wvl_n0 = const.h * const.c / (recombined.ip - E_fb[0])
             wvl_n1 = (recombined._fblvl['n'][0] + 1)**2 /(const.Ryd * z**2)
-            g_fb0 = self._gaunt_factor_free_bound_total(ground_state=True)
-            g_fb1 = self._gaunt_factor_free_bound_total(ground_state=False)
+            g_fb0 = self.gaunt_factor.free_bound_integrated(self.temperature, self.atomic_number, self.charge_state, recombined._fblvl['n'][0], recombined.ip, ground_state=True)
+            g_fb1 = self.gaunt_factor.free_bound_integrated(self.temperature, self.atomic_number, self.charge_state, recombined._fblvl['n'][0], recombined.ip, ground_state=False)
             term1 = g_fb0 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n0))
             term2 = g_fb1 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n1))
 
@@ -1620,7 +1526,6 @@ Using Datasets:
         return np.where(energy < self._verner['E_thresh'], 0.,
                         F.decompose().value) * self._verner['sigma_0']
 
-    @needs_dataset('klgfb')
     @u.quantity_input
     def _karzas_cross_section(self, photon_energy: u.erg, ionization_energy: u.erg, n, l) -> u.cm**2:
         """
@@ -1638,79 +1543,11 @@ Using Datasets:
             Orbital angular momentum number
         """
         prefactor = (2**4)*const.h*(const.e.gauss**2)/(3*np.sqrt(3)*const.m_e*const.c)
-        index_nl = np.where(np.logical_and(self._klgfb['n'] == n, self._klgfb['l'] == l))[0]
-        # If there is no Gaunt factor for n, l, set it to 1
-        if index_nl.shape == (0,):
-            gaunt_factor = 1
-        else:
-            E_scaled = np.log(photon_energy/ionization_energy)
-            gf_interp = splrep(self._klgfb['log_pe'][index_nl, :].squeeze(),
-                               self._klgfb['log_gaunt_factor'][index_nl, :].squeeze())
-            gaunt_factor = np.exp(splev(E_scaled, gf_interp))
+        E_scaled = np.log(photon_energy/ionization_energy)
+        gaunt_factor = self.gaunt_factor.free_bound(E_scaled, n, l)
         cross_section = prefactor * ionization_energy**2 * photon_energy**(-3) * gaunt_factor / n
         cross_section[np.where(photon_energy < ionization_energy)] = 0.*cross_section.unit
         return cross_section
-
-    @u.quantity_input
-    def _gaunt_factor_free_bound_total(self, ground_state=True) -> u.dimensionless_unscaled:
-        r"""
-        The total Gaunt factor for free-bound emission, using the expressions from :cite:t:`mewe_calculated_1986`.
-
-        The Gaunt factor is not calculated for individual levels, except that the ground state has
-        been specified to be :math: `g_{fb}(n_{0}) = 0.9` following :cite:t:`mewe_calculated_1986`.
-
-        Parameters
-        ----------
-        ground_state : `bool`, optional
-            If True (default), calculate the Gaunt factor for recombination onto the ground state :math: `n = 0`.
-            Otherwise, calculate for recombination onto higher levels with :math: `n > 1`.  See Equation 16 of
-            :cite:t:`mewe_calculated_1986`.
-
-        Notes
-        -----
-        Equation 14 of :cite:t:`mewe_calculated_1986` has a simple
-        analytic solution.  They approximate
-        .. math::
-            f_{1}(Z, n, n_{0} ) = \sum_{1}^{\infty} n^{-3} - \sum_{1}^{n_{0}} n^{-3} = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} \approx 0.21 n_{0}^{-1.5}
-
-        where :math: `\zeta(x)` is the Riemann zeta function.
-
-        However, the second sum is analytic, :math: `\sum_{1}^{n_{0}} n^{-3} = \zeta(3) + \frac{1}{2}\psi^{(2)}(n_{0}+1)`
-        where :math: `\psi^{n}(x)` is the n-th derivative of the digamma function (a.k.a. the polygamma function).
-        So, we can write the full solution as:
-        .. math::
-            f_{1}(Z, n, n_{0}) = \zeta(3) - \sum_{1}^{n_{0}} n^{-3} = - \frac{1}{2}\psi^{(2)}(n_{0}+1)
-
-        The final expression is therefore simplified and more accurate than :cite:t:`mewe_calculated_1986`.
-        """
-        z = self.charge_state
-        if z == 0:
-            return u.Quantity(np.zeros(self.temperature.shape))
-        else:
-            recombined = self.previous_ion()
-            if not recombined._has_dataset('fblvl'):
-                return u.Quantity(np.zeros(self.temperature.shape))
-            Ry = const.h * const.c * const.Ryd
-            prefactor = (Ry / (const.k_B * self.temperature)).decompose()
-            n_0 = recombined._fblvl['n'][0]
-            if ground_state:
-                g_n_0 = 0.9 # The ground state Gaunt factor, g_fb(n_0), prescribed by Mewe et al 1986
-                z_0 = n_0 * np.sqrt(recombined.ip / Ry).decompose()
-                # NOTE: Low temperatures can lead to very large terms in the exponential and in some
-                # cases, the exponential term can exceed the maximum number expressible in double precision.
-                # These terms are eventually set to zero anyway since the ionization fraction is so small
-                # at these temperatures.
-                with np.errstate(over='ignore'):
-                    f_2 = g_n_0 * self._zeta_0 * (z_0**4 / n_0**5) * np.exp((prefactor * z_0**2)/(n_0**2))
-            else:
-                f_1 = -0.5 * polygamma(2, n_0 + 1)
-                with np.errstate(over='ignore'):
-                    f_2 = 2.0 * f_1 * z**4 * np.exp((prefactor * z**2)/((n_0+1)**2))
-            # Large terms in the exponential can lead to infs in the f_2 term. These will be zero'd
-            # out when multiplied by the ionization equilibrium anyway
-            f_2 = np.where(np.isinf(f_2), 0.0, f_2)
-
-            return (prefactor * f_2)
 
     @needs_dataset('elvlc')
     @u.quantity_input

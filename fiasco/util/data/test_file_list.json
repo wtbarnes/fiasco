@@ -865,6 +865,8 @@
     "heseq_2photon.dat",
     "hseq_2photon.dat",
     "itoh.dat",
+    "itoh_integrated_gaunt.txt",
+    "itoh_integrated_gaunt_nonrel.txt",
     "k_1.diparams",
     "k_2.diparams",
     "k_2.drparams",
