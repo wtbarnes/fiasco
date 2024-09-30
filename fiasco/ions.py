@@ -88,6 +88,7 @@ class Ion(IonBase, ContinuumBase):
 Name: {self.ion_name}
 Element: {self.element_name} ({self.atomic_number})
 Charge: +{self.charge_state}
+Isoelectronic Sequence: {self.isoelectronic_sequence}
 Number of Levels: {n_levels}
 Number of Transitions: {n_transitions}
 
