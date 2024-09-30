@@ -98,6 +98,16 @@ def test_level(ion):
     assert level.orbital_angular_momentum_label == 'D'
 
 
+def test_level_energy_parsing(fe10):
+    # Test falling back to theoretical energies if energies are not observed
+    for i, level in enumerate(fe10):
+        if level.is_observed:
+            assert level.energy == fe10._elvlc['E_obs'][i].to('erg', equivalencies=u.spectral())
+        else:
+            assert fe10._elvlc['E_obs'][i].to_value('cm-1') == -1
+            assert level.energy == fe10._elvlc['E_th'][i].to('erg', equivalencies=u.spectral())
+
+
 def test_repr(ion):
     assert 'Fe 5' in ion.__repr__()
 

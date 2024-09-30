@@ -65,7 +65,7 @@ Energy: {self.energy.to(u.eV)}"""
     @property
     def is_observed(self) -> u.erg:
         "True if the energy of the level is from laboratory measurements."
-        return self._elvlc['E_obs'][self._index] != -1
+        return self._elvlc['E_obs'][self._index].to_value('cm-1') != -1
 
     @property
     @u.quantity_input
@@ -74,9 +74,9 @@ Energy: {self.energy.to(u.eV)}"""
         Energy of level. Defaults to observed energy and falls back to
         theoretical energy if no measured energy is available.
         """
-        if (E_obs := self._elvlc['E_obs'][self._index]) != -1:
-            return E_obs * const.h * const.c
-        return self._elvlc['E_th'][self._index] * const.h * const.c
+        if self.is_observed:
+            return self._elvlc['E_obs'][self._index].to('erg', equivalencies=u.equivalencies.spectral())
+        return self._elvlc['E_th'][self._index].to('erg', equivalencies=u.equivalencies.spectral())
 
 
 class Transitions:
