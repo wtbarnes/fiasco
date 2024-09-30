@@ -19,6 +19,15 @@ def test_list_ions(hdf5_dbase_root):
     assert isinstance(ions, list)
 
 
+def test_get_isoelectronic_sequence(hdf5_dbase_root):
+    iso_seq = fiasco.get_isoelectronic_sequence('iron')
+    assert iso_seq == ['Fe 1',
+                       'Co 2',
+                       'Ni 3',
+                       'Cu 4',
+                       'Zn 5',]
+
+
 def test_proton_electron_ratio(hdf5_dbase_root):
     t = np.logspace(4, 9, 100) * u.K
     # NOTE: this number will not be accurate as we are using only a subset of

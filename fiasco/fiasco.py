@@ -11,8 +11,9 @@ from scipy.interpolate import interp1d
 import fiasco
 
 from fiasco.io import DataIndexer
+from fiasco.util import parse_ion_name
 
-__all__ = ['list_elements', 'list_ions', 'proton_electron_ratio']
+__all__ = ['list_elements', 'list_ions', 'proton_electron_ratio', 'get_isoelectronic_sequence']
 
 
 def list_elements(hdf5_dbase_root=None, sort=True):
@@ -74,7 +75,29 @@ def list_ions(hdf5_dbase_root=None, sort=True):
     # NOTE: when grabbing straight from the index and not sorting, the result will be
     # a numpy array. Cast to a list to make sure the return type is consistent for
     # all possible inputs
-    return ions.tolist() if type(ions) == np.ndarray else ions
+    return ions.tolist() if isinstance(ions, np.ndarray) else ions
+
+
+def get_isoelectronic_sequence(element, hdf5_dbase_root=None):
+    """
+    Return a list of ions in the isoelectronic sequence of ``element``.
+
+    Parameters
+    ----------
+    element: `str`, `int`
+        Name of sequence. Can be either the full name (e.g. "hydrogren"),
+        the atomic symbol (e.g. "H") or the atomic number (e.g. 1)
+    hdf5_dbase_root: path-like, optional
+        If not specified, will default to that specified in ``fiasco.defaults``.
+    """
+    Z_iso = plasmapy.particles.atomic_number(element)
+    all_ions = list_ions(hdf5_dbase_root=hdf5_dbase_root)
+
+    def _is_in_sequence(ion):
+        Z, z = parse_ion_name(ion)
+        return Z_iso == (Z - z + 1)
+
+    return [ion for ion in all_ions if _is_in_sequence(ion)]
 
 
 @u.quantity_input
