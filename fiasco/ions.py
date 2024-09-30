@@ -181,6 +181,7 @@ Using Datasets:
     @property
     @needs_dataset('elvlc', 'wgfa')
     def transitions(self):
+        "A `~fiasco.Transitions` object holding the information about transitions for this ion."
         return Transitions(self._elvlc, self._wgfa)
 
     @cached_property
@@ -257,22 +258,14 @@ Using Datasets:
     @property
     def hydrogenic(self):
         r"""
-        Is the ion hydrogen-like or not.
-
-        Notes
-        -----
-        This is `True` if :math:`Z - z = 1`.
+        Is the ion in the hydrogen isoelectronic sequence.
         """
         return self.isoelectronic_sequence == 'H'
 
     @property
     def helium_like(self):
         r"""
-        Is the ion helium like or not.
-
-        Notes
-        -----
-        This is `True` if :math:`Z - z = 2`.
+        Is the ion in the helium isoelectronic sequence.
         """
         return self.isoelectronic_sequence == 'He'
 
@@ -1278,7 +1271,7 @@ Using Datasets:
         r"""
         Free-free continuum emission as a function of temperature and wavelength.
 
-        .. note::
+        .. important::
 
             This does not include ionization fraction or abundance factors.
 
@@ -1319,7 +1312,7 @@ Using Datasets:
         r"""
         Free-free continuum radiative losses as a function of temperature.
 
-        .. note::
+        .. important::
 
             This does not include the ionization fraction or abundance factors.
 
@@ -1363,9 +1356,12 @@ Using Datasets:
         r"""
         Free-bound continuum emission of the recombined ion.
 
-        .. note::
+        .. important::
 
             This does not include the ionization fraction or abundance factors.
+
+        .. important::
+
             Unlike the equivalent IDL routine, the output here is not
             expressed per steradian and as such the factor of :math:`1/4\pi` is not included.
 
@@ -1449,11 +1445,15 @@ Using Datasets:
         The radiative loss rate for free-bound emission as a function of temperature,
         integrated over all wavelengths.
 
-        .. note:: This does not include the ionization fraction or abundance factors.
+        .. important::
 
-        .. note:: This ion, for which the free-bound radiative loss is being calculated,
-                  is taken to be the recombining ion. The ion one ionization stage lower
-                  is taken to be the recombined ion.
+            This does not include the ionization fraction or abundance factors.
+
+        .. note::
+
+            This ion, for which the free-bound radiative loss is being calculated,
+            is taken to be the recombining ion. The ion one ionization stage lower
+            is taken to be the recombined ion.
 
         The calculation integrates Equation 1a of :cite:t:`mewe_calculated_1986`, where the
         Gaunt factor is summed only for free-bound emission :cite:p:`young_chianti_2019-1`.
@@ -1490,27 +1490,37 @@ Using Datasets:
         --------
         fiasco.GauntFactor.free_bound_integrated: Calculation of :math:`g_{fb}`
         """
-        z = self.charge_state
-        if z == 0:
+        if self.charge_state == 0:
             return u.Quantity(np.zeros(self.temperature.shape) * u.erg * u.cm**3 / u.s)
-        else:
-            recombined = self.previous_ion()
-            if not recombined._has_dataset('fblvl'):
-                return u.Quantity(np.zeros(self.temperature.shape) * u.erg * u.cm**3 / u.s)
-            C_ff = 64 * np.pi / 3.0 * np.sqrt(np.pi/6.) * (const.e.esu**6)/(const.c**2 * const.m_e**1.5 * const.k_B**0.5)
-            prefactor = C_ff * const.k_B * np.sqrt(self.temperature) / (const.h*const.c)
 
-            E_obs = recombined._fblvl['E_obs']*const.h*const.c
-            E_th = recombined._fblvl['E_th']*const.h*const.c
-            E_fb = np.where(E_obs==0*u.erg, E_th, E_obs)
-            wvl_n0 = const.h * const.c / (recombined.ip - E_fb[0])
-            wvl_n1 = (recombined._fblvl['n'][0] + 1)**2 /(const.Ryd * z**2)
-            g_fb0 = self.gaunt_factor.free_bound_integrated(self.temperature, self.atomic_number, self.charge_state, recombined._fblvl['n'][0], recombined.ip, ground_state=True)
-            g_fb1 = self.gaunt_factor.free_bound_integrated(self.temperature, self.atomic_number, self.charge_state, recombined._fblvl['n'][0], recombined.ip, ground_state=False)
-            term1 = g_fb0 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n0))
-            term2 = g_fb1 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n1))
+        recombined = self.previous_ion()
+        if not recombined._has_dataset('fblvl'):
+            return u.Quantity(np.zeros(self.temperature.shape) * u.erg * u.cm**3 / u.s)
+        C_ff = 64 * np.pi / 3.0 * np.sqrt(np.pi/6.) * (const.e.esu**6)/(const.c**2 * const.m_e**1.5 * const.k_B**0.5)
+        prefactor = C_ff * const.k_B * np.sqrt(self.temperature) / (const.h*const.c)
 
-            return prefactor * (term1 + term2)
+        E_obs = recombined._fblvl['E_obs']*const.h*const.c
+        E_th = recombined._fblvl['E_th']*const.h*const.c
+        n0 = recombined._fblvl['n'][0]
+        E_fb = np.where(E_obs==0*u.erg, E_th, E_obs)
+        wvl_n0 = const.h * const.c / (recombined.ip - E_fb[0])
+        wvl_n1 = (n0 + 1)**2 /(const.Ryd * self.charge_state**2)
+        g_fb0 = self.gaunt_factor.free_bound_integrated(self.temperature,
+                                                        self.atomic_number,
+                                                        self.charge_state,
+                                                        n0,
+                                                        recombined.ip,
+                                                        ground_state=True)
+        g_fb1 = self.gaunt_factor.free_bound_integrated(self.temperature,
+                                                        self.atomic_number,
+                                                        self.charge_state,
+                                                        n0,
+                                                        recombined.ip,
+                                                        ground_state=False)
+        term1 = g_fb0 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n0))
+        term2 = g_fb1 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n1))
+
+        return prefactor * (term1 + term2)
 
     @needs_dataset('verner')
     @u.quantity_input
@@ -1569,10 +1579,14 @@ Using Datasets:
         r"""
         Two-photon continuum emission of a hydrogenic or helium-like ion.
 
-        .. note:: Does not include ionization equilibrium or abundance.
-                  Unlike the equivalent IDL routine, the output here is not
-                  expressed per steradian and as such the factor of
-                  :math:`1/4\pi` is not included.
+        .. important::
+
+            This does not include the ionization fraction or abundance factors.
+
+        .. important::
+
+            Unlike the equivalent IDL routine, the output here is not
+            expressed per steradian and as such the factor of :math:`1/4\pi` is not included.
 
         For more details regarding this calculation, see :ref:`fiasco-topic-guide-two-photon-continuum`.
 

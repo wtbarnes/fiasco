@@ -11,6 +11,21 @@ __all__ = ['Level', 'Transitions']
 
 
 class Level:
+    """
+    An object for holding atomic energy level data from CHIANTI.
+
+    .. warning:: This is not meant to be instantiated directly,
+                 but rather accessed by indexing a `fiasco.Ion`
+                 object.
+
+    Parameters
+    ----------
+    index: `int`
+        The index of the energy level.
+    elvlc: `~fiasco.io.datalayer.DataIndexer`
+        Pointer to the energy level information for a given ion in
+        the CHIANTI database.
+    """
 
     def __init__(self, index, elvlc):
         self._index = index
@@ -24,32 +39,62 @@ Energy: {self.energy.to(u.eV)}"""
 
     @property
     def level(self):
+        "Index of the level."
         return self._elvlc['level'][self._index]
 
     @property
     def configuration(self):
+        "Label denoting the electronic configuration of the level"
         return self._elvlc['config'][self._index]
 
     @property
     def multiplicity(self):
+        "The multiplicity of the level"
         return self._elvlc['multiplicity'][self._index]
 
     @property
     def total_angular_momentum(self):
+        "The total angular momentum number :math:`J`."
         return self._elvlc['J'][self._index]
 
     @property
     def orbital_angular_momentum_label(self):
+        "The orbital angular momentum number :math:`L`."
         return self._elvlc['L_label'][self._index]
+
+    @property
+    def is_observed(self) -> u.erg:
+        "True if the energy of the level is from laboratory measurements."
+        return self._elvlc['E_obs'][self._index] != -1
 
     @property
     @u.quantity_input
     def energy(self) -> u.erg:
-        key = 'E_th' if self._elvlc['E_obs'][self._index] < 0 else 'E_obs'
-        return self._elvlc[key][self._index]*const.h*const.c
+        """
+        Energy of level. Defaults to observed energy and falls back to
+        theoretical energy if no measured energy is available.
+        """
+        if (E_obs := self._elvlc['E_obs'][self._index]) != -1:
+            return E_obs * const.h * const.c
+        return self._elvlc['E_th'][self._index] * const.h * const.c
 
 
 class Transitions:
+    """
+    An object for holding atomic transition data from CHIANTI.
+
+    .. warning:: This is not meant to be instantiated directly,
+                 but rather accessed through `fiasco.Ion.transitions`.
+
+    Parameters
+    ----------
+    elvlc: `~fiasco.io.datalayer.DataIndexer`
+        Pointer to the energy level information for a given ion in
+        the CHIANTI database.
+    wgfa: `~fiasco.io.datalayer.DataIndexer`
+        Pointer to the transition information for a given ion in
+        the CHIANTI database.
+    """
 
     def __init__(self, elvlc, wgfa):
         self._elvlc = elvlc
@@ -83,19 +128,23 @@ class Transitions:
     @property
     @u.quantity_input
     def wavelength(self) -> u.angstrom:
+        "Wavelength of each transition."
         return np.fabs(self._wgfa['wavelength'])
 
     @property
     def upper_level(self):
+        "Index of the upper level of the transition."
         return self._wgfa['upper_level']
 
     @property
     def lower_level(self):
+        "Index of the lower level of the transition."
         return self._wgfa['lower_level']
 
     @property
     @u.quantity_input
     def delta_energy(self) -> u.erg:
+        "Energy spacing between the upper and lower level of the transition."
         energy = u.Quantity(np.where(
             self._elvlc['E_obs'].value == -1, self._elvlc['E_th'].value,
             self._elvlc['E_obs'].value), self._elvlc['E_obs'].unit)

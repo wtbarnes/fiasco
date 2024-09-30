@@ -47,18 +47,22 @@ class Element(fiasco.IonCollection):
 
     @property
     def atomic_symbol(self):
+        """The standard atomic symbol for the element, e.g. "H" for hydrogen."""
         return self[0].atomic_symbol
 
     @property
     def atomic_number(self):
+        """The atomic number of the element, :math:`Z`."""
         return self[0].atomic_number
 
     @property
     def element_name(self):
+        """The full name of the element, e.g. "hydrogen"."""
         return self[0].element_name
 
     @property
     def abundance(self):
+        "Elemental abundance relative to H."
         return self[0].abundance
 
     @abundance.setter
@@ -85,12 +89,18 @@ class Element(fiasco.IonCollection):
     @cached_property
     def equilibrium_ionization(self):
         """
-        Calculate the ionization fraction, in equilibrium, for all ions of the element.
+        The ionization fraction, in equilibrium, for all ions of the element.
 
-        Calculate the population fractions for every ion of this element as a function of
-        temperature, assuming ionization equilibrium. This returns a matrix with dimensions
-        ``(n,Z+1)``, where ``n`` corresponds to the temperature dimension and ``Z+1``
-        corresponds to the number of ionization stages of the element.
+        The population fractions for every ion of this element, assuming
+        ionization equilibrium, calculated as a function of temperature.
+        This returns a matrix with dimensions ``(n,Z+1)``, where ``n``
+        corresponds to the temperature dimension and ``Z+1`` corresponds to
+        the number of ionization stages of the element.
+
+        .. note:: The result here is not simply the tabulated values included in
+                  the CHIANTI database. Rather, these values are calculated as a
+                  function of temperature on the fly using the ionization and
+                  recombination rates associated with each ion in the element.
 
         Examples
         --------
