@@ -20,7 +20,8 @@ def test_list_ions(hdf5_dbase_root):
 
 
 def test_get_isoelectronic_sequence(hdf5_dbase_root):
-    iso_seq = fiasco.get_isoelectronic_sequence('iron')
+    iso_seq = fiasco.get_isoelectronic_sequence('iron',
+                                                hdf5_dbase_root=hdf5_dbase_root)
     assert iso_seq == ['Fe 1',
                        'Co 2',
                        'Ni 3',
