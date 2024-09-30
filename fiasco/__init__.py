@@ -53,6 +53,7 @@ __all__ = [
     "Element",
     "list_elements",
     "list_ions",
+    "get_isoelectronic_sequence",
     "proton_electron_ratio",
     "Ion",
     "Level",

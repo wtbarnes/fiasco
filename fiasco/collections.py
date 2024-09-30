@@ -17,8 +17,16 @@ __all__ = ['IonCollection']
 
 class IonCollection:
     """
-    Container for holding multiple ions.
-    Instantiate with ions, elements, or another ion collection.
+    Container for holding multiple `~fiasco.Ion` instances.
+
+    This container is most useful when needing to group many ions together in
+    order to perform some aggregate calculation like a radiative loss curve or
+    a composite spectrum made up of ions from many different elements.
+
+    Parameters
+    ----------
+    *ions: `fiasco.Ion` or `fiasco.IonCollection`
+        Entries can be either ions or collections of ion.
     """
 
     def __init__(self, *args):
@@ -212,8 +220,8 @@ Available Ions
         """
         Calculate spectrum for multiple ions
 
-        .. note:: This function is still experimental and may be removed or significantly
-                  refactored in future releases.
+        .. warning:: This function is still experimental and may be removed or significantly
+                     refactored in future releases.
 
         Parameters
         ----------

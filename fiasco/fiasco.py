@@ -80,7 +80,16 @@ def list_ions(hdf5_dbase_root=None, sort=True):
 
 def get_isoelectronic_sequence(element, hdf5_dbase_root=None):
     """
-    Return a list of ions in the isoelectronic sequence of ``element``.
+    List of ions in the isoelectronic sequence of ``element``.
+
+    Ions in the same isoelectronic sequence, that is, ions that have the
+    same number of bound electrons, :math:`Z - z`, often share common properties
+    despite having different charge states and being from different elements.
+    These so-called isoelectronic sequences are typically denoted by the element
+    with an atomic number equal to the number of bound electrons, e.g. C II is in
+    the boron isoelectronic sequence or equivalently may be said to be boron-like.
+    Given the name of a sequence, as denoted by an element label, this function
+    returns a list of all ions in that sequence.
 
     Parameters
     ----------

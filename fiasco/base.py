@@ -49,30 +49,37 @@ class Base:
 
     @property
     def atomic_number(self):
+        """The atomic number of the element, :math:`Z`."""
         return plasmapy.particles.atomic_number(self._base_rep[0])
 
     @property
     def element_name(self):
+        """The full name of the element, e.g. "hydrogen"."""
         return plasmapy.particles.element_name(self.atomic_number)
 
     @property
     def atomic_symbol(self):
+        """The standard atomic symbol for the element, e.g. "H" for hydrogen."""
         return plasmapy.particles.atomic_symbol(self.atomic_number)
 
     @property
     def ion_name(self):
+        """The name of the element and ionization stage, e.g. "Fe 11"."""
         return f'{self.atomic_symbol} {self.ionization_stage}'
 
     @property
     def ionization_stage(self):
+        """Number denoting the degree of ionization, with 1 denoting the neutral stage."""
         return self._base_rep[1]
 
     @property
     def charge_state(self):
+        "Total number of electrons removed, :math:`z`."
         return self.ionization_stage - 1
 
     @property
     def isoelectronic_sequence(self):
+        "Atomic symbol denoting to which isoelectronic sequence this ion belongs."
         return plasmapy.particles.atomic_symbol(self.atomic_number - self.charge_state)
 
     @property
@@ -82,10 +89,12 @@ class Base:
 
     @property
     def ionization_stage_roman(self):
+        "Ionization stage in roman numeral format."
         return roman.to_roman(int(self.ionization_stage))
 
     @property
     def ion_name_roman(self):
+        "Name of the element and ionization stage in roman numeral format."
         return f'{self.atomic_symbol} {self.ionization_stage_roman}'
 
 
