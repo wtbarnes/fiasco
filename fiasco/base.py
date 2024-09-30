@@ -72,6 +72,10 @@ class Base:
         return self.ionization_stage - 1
 
     @property
+    def isoelectronic_sequence(self):
+        return plasmapy.particles.atomic_symbol(self.atomic_number - self.charge_state)
+
+    @property
     def _ion_name(self):
         # Old CHIANTI format, only preserved for internal data access
         return f'{self.atomic_symbol.lower()}_{self.ionization_stage}'

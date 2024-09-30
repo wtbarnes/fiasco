@@ -262,7 +262,7 @@ Using Datasets:
         -----
         This is `True` if :math:`Z - z = 1`.
         """
-        return (self.atomic_number - self.charge_state == 1)
+        return self.isoelectronic_sequence == 'H'
 
     @property
     def helium_like(self):
@@ -273,7 +273,7 @@ Using Datasets:
         -----
         This is `True` if :math:`Z - z = 2`.
         """
-        return (self.atomic_number - self.charge_state == 2)
+        return self.isoelectronic_sequence == 'He'
 
     @property
     @u.quantity_input
