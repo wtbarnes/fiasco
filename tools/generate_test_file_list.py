@@ -52,7 +52,7 @@ def write_test_file_list(files):
 
 if __name__ == '__main__':
     # An example of how you might use this function to update the test file list
-    from fiasco.util import get_test_file_list
+    from fiasco.tests import get_test_file_list
 
     test_files = get_test_file_list()  # Read current files
     test_files += ...  # Add new files here
