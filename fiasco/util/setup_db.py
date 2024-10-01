@@ -106,7 +106,7 @@ def download_dbase(ascii_dbase_url, ascii_dbase_root):
             tar.extractall(path=ascii_dbase_root)
 
 
-def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=False):
+def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=False, overwrite=False):
     """
     Assemble HDF5 file from raw ASCII CHIANTI database.
 
@@ -122,6 +122,9 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=F
     check_hash: `bool`, optional
         If True, check the file hash before adding it to the database.
         Building the database will fail if any of the hashes is not as expected.
+    overwrite: `bool`, optional
+        If True, overwrite existing database file. By default, this is false such
+        that an exception will be thrown if the database already exists.
     """
     # Import the logger here to avoid circular imports
     from fiasco import log
@@ -137,8 +140,9 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=F
         hash_table = _get_hash_table(version)
         log.debug(f'Checking hashes for version {version}')
     log.debug(f'Building HDF5 database in {hdf5_dbase_root}')
+    mode = 'w' if overwrite else 'x'
     with ProgressBar(len(files)) as progress:
-        with h5py.File(hdf5_dbase_root, 'a') as hf:
+        with h5py.File(hdf5_dbase_root, mode=mode) as hf:
             for f in files:
                 parser = fiasco.io.Parser(f, ascii_dbase_root=ascii_dbase_root)
                 try:
