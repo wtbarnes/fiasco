@@ -78,7 +78,7 @@ rebuilt by first removing the old one
 
    $ rm $HOME/.fiasco/chianti_dbase.h5
 
-This deletes the old file.  In |Python|, then, one can run:
+This deletes the old file.  In python, then, one can run:
 
 .. code-block:: pycon
 
