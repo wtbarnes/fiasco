@@ -78,20 +78,12 @@ rebuilt by first removing the old one
 
    $ rm $HOME/.fiasco/chianti_dbase.h5
 
-This deletes the old file.  In python, then, one can run
-
-.. code-block:: python
+This deletes the old file.  In python, then, one can run ::
 
    >>> import fiasco
    >>> fiasco.util.check_database(fiasco.defaults['hdf5_dbase_root'])
 
-which will prompt you to rebuild the database.  Alternatively, you can tell the code to build directly without the prompt
-
-.. code-block:: python
-
-   >>> fiasco.util.build_hdf5_dbase(fiasco.defaults['ascii_dbase_root'], fiasco.defaults['hdf5_dbase_root'])
-
-The arguments of the functions can alternatively point to your preferred location(s).
+which will prompt you to rebuild the database.  The argument of the functions can alternatively point to your preferred location.
 
 .. _fiasco-how-to-run-tests:
 
