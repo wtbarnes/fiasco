@@ -65,6 +65,34 @@ For example, a user who wants to place the HDF5 file in a custom folder would pl
    [database]
    hdf5_dbase_root=/path/to/chianti/hdf5/file/chianti.h5
 
+.. _fiasco-how-to-rebuild-hdf5:
+
+Re-building the HDF5 Database 
+-----------------------------------------------
+
+There are occasional changes to fiasco that require the HDF5 database to be rebuilt because of changes to the data structure, such as when there are 
+updates to the data parsing code, or when additional data files have been added to the database.  In these cases, the HDF5 database can be
+rebuilt by first removing the old one
+
+.. code-block:: shell
+
+   $ rm $HOME/.fiasco/chianti_dbase.h5
+
+This deletes the old file.  In python, then, one can run 
+
+.. code-block:: python
+
+   >>> import fiasco
+   >>> fiasco.util.check_database(fiasco.defaults['hdf5_dbase_root'])
+
+which will prompt you to rebuild the database.  Alternatively, you can tell the code to build directly without the prompt
+
+.. code-block:: python
+
+   >>> fiasco.util.build_hdf5_dbase(fiasco.defaults['ascii_dbase_root'], fiasco.defaults['hdf5_dbase_root'])
+
+The arguments of the functions can alternatively point to your preferred location(s).  
+
 .. _fiasco-how-to-run-tests:
 
 Run the Test Suite
