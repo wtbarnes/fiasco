@@ -4,7 +4,8 @@ import pytest
 
 from packaging.version import Version
 
-from fiasco.util import check_database, get_test_file_list, read_chianti_version
+from fiasco.tests import get_test_file_list
+from fiasco.util import check_database, read_chianti_version
 
 # Force MPL to use non-gui backends for testing.
 try:

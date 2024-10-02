@@ -8,7 +8,7 @@ import pathlib
 from astropy.utils.data import get_pkg_data_path
 from itertools import chain
 
-from fiasco.util.setup_db import md5hash
+from fiasco.util.setup_db import _md5hash
 from fiasco.util.util import get_chianti_catalog, read_chianti_version
 
 
@@ -29,7 +29,7 @@ def build_hash_table(dbase_root):
         map(lambda x: pathlib.Path('dem') / x, catalogue['dem_files']),
     )
     filepaths = map(lambda x: dbase_root / x, filepaths)
-    return {'_'.join(f.relative_to(dbase_root).parts): md5hash(f) for f in filepaths}
+    return {'_'.join(f.relative_to(dbase_root).parts): _md5hash(f) for f in filepaths}
 
 
 @click.command()

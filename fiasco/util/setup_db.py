@@ -28,7 +28,7 @@ SUPPORTED_VERSIONS = [
 ]
 LATEST_VERSION = SUPPORTED_VERSIONS[-1]
 
-__all__ = ['check_database', 'check_database_version', 'download_dbase', 'md5hash', 'get_test_file_list', 'build_hdf5_dbase']
+__all__ = ['check_database', 'download_dbase', 'build_hdf5_dbase']
 
 
 def check_database(hdf5_dbase_root, **kwargs):
@@ -85,17 +85,10 @@ def check_database(hdf5_dbase_root, **kwargs):
     # NOTE: this check is only meant to be bypassed when testing new
     # versions. Hence, this kwarg is not documented
     if kwargs.get('check_chianti_version', True):
-        check_database_version(ascii_dbase_root)
+        _check_database_version(ascii_dbase_root)
     # If we made it this far, build the HDF5 database
     files = kwargs.get('files')
     build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=files, check_hash=kwargs.get('check_hash', False))
-
-
-def check_database_version(ascii_dbase_root):
-    version = read_chianti_version(ascii_dbase_root)
-    if str(version) not in SUPPORTED_VERSIONS:
-        raise UnsupportedVersionError(
-            f'CHIANTI {version} is not in the list of supported versions {SUPPORTED_VERSIONS}.')
 
 
 def download_dbase(ascii_dbase_url, ascii_dbase_root):
@@ -113,39 +106,7 @@ def download_dbase(ascii_dbase_url, ascii_dbase_root):
             tar.extractall(path=ascii_dbase_root)
 
 
-def md5hash(path):
-    # Use the md5 utility to generate this
-    path = pathlib.Path(path)
-    with path.open('rb') as f:
-        return hashlib.md5(f.read()).hexdigest()
-
-
-def _get_hash_table(version):
-    data_dir = pathlib.Path(get_pkg_data_path('data', package='fiasco.util'))
-    file_path = data_dir / f'file_hashes_v{version}.json'
-    with open(file_path) as f:
-        hash_table = json.load(f)
-    return hash_table
-
-
-def get_test_file_list():
-    data_dir = pathlib.Path(get_pkg_data_path('data', package='fiasco.util'))
-    file_path = data_dir / 'test_file_list.json'
-    with open(file_path) as f:
-        hash_table = json.load(f)
-    return hash_table['test_files']
-
-
-def _check_hash(parser, hash_table):
-    actual = md5hash(parser.full_path)
-    key = '_'.join(parser.full_path.relative_to(parser.ascii_dbase_root).parts)
-    if hash_table[key] != actual:
-        raise RuntimeError(
-            f'Hash of {parser.full_path} ({actual}) did not match expected hash ({hash_table[key]})'
-        )
-
-
-def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=False):
+def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=False, overwrite=False):
     """
     Assemble HDF5 file from raw ASCII CHIANTI database.
 
@@ -161,6 +122,9 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=F
     check_hash: `bool`, optional
         If True, check the file hash before adding it to the database.
         Building the database will fail if any of the hashes is not as expected.
+    overwrite: `bool`, optional
+        If True, overwrite existing database file. By default, this is false such
+        that an exception will be thrown if the database already exists.
     """
     # Import the logger here to avoid circular imports
     from fiasco import log
@@ -176,8 +140,9 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=F
         hash_table = _get_hash_table(version)
         log.debug(f'Checking hashes for version {version}')
     log.debug(f'Building HDF5 database in {hdf5_dbase_root}')
+    mode = 'w' if overwrite else 'x'
     with ProgressBar(len(files)) as progress:
-        with h5py.File(hdf5_dbase_root, 'a') as hf:
+        with h5py.File(hdf5_dbase_root, mode=mode) as hf:
             for f in files:
                 parser = fiasco.io.Parser(f, ascii_dbase_root=ascii_dbase_root)
                 try:
@@ -201,3 +166,34 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=F
             ion_list = list_ions(hdf5_dbase_root)
             ds = hf.create_dataset('ion_index', data=np.array(ion_list).astype(np.bytes_))
             ds.attrs['unit'] = 'SKIP'
+
+
+def _check_database_version(ascii_dbase_root):
+    version = read_chianti_version(ascii_dbase_root)
+    if str(version) not in SUPPORTED_VERSIONS:
+        raise UnsupportedVersionError(
+            f'CHIANTI {version} is not in the list of supported versions {SUPPORTED_VERSIONS}.')
+
+
+def _md5hash(path):
+    # Use the md5 utility to generate this
+    path = pathlib.Path(path)
+    with path.open('rb') as f:
+        return hashlib.md5(f.read()).hexdigest()
+
+
+def _get_hash_table(version):
+    data_dir = pathlib.Path(get_pkg_data_path('data', package='fiasco.tests'))
+    file_path = data_dir / f'file_hashes_v{version}.json'
+    with open(file_path) as f:
+        hash_table = json.load(f)
+    return hash_table
+
+
+def _check_hash(parser, hash_table):
+    actual = _md5hash(parser.full_path)
+    key = '_'.join(parser.full_path.relative_to(parser.ascii_dbase_root).parts)
+    if hash_table[key] != actual:
+        raise RuntimeError(
+            f'Hash of {parser.full_path} ({actual}) did not match expected hash ({hash_table[key]})'
+        )
