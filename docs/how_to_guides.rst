@@ -72,20 +72,15 @@ Re-building the HDF5 Database
 
 There are occasional changes to fiasco that require the HDF5 database to be rebuilt because of changes to the data structure, such as when there are
 updates to the data parsing code, or when additional data files have been added to the database.  In these cases, the HDF5 database can be
-rebuilt by first removing the old one
-
-.. code-block:: shell
-
-   $ rm $HOME/.fiasco/chianti_dbase.h5
-
-This deletes the old file.  In python, then, one can run:
+rebuilt by running the following code in python:
 
 .. code-block:: pycon
 
    >>> import fiasco
-   >>> fiasco.util.check_database(fiasco.defaults['hdf5_dbase_root'])  # doctest: +SKIP
+   >>> fiasco.util.build_hdf5_dbase(fiasco.defaults['ascii_dbase_root'], fiasco.defaults['hdf5_dbase_root'], overwrite=True)  # doctest: +SKIP
 
-which will prompt you to rebuild the database.  The argument of the function can alternatively point to your preferred location.
+which will overwrite the old HDF5 file (if any) with a new version.  The arguments of the function can alternatively point to your preferred location(s),
+rather than just using the default values.
 
 .. _fiasco-how-to-run-tests:
 
