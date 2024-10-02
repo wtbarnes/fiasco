@@ -115,8 +115,8 @@ Available Ions
         free_free = u.Quantity(np.zeros(self.temperature.shape + wavelength.shape),
                                'erg cm^3 s^-1 Angstrom^-1')
         for ion in self:
+            ff = ion.free_free(wavelength)
             try:
-                ff = ion.free_free(wavelength)
                 abundance = ion.abundance
                 ioneq = ion.ioneq
             except MissingDatasetException as e:
