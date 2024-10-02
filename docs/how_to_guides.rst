@@ -78,8 +78,8 @@ rebuilt by running the following code in python:
 
    >>> import fiasco
    >>> fiasco.util.build_hdf5_dbase(fiasco.defaults['ascii_dbase_root'], 
-                                    fiasco.defaults['hdf5_dbase_root'], 
-                                    overwrite=True)  # doctest: +SKIP
+   ...                              fiasco.defaults['hdf5_dbase_root'], 
+   ...                              overwrite=True)  # doctest: +SKIP
 
 which will overwrite the old HDF5 file (if any) with a new version.  The arguments of the function can alternatively point to your preferred location(s),
 rather than just using the default values.
