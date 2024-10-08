@@ -124,15 +124,14 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         lower_u = const.h * const.c / const.k_B / tmp
         upper_u = 1. / 2.5 * (np.log10(lower_u) + 1.5)
         t = 1. / 1.25 * (log10_temperature - 7.25)
-        itoh_coefficients = self._itoh['a'][atomic_number-1]
+        itoh_coefficients = self._itoh['a'][self._itoh['Z']==atomic_number].squeeze()
         # calculate Gaunt factor
         gf = u.Quantity(np.zeros(upper_u.shape))
-        for j in range(11):
-            for i in range(11):
+        for i in range(itoh_coefficients.shape[0]):
+            for j in range(itoh_coefficients.shape[1]):
                 gf += (itoh_coefficients[i, j] * (t**i))[:, np.newaxis] * (upper_u**j)
         # apply NaNs where Itoh approximation is not valid
-        gf = np.where(np.logical_and(np.log10(lower_u) >= -4., np.log10(lower_u) <= 1.0),
-                      gf, np.nan)
+        gf = np.where(np.logical_and(np.log10(lower_u) >= -4., np.log10(lower_u) <= 1.0), gf, np.nan)
         gf[np.where(np.logical_or(log10_temperature <= 6.0, log10_temperature >= 8.5)), :] = np.nan
         return gf
 
