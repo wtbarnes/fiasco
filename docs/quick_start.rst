@@ -83,7 +83,7 @@ Now that you have your database, you can use your ion object that you created ab
    <BLANKLINE>
    HDF5 Database: ...chianti_dbase.h5
    Using Datasets:
-      ioneq: chianti
+      ionization_fraction: chianti
       abundance: sun_coronal_1992_feldman_ext
       ip: chianti
       <BLANKLINE>

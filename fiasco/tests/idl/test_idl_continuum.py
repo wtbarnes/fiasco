@@ -21,7 +21,7 @@ def build_ion_collection(root, temperature, **kwargs):
 def ion_input_args():
     return {
         'abundance': 'sun_coronal_1992_feldman_ext',
-        'ioneq': 'chianti',
+        'ionization_fraction': 'chianti',
     }
 
 

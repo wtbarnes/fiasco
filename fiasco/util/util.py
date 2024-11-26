@@ -88,7 +88,7 @@ def get_chianti_catalog(ascii_dbase_root):
     -------
     : `dict`
         All CHIANTI files, separated by category. The resulting dictionary should have the
-        following keys: 'abundance_files', 'ioneq_files', 'ip_files', 'continuum_files',
+        following keys: 'abundance_files', 'ionization_files', 'ip_files', 'continuum_files',
         'ion_files'.
     """
     ascii_dbase_root = pathlib.Path(ascii_dbase_root)
@@ -113,8 +113,9 @@ def get_chianti_catalog(ascii_dbase_root):
 
         return subdir_files
 
-    non_ion_subdirs = ['abundance', 'ioneq', 'ip', 'continuum', 'dem']
+    non_ion_subdirs = ['abundance', 'ip', 'continuum', 'dem']
     all_files = {f'{sd}_files': walk_sub_dir(sd) for sd in non_ion_subdirs}
+    all_files['ionization_files'] = walk_sub_dir('ioneq')
     all_files['ion_files'] = ion_files
 
     return all_files

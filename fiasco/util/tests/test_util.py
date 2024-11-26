@@ -29,7 +29,7 @@ def test_parse_ion_name(ion_name):
 def test_get_chianti_catalog(ascii_dbase_root):
     catalog = get_chianti_catalog(ascii_dbase_root)
     keys = ['abundance_files',
-            'ioneq_files',
+            'ionization_files',
             'ip_files',
             'continuum_files',
             'ion_files']

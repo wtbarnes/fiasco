@@ -106,8 +106,8 @@ class Element(fiasco.IonCollection):
         --------
         >>> temperature = 10**np.arange(3.9, 6.5, 0.01) * u.K
         >>> carbon = Element('C', temperature)
-        >>> carbon_ioneq = carbon.equilibrium_ionization
-        >>> carbon_ioneq[:, 4].max()  # max populuation fraction of C V as a function of temperature
+        >>> carbon_ionization = carbon.equilibrium_ionization
+        >>> carbon_ionization[:, 4].max()  # max population fraction of C V as a function of temperature
         <Quantity 0.99776769>
 
         See Also
@@ -120,10 +120,10 @@ class Element(fiasco.IonCollection):
         # Select columns of V with smallest eigenvalues (returned in descending order)
         # NOTE: must take the absolute value as the SVD solution is only accurate up
         # to the sign. We require that the solutions must be positive.
-        ioneq = np.fabs(V[:, -1, :])
-        ioneq /= ioneq.sum(axis=1)[:, np.newaxis]
+        ionization_fraction = np.fabs(V[:, -1, :])
+        ionization_fraction /= ionization_fraction.sum(axis=1)[:, np.newaxis]
 
-        return u.Quantity(ioneq)
+        return u.Quantity(ionization_fraction)
 
     def __getitem__(self, value):
         if isinstance(value, (str, tuple)):  # NOQA: UP038

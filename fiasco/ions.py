@@ -40,7 +40,7 @@ class Ion(IonBase, ContinuumBase):
         input formats.
     temperature : `~astropy.units.Quantity`
         Temperature array over which to evaluate temperature dependent quantities.
-    ioneq_filename : `str`, optional
+    ionization_filename : `str`, optional
         Ionization equilibrium dataset
     abundance : `str` or `float`, optional
         If a string is provided, use the appropriate abundance dataset.
@@ -57,7 +57,7 @@ class Ion(IonBase, ContinuumBase):
         # Get selected datasets
         # TODO: do not hardcode defaults, pull from rc file
         self._dset_names = {}
-        self._dset_names['ioneq_filename'] = kwargs.get('ioneq_filename', 'chianti')
+        self._dset_names['ionization_filename'] = kwargs.get('ionization_filename', 'chianti')
         self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
         self.abundance = abundance
         self.gaunt_factor = GauntFactor(hdf5_dbase_root=self.hdf5_dbase_root)
@@ -96,7 +96,7 @@ Temperature range: [{self.temperature[0].to(u.MK):.3f}, {self.temperature[-1].to
 
 HDF5 Database: {self.hdf5_dbase_root}
 Using Datasets:
-  ioneq: {self._dset_names['ioneq_filename']}
+  ionization_fraction: {self._dset_names['ionization_filename']}
   abundance: {self._dset_names.get('abundance', self.abundance)}
   ip: {self._dset_names['ip_filename']}"""
 
@@ -185,7 +185,7 @@ Using Datasets:
         return Transitions(self._elvlc, self._wgfa)
 
     @cached_property
-    def ioneq(self):
+    def ionization_fraction(self):
         """
         Ionization equilibrium data interpolated to the given temperature
 
@@ -205,24 +205,24 @@ Using Datasets:
         fiasco.Element.equilibrium_ionization
         """
         temperature = self.temperature.to_value('K')
-        temperature_data = self._ioneq[self._dset_names['ioneq_filename']]['temperature'].to_value('K')
-        ioneq_data = self._ioneq[self._dset_names['ioneq_filename']]['ionization_fraction'].value
+        temperature_data = self._ionization_fraction[self._dset_names['ionization_filename']]['temperature'].to_value('K')
+        ionization_data = self._ionization_fraction[self._dset_names['ionization_filename']]['ionization_fraction'].value
         # Perform PCHIP interpolation in log-space on only the non-zero ionization fractions.
         # See https://github.com/wtbarnes/fiasco/pull/223 for additional discussion.
-        is_nonzero = ioneq_data > 0.0
+        is_nonzero = ionization_data > 0.0
         f_interp = PchipInterpolator(np.log10(temperature_data[is_nonzero]),
-                                     np.log10(ioneq_data[is_nonzero]),
+                                     np.log10(ionization_data[is_nonzero]),
                                      extrapolate=False)
-        ioneq = f_interp(np.log10(temperature))
-        ioneq = 10**ioneq
+        ionization_fraction = f_interp(np.log10(temperature))
+        ionization_fraction = 10**ionization_fraction
         # This sets all entries that would have interpolated to zero ionization fraction to zero
-        ioneq = np.where(np.isnan(ioneq), 0.0, ioneq)
+        ionization_fraction = np.where(np.isnan(ionization_fraction), 0.0, ionization_fraction)
         # Set entries that are truly out of bounds of the original temperature data back to NaN
         out_of_bounds = np.logical_or(temperature<temperature_data.min(), temperature>temperature_data.max())
-        ioneq = np.where(out_of_bounds, np.nan, ioneq)
-        is_finite = np.isfinite(ioneq)
-        ioneq[is_finite] = np.where(ioneq[is_finite] < 0., 0., ioneq[is_finite])
-        return u.Quantity(ioneq)
+        ionization_fraction = np.where(out_of_bounds, np.nan, ionization_fraction)
+        is_finite = np.isfinite(ionization_fraction)
+        ionization_fraction[is_finite] = np.where(ionization_fraction[is_finite] < 0., 0., ionization_fraction[is_finite])
+        return u.Quantity(ionization_fraction)
 
     @property
     @u.quantity_input
@@ -273,10 +273,10 @@ Using Datasets:
     @u.quantity_input
     def formation_temperature(self) -> u.K:
         """
-        Temperature at which `~fiasco.Ion.ioneq` is maximum. This is a useful proxy for
+        Temperature at which `~fiasco.Ion.ionization_fraction` is maximum. This is a useful proxy for
         the temperature at which lines for this ion are formed.
         """
-        return self.temperature[np.argmax(self.ioneq)]
+        return self.temperature[np.argmax(self.ionization_fraction)]
 
     @cached_property
     @needs_dataset('scups')
@@ -655,21 +655,21 @@ Using Datasets:
         """
         # NOTE: These are done in separate try/except blocks because some ions have just a cilvl file,
         # some have just a reclvl file, and some have both.
-        # NOTE: Ioneq values for surrounding ions are retrieved afterwards because first and last ions do
+        # NOTE: Ionization fraction values for surrounding ions are retrieved afterwards because first and last ions do
         # not have previous or next ions but also do not have reclvl or cilvl files.
         # NOTE: stripping the units off and adding them at the end because of some strange astropy
         # Quantity behavior that does not allow for adding these two compatible shapes together.
         numerator = np.zeros(population.shape)
         try:
             upper_level_ionization, ionization_rate = self._level_resolved_ionization_rate
-            ioneq_previous = self.previous_ion().ioneq.value[:, np.newaxis]
-            numerator[:, upper_level_ionization-1] += (ionization_rate * ioneq_previous).to_value('cm3 s-1')
+            ionization_fraction_previous = self.previous_ion().ionization_fraction.value[:, np.newaxis]
+            numerator[:, upper_level_ionization-1] += (ionization_rate * ionization_fraction_previous).to_value('cm3 s-1')
         except MissingDatasetException:
             pass
         try:
             upper_level_recombination, recombination_rate = self._level_resolved_recombination_rate
-            ioneq_next = self.next_ion().ioneq.value[:, np.newaxis]
-            numerator[:, upper_level_recombination-1] += (recombination_rate * ioneq_next).to_value('cm3 s-1')
+            ionization_fraction_next = self.next_ion().ionization_fraction.value[:, np.newaxis]
+            numerator[:, upper_level_recombination-1] += (recombination_rate * ionization_fraction_next).to_value('cm3 s-1')
         except MissingDatasetException:
             pass
         numerator *= density.to_value('cm-3')
@@ -681,7 +681,7 @@ Using Datasets:
         # Sum of the population-weighted excitations from lower levels
         # and cascades from higher levels
         denominator = np.einsum('ijk,ik->ij', c, population)
-        denominator *= self.ioneq.value[:, np.newaxis]
+        denominator *= self.ionization_fraction.value[:, np.newaxis]
         # Set any zero entries to NaN to avoid divide by zero warnings
         denominator = np.where(denominator==0.0, np.nan, denominator)
 
@@ -750,10 +750,10 @@ Using Datasets:
         couple_density_to_temperature = kwargs.get('couple_density_to_temperature', False)
         populations = self.level_populations(density, **kwargs)
         if couple_density_to_temperature:
-            term = self.ioneq / density
+            term = self.ionization_fraction / density
             term = term[:, np.newaxis, np.newaxis]
         else:
-            term = np.outer(self.ioneq, 1./density)
+            term = np.outer(self.ionization_fraction, 1./density)
             term = term[:, :, np.newaxis]
         term *= self.abundance
         # Exclude two-photon transitions
