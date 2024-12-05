@@ -21,7 +21,7 @@ def build_ion_collection(root, temperature, **kwargs):
 def ion_input_args():
     return {
         'abundance': 'sun_coronal_1992_feldman_ext',
-        'ionization_fraction': 'chianti',
+        'ionization_filename': 'chianti',
     }
 
 
@@ -55,7 +55,7 @@ def test_idl_compare_free_free(idl_env, all_ions, idl_input_args, dbase_version)
 
     ; read abundance and ionization equilibrium
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
-    ioneq_file = FILEPATH('{{ioneq}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    ioneq_file = FILEPATH('{{ionization_filename}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     read_abund, abund_file, abund, abund_ref
     read_ioneq, ioneq_file, ioneq_logt, ioneq, ioneq_ref
 
@@ -86,7 +86,7 @@ def test_idl_compare_free_bound(idl_env, all_ions, idl_input_args, dbase_version
 
     ; read abundance and ionization equilibrium
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
-    ioneq_file = FILEPATH('{{ioneq}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    ioneq_file = FILEPATH('{{ionization_filename}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     read_abund, abund_file, abund, abund_ref
     read_ioneq, ioneq_file, ioneq_logt, ioneq, ioneq_ref
 
@@ -116,7 +116,7 @@ def test_idl_compare_free_bound_ion(idl_env, all_ions, idl_input_args, dbase_ver
 
     ; read abundance and ionization equilibrium
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
-    ioneq_file = FILEPATH('{{ioneq}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    ioneq_file = FILEPATH('{{ionization_filename}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     read_abund, abund_file, abund, abund_ref
     read_ioneq, ioneq_file, ioneq_logt, ioneq, ioneq_ref
 
@@ -150,7 +150,7 @@ def test_idl_compare_free_bound_ion(idl_env, all_ions, idl_input_args, dbase_ver
 def test_idl_compare_free_free_radiative_loss(idl_env, ion_input_args, hdf5_dbase_root, dbase_version):
     script = """
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
-    ioneq_file = FILEPATH('{{ioneq}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    ioneq_file = FILEPATH('{{ionization_filename}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     ff_rad_loss, temperature, free_free_radiative_loss, abund_file=abund_file, ioneq_file=ioneq_file
     """
     idl_result = run_idl_script(idl_env,
@@ -172,7 +172,7 @@ def test_idl_compare_free_free_radiative_loss(idl_env, ion_input_args, hdf5_dbas
 def test_idl_compare_free_bound_radiative_loss(idl_env, ion_input_args, hdf5_dbase_root, dbase_version):
     script = """
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
-    ioneq_file = FILEPATH('{{ioneq}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    ioneq_file = FILEPATH('{{ionization_filename}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     fb_rad_loss, temperature, free_bound_radiative_loss, abund_file=abund_file, ioneq_file=ioneq_file
     """
     idl_result = run_idl_script(idl_env,
@@ -199,7 +199,7 @@ def test_idl_compare_two_photon(idl_env, all_ions, idl_input_args, dbase_version
 
     ; read abundance and ionization equilibrium
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
-    ioneq_file = FILEPATH('{{ioneq}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    ioneq_file = FILEPATH('{{ionization_filename}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     read_abund, abund_file, abund, abund_ref
     read_ioneq, ioneq_file, ioneq_logt, ioneq, ioneq_ref
 

@@ -126,7 +126,7 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
     # Import here to avoid circular imports
     from fiasco import log
     h_2 = fiasco.Ion('H +1', temperature, **kwargs)
-    numerator = h_2.abundance * h_2._ionization_fraction[h_2._instance_kwargs['ionization_filename']]['ionization_fraction']
+    numerator = h_2.abundance * h_2._ioneq[h_2._instance_kwargs['ionization_filename']]['ionization_fraction']
     denominator = u.Quantity(np.zeros(numerator.shape))
     for el_name in list_elements(h_2.hdf5_dbase_root):
         el = fiasco.Element(el_name, temperature, **h_2._instance_kwargs)
@@ -144,8 +144,8 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
             # interpolate once at the end.
             # It is assumed that the ionization_fraction temperature array for each ion is the same.
             try:
-                ionization_fraction = ion._ionization_fraction[ionization_file]['ionization_fraction']
-                t_ionization_fraction = ion._ionization_fraction[ionization_file]['temperature']
+                ionization_fraction = ion._ioneq[ionization_file]['ionization_fraction']
+                t_ionization_fraction = ion._ioneq[ionization_file]['temperature']
             except KeyError:
                 log.warning(
                     f'Not including {ion.ion_name}. Ionization fraction not available from {ionization_file}.')
