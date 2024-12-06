@@ -86,12 +86,12 @@ for i, name in enumerate(ionization_files):
     idl_result = read_idl_test_output(name, '8.0.7')
     ion = fiasco.Ion((idl_result['Z'], idl_result['iz']),
                      idl_result['temperature'],
-                     ionization_filename=idl_result['ionization_filename'])
+                     ionization_filename=idl_result['ioneq_filename'])
     element = fiasco.Element(ion.atomic_symbol, ion.temperature)
     ionization_fraction = element.equilibrium_ionization
     print(f'IDL code to produce ionization_fraction result for {ion.ion_name_roman}:')
     print(Template(idl_result['idl_script']).render(**idl_result))
-    axes = plot_idl_comparison(ion.temperature, idl_result['ionization_fraction'], ion.ionization_fraction,
+    axes = plot_idl_comparison(ion.temperature, idl_result['ioneq'], ion.ionization_fraction,
                                fig, len(ionization_files), 3*i, f'{ion.ion_name_roman}')
     axes[0].plot(element.temperature, ionization_fraction[:, ion.charge_state],
                  label='fiasco (rates)', color='C1', ls='-')
