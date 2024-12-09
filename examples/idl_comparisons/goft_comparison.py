@@ -82,7 +82,7 @@ for i, name in enumerate(goft_files):
     ion = fiasco.Ion((idl_result['Z'], idl_result['iz']),
                      idl_result['temperature'],
                      abundance_filename=idl_result['abundance'],
-                     ionization_filename=idl_result['ioneq'])
+                     ionization_fraction=idl_result['ioneq'])
     contribution_func = ion.contribution_function(idl_result['density'])
     transitions = ion.transitions.wavelength[~ion.transitions.is_twophoton]
     idx = np.argmin(np.abs(transitions - idl_result['wavelength']))

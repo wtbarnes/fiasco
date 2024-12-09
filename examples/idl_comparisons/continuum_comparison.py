@@ -64,7 +64,7 @@ def plot_idl_comparison(wavelength, temperature, result_fiasco, result_idl):
 # continuum emission, i.e. that emission produced by
 # thermal bremsstrahlung.
 idl_result_freefree = read_idl_test_output('freefree_all_ions', '8.0.7')
-ion_kwargs = {'abundance': idl_result_freefree['abundance'], 'ionization_filename': idl_result_freefree['ioneq']}
+ion_kwargs = {'abundance': idl_result_freefree['abundance'], 'ionization_fraction': idl_result_freefree['ioneq']}
 all_ions = [fiasco.Ion(ion_name, idl_result_freefree['temperature'], **ion_kwargs) for ion_name in fiasco.list_ions()]
 all_ions = fiasco.IonCollection(*all_ions)
 free_free = all_ions.free_free(idl_result_freefree['wavelength'])
@@ -82,7 +82,7 @@ print(template.render(**idl_result_freefree))
 # Next, let's compare the outputs for the free-bound
 # continuum emission.
 idl_result_freebound = read_idl_test_output('freebound_all_ions', '8.0.7')
-ion_kwargs = {'abundance': idl_result_freebound['abundance'], 'ionization_filename': idl_result_freebound['ioneq']}
+ion_kwargs = {'abundance': idl_result_freebound['abundance'], 'ionization_fraction': idl_result_freebound['ioneq']}
 all_ions = [fiasco.Ion(ion_name, idl_result_freebound['temperature'], **ion_kwargs) for ion_name in fiasco.list_ions()]
 all_ions = fiasco.IonCollection(*all_ions)
 free_bound = all_ions.free_bound(idl_result_freebound['wavelength'])
@@ -99,7 +99,7 @@ print(template.render(**idl_result_freebound))
 # Finally, let's compare the outputs for the two-photon
 # continuum emission.
 idl_result_twophoton = read_idl_test_output('twophoton_all_ions', '8.0.7')
-ion_kwargs = {'abundance': idl_result_twophoton['abundance'], 'ionization_filename': idl_result_twophoton['ioneq']}
+ion_kwargs = {'abundance': idl_result_twophoton['abundance'], 'ionization_fraction': idl_result_twophoton['ioneq']}
 all_ions = [fiasco.Ion(ion_name, idl_result_twophoton['temperature'], **ion_kwargs) for ion_name in fiasco.list_ions()]
 all_ions = fiasco.IonCollection(*all_ions)
 two_photon = all_ions.two_photon(idl_result_twophoton['wavelength'], idl_result_twophoton['density']).squeeze()

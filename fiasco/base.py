@@ -170,4 +170,3 @@ for filetype in all_ext:
     add_property(IonBase, filetype)
     add_property(IonBase, '/'.join(['dielectronic', filetype]))
 add_property(IonBase, 'ip')
-#add_property(IonBase, 'ioneq', property_name='ionization_fraction')

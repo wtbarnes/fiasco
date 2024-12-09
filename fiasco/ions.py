@@ -40,7 +40,7 @@ class Ion(IonBase, ContinuumBase):
         input formats.
     temperature : `~astropy.units.Quantity`
         Temperature array over which to evaluate temperature dependent quantities.
-    ionization_filename : `str`, optional
+    ionization_fraction : `str`, optional
         Ionization equilibrium dataset
     abundance : `str` or `float`, optional
         If a string is provided, use the appropriate abundance dataset.
@@ -51,16 +51,18 @@ class Ion(IonBase, ContinuumBase):
 
     @u.quantity_input
     def __init__(self, ion_name, temperature: u.K,
-                abundance = 'sun_coronal_1992_feldman_ext', *args, **kwargs):
+                abundance = 'sun_coronal_1992_feldman_ext',
+                ionization_fraction = 'chianti',
+                *args, **kwargs):
         super().__init__(ion_name, *args, **kwargs)
         self.temperature = np.atleast_1d(temperature)
         # Get selected datasets
         # TODO: do not hardcode defaults, pull from rc file
         self._dset_names = {}
-        self._dset_names['ionization_filename'] = kwargs.get('ionization_filename', 'chianti')
+        self._dset_names['ionization_fraction'] = kwargs.get('ionization_fraction', 'chianti')
         self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
         self.abundance = abundance
-        self.ionization_fraction = self.calculate_ionization_fraction()
+        self.ionization_fraction = ionization_fraction
         self.gaunt_factor = GauntFactor(hdf5_dbase_root=self.hdf5_dbase_root)
 
     def _new_instance(self, temperature=None, **kwargs):
@@ -97,7 +99,7 @@ Temperature range: [{self.temperature[0].to(u.MK):.3f}, {self.temperature[-1].to
 
 HDF5 Database: {self.hdf5_dbase_root}
 Using Datasets:
-  ionization_fraction: {self._dset_names['ionization_filename']}
+  ionization_fraction: {self._dset_names['ionization_fraction']}
   abundance: {self._dset_names.get('abundance', self.abundance)}
   ip: {self._dset_names['ip_filename']}"""
 
@@ -144,6 +146,10 @@ Using Datasets:
         # dataset name. Otherwise, we can just pass the actual abundance value.
         if kwargs['abundance'] is None:
             kwargs['abundance'] = self.abundance
+
+        if kwargs['ionization_fraction'] is None:
+            kwargs['ionization_fraction'] = self.ionization_fraction
+
         return kwargs
 
     def _has_dataset(self, dset_name):
@@ -206,7 +212,7 @@ Using Datasets:
 
         """
         if isinstance(ionization_fraction, str):
-            self._dset_names['ionization_filename'] = ionization_fraction
+            self._dset_names['ionization_fraction'] = ionization_fraction
             self._ionization_fraction = self.calculate_ionization_fraction()
         else:
             ionization_fraction = np.atleast_1d(ionization_fraction)
@@ -215,7 +221,7 @@ Using Datasets:
             elif ionization_fraction.shape != self.temperature.shape:
                 raise ValueError("Ionization fraction array must match the shape of the temperature array.")
             else:
-                self._dset_names['ionization_filename'] = None
+                self._dset_names['ionization_fraction'] = None
                 self._ionization_fraction = ionization_fraction
 
     def calculate_ionization_fraction(self):
@@ -238,8 +244,8 @@ Using Datasets:
         fiasco.Element.equilibrium_ionization
         """
         temperature = self.temperature.to_value('K')
-        temperature_data = self._ion_fraction[self._dset_names['ionization_filename']]['temperature'].to_value('K')
-        ionization_data = self._ion_fraction[self._dset_names['ionization_filename']]['ionization_fraction'].value
+        temperature_data = self._ion_fraction[self._dset_names['ionization_fraction']]['temperature'].to_value('K')
+        ionization_data = self._ion_fraction[self._dset_names['ionization_fraction']]['ionization_fraction'].value
         # Perform PCHIP interpolation in log-space on only the non-zero ionization fractions.
         # See https://github.com/wtbarnes/fiasco/pull/223 for additional discussion.
         is_nonzero = ionization_data > 0.0
