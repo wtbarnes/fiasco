@@ -21,8 +21,6 @@ def get_idl_test_output_filepath(name, version):
 
 
 def read_idl_test_output(name, version, keys=None):
-    # NOTE: Importing here to avoid it as a hard dependency for running tests
-    import asdf
     file_path = get_idl_test_output_filepath(name, version)
     with asdf.open(file_path, memmap=True) as af:
         if keys is None:
