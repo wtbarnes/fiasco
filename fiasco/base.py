@@ -142,6 +142,11 @@ class IonBase(Base):
         data_path = '/'.join([self.atomic_symbol.lower(), 'abundance'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
+    @property
+    def _ion_fraction(self):
+        data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, 'ioneq'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
+
 
 def add_property(cls, filetype, property_name=None):
     """
@@ -165,4 +170,4 @@ for filetype in all_ext:
     add_property(IonBase, filetype)
     add_property(IonBase, '/'.join(['dielectronic', filetype]))
 add_property(IonBase, 'ip')
-add_property(IonBase, 'ioneq', property_name='ionization_fraction')
+#add_property(IonBase, 'ioneq', property_name='ionization_fraction')

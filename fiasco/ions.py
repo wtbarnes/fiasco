@@ -60,6 +60,7 @@ class Ion(IonBase, ContinuumBase):
         self._dset_names['ionization_filename'] = kwargs.get('ionization_filename', 'chianti')
         self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
         self.abundance = abundance
+        self.ionization_fraction = self.calculate_ionization_fraction()
         self.gaunt_factor = GauntFactor(hdf5_dbase_root=self.hdf5_dbase_root)
 
     def _new_instance(self, temperature=None, **kwargs):
@@ -184,8 +185,40 @@ Using Datasets:
         "A `~fiasco.Transitions` object holding the information about transitions for this ion."
         return Transitions(self._elvlc, self._wgfa)
 
-    @cached_property
+    @property
     def ionization_fraction(self):
+        """
+        Ionization fraction of an ion
+        """
+        return self._ionization_fraction
+
+    @ionization_fraction.setter
+    def ionization_fraction(self, ionization_fraction):
+        """
+        Sets the ionization fraction for an ion
+
+        Parameters
+        ----------
+        self :
+            The `~fiasco.Ion` instance
+        ionization_fraction :
+            An array of ionization fractions as a function of temperature
+
+        """
+        if isinstance(ionization_fraction, str):
+            self._dset_names['ionization_filename'] = ionization_fraction
+            self._ionization_fraction = self.calculate_ionization_fraction()
+        else:
+            ionization_fraction = np.atleast_1d(ionization_fraction)
+            if np.min(ionization_fraction) < 0.0 or np.max(ionization_fraction) > 1.0:
+                raise ValueError("Ionization fractions must be between 0 and 1, inclusive.")
+            elif ionization_fraction.shape != self.temperature.shape:
+                raise ValueError("Ionization fraction array must match the shape of the temperature array.")
+            else:
+                self._dset_names['ionization_filename'] = None
+                self._ionization_fraction = ionization_fraction
+
+    def calculate_ionization_fraction(self):
         """
         Ionization equilibrium data interpolated to the given temperature
 
@@ -205,8 +238,8 @@ Using Datasets:
         fiasco.Element.equilibrium_ionization
         """
         temperature = self.temperature.to_value('K')
-        temperature_data = self._ionization_fraction[self._dset_names['ionization_filename']]['temperature'].to_value('K')
-        ionization_data = self._ionization_fraction[self._dset_names['ionization_filename']]['ionization_fraction'].value
+        temperature_data = self._ion_fraction[self._dset_names['ionization_filename']]['temperature'].to_value('K')
+        ionization_data = self._ion_fraction[self._dset_names['ionization_filename']]['ionization_fraction'].value
         # Perform PCHIP interpolation in log-space on only the non-zero ionization fractions.
         # See https://github.com/wtbarnes/fiasco/pull/223 for additional discussion.
         is_nonzero = ionization_data > 0.0
