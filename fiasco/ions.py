@@ -205,8 +205,8 @@ Using Datasets:
         fiasco.Element.equilibrium_ionization
         """
         temperature = self.temperature.to_value('K')
-        temperature_data = self._ioneq[self._dset_names['ionization_filename']]['temperature'].to_value('K')
-        ionization_data = self._ioneq[self._dset_names['ionization_filename']]['ionization_fraction'].value
+        temperature_data = self._ionization_fraction[self._dset_names['ionization_filename']]['temperature'].to_value('K')
+        ionization_data = self._ionization_fraction[self._dset_names['ionization_filename']]['ionization_fraction'].value
         # Perform PCHIP interpolation in log-space on only the non-zero ionization fractions.
         # See https://github.com/wtbarnes/fiasco/pull/223 for additional discussion.
         is_nonzero = ionization_data > 0.0

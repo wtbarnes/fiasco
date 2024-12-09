@@ -70,16 +70,16 @@ def plot_idl_comparison(x, y_idl, y_python, fig, n_rows, i_row, quantity_name, t
 # the two approaches. However, the ionization fraction in these regions does not
 # meaningfully contribute to any other derived quantities.
 ionization_files = [
-    'ionization_1_1',
-    'ionization_6_1',
-    'ionization_6_2',
-    'ionization_6_3',
-    'ionization_20_2',
-    'ionization_26_5',
-    'ionization_26_16',
-    'ionization_26_18',
-    'ionization_26_20',
-    'ionization_26_27',
+    'ioneq_1_1',
+    'ioneq_6_1',
+    'ioneq_6_2',
+    'ioneq_6_3',
+    'ioneq_20_2',
+    'ioneq_26_5',
+    'ioneq_26_16',
+    'ioneq_26_18',
+    'ioneq_26_20',
+    'ioneq_26_27',
 ]
 fig = plt.figure(figsize=(9,3*len(ionization_files)), layout='constrained')
 for i, name in enumerate(ionization_files):

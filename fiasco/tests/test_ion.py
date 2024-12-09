@@ -133,8 +133,8 @@ def test_scalar_temperature(hdf5_dbase_root):
     ion = fiasco.Ion('H 1', 1 * u.MK, hdf5_dbase_root=hdf5_dbase_root)
     ionization_fraction = ion.ionization_fraction
     assert ionization_fraction.shape == (1,)
-    t_data = ion._ioneq[ion._dset_names['ionization_filename']]['temperature']
-    ionization_data = ion._ioneq[ion._dset_names['ionization_filename']]['ionization_fraction']
+    t_data = ion._ionization_fraction[ion._dset_names['ionization_filename']]['temperature']
+    ionization_data = ion._ionization_fraction[ion._dset_names['ionization_filename']]['ionization_fraction']
     i_t = np.where(t_data == ion.temperature)
     assert u.allclose(ionization_fraction, ionization_data[i_t])
 
@@ -145,8 +145,8 @@ def test_no_elvlc_raises_index_error(hdf5_dbase_root):
 
 
 def test_ionization_fraction(ion):
-    t_data = ion._ioneq[ion._dset_names['ionization_filename']]['temperature']
-    ionization_data = ion._ioneq[ion._dset_names['ionization_filename']]['ionization_fraction']
+    t_data = ion._ionization_fraction[ion._dset_names['ionization_filename']]['temperature']
+    ionization_data = ion._ionization_fraction[ion._dset_names['ionization_filename']]['ionization_fraction']
     ion_at_nodes = ion._new_instance(temperature=t_data)
     assert u.allclose(ion_at_nodes.ionization_fraction, ionization_data, rtol=1e-6)
 
@@ -156,7 +156,7 @@ def test_ionization_fraction_positive(ion):
 
 
 def test_ionization_fraction_out_bounds_is_nan(ion):
-    t_data = ion._ioneq[ion._dset_names['ionization_filename']]['temperature']
+    t_data = ion._ionization_fraction[ion._dset_names['ionization_filename']]['temperature']
     t_out_of_bounds = t_data[[0,-1]] + [-100, 1e6] * u.K
     ion_out_of_bounds = ion._new_instance(temperature=t_out_of_bounds)
     assert np.isnan(ion_out_of_bounds.ionization_fraction).all()
