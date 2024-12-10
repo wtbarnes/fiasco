@@ -142,8 +142,13 @@ class IonBase(Base):
         data_path = '/'.join([self.atomic_symbol.lower(), 'abundance'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
+    @property
+    def _ion_fraction(self):
+        data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, 'ioneq'])
+        return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
-def add_property(cls, filetype):
+
+def add_property(cls, filetype, property_name=None):
     """
     Dynamically add filetype properties to base data access class
     """
@@ -152,7 +157,10 @@ def add_property(cls, filetype):
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     property_template.__doc__ = f'Data in {filetype} type file'
-    property_template.__name__ = f'_{"_".join(filetype.split("/"))}'
+    if property_name:
+        property_template.__name__ = f'_{"_".join(property_name.split("/"))}'
+    else:
+        property_template.__name__ = f'_{"_".join(filetype.split("/"))}'
     setattr(cls, property_template.__name__, property(property_template))
 
 
@@ -162,4 +170,3 @@ for filetype in all_ext:
     add_property(IonBase, filetype)
     add_property(IonBase, '/'.join(['dielectronic', filetype]))
 add_property(IonBase, 'ip')
-add_property(IonBase, 'ioneq')
