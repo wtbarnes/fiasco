@@ -35,7 +35,7 @@ def build_hash_table(dbase_root):
 @click.command()
 @click.option('--database', required=True, type=str)
 def write_hash_table(database):
-    data_dir = pathlib.Path(get_pkg_data_path('data', package='fiasco.util'))
+    data_dir = pathlib.Path(get_pkg_data_path('data', package='fiasco.tests'))
     dbase_version = read_chianti_version(database)
     file_path = data_dir / f'file_hashes_v{dbase_version}.json'
     hash_table = build_hash_table(database)
