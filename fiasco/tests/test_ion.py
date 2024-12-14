@@ -523,3 +523,17 @@ def test_has_dataset(ion, c6):
     assert not ion._has_dataset('psplups')
     # C VI has no dielectronic data
     assert not c6._has_dataset('dielectronic_elvlc')
+
+@pytest.mark.parametrize(('value', 'dset'),[
+    (7.06000000e-01, 'chianti'),
+    (5.88800000e-01, 'mazzotta_etal'),
+    (np.zeros(len(temperature)), None),
+])
+def test_change_ionization_fraction(ion, value, dset):
+    ion.ionization_fraction = value if dset is None else dset
+    assert u.isclose(ion.ionization_fraction[0], (value if dset is not None else 0.0) )
+    assert ion._dset_names['ionization_fraction'] == dset
+    if dset:
+        assert ion._instance_kwargs['ionization_fraction'] == dset
+    else:
+        assert u.isclose(ion._instance_kwargs['ionization_fraction'][0], 0.0)
