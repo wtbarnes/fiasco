@@ -148,7 +148,7 @@ class IonBase(Base):
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
 
-def add_property(cls, filetype, property_name=None):
+def add_property(cls, filetype):
     """
     Dynamically add filetype properties to base data access class
     """
@@ -157,10 +157,7 @@ def add_property(cls, filetype, property_name=None):
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
 
     property_template.__doc__ = f'Data in {filetype} type file'
-    if property_name:
-        property_template.__name__ = f'_{"_".join(property_name.split("/"))}'
-    else:
-        property_template.__name__ = f'_{"_".join(filetype.split("/"))}'
+    property_template.__name__ = f'_{"_".join(filetype.split("/"))}'
     setattr(cls, property_template.__name__, property(property_template))
 
 

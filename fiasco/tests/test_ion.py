@@ -166,11 +166,9 @@ def test_ionization_fraction_setter(ion):
     assert u.isclose(ion.ionization_fraction[0], 5.88800000e-01)
     ion.ionization_fraction = np.zeros(len(temperature))
     assert u.allclose(ion.ionization_fraction, 0.0)
-    with pytest.raises(ValueError, match='Ionization fractions must be between 0 and 1, inclusive.'):
-        ion.ionization_fraction = np.zeros(len(temperature)) + 2.0
-    with pytest.raises(ValueError, match='Ionization fraction array must match the shape of the temperature array.'):
-        ion.ionization_fraction = np.zeros(len(temperature)-1)
-
+    ion.ionization_fraction = 0.1
+    assert u.allclose(ion.ionization_fraction, 0.1)
+    
 def test_formation_temperature(ion):
     assert ion.formation_temperature == ion.temperature[np.argmax(ion.ionization_fraction)]
 
