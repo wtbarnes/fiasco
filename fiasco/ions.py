@@ -207,8 +207,6 @@ Using Datasets:
         else:
            # Multiplying by np.ones allows for passing in scalar values
             _ionization_fraction = np.atleast_1d(ionization_fraction) * np.ones(self.temperature.shape)
-            if _ionization_fraction.shape != self.temperature.shape:
-                raise ValueError("Ionization fraction array must match the shape of the temperature array.")
             self._dset_names['ionization_fraction'] = None
             self._ionization_fraction = _ionization_fraction
 
