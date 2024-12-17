@@ -131,12 +131,12 @@ def test_level_properties(ion):
 
 def test_scalar_temperature(hdf5_dbase_root):
     ion = fiasco.Ion('H 1', 1 * u.MK, hdf5_dbase_root=hdf5_dbase_root)
-    ioneq = ion.ioneq
-    assert ioneq.shape == (1,)
-    t_data = ion._ioneq[ion._dset_names['ioneq_filename']]['temperature']
-    ioneq_data = ion._ioneq[ion._dset_names['ioneq_filename']]['ionization_fraction']
+    ionization_fraction = ion.ionization_fraction
+    assert ionization_fraction.shape == (1,)
+    t_data = ion._ion_fraction[ion._dset_names['ionization_fraction']]['temperature']
+    ionization_data = ion._ion_fraction[ion._dset_names['ionization_fraction']]['ionization_fraction']
     i_t = np.where(t_data == ion.temperature)
-    assert u.allclose(ioneq, ioneq_data[i_t])
+    assert u.allclose(ionization_fraction, ionization_data[i_t])
 
 
 def test_no_elvlc_raises_index_error(hdf5_dbase_root):
@@ -144,26 +144,35 @@ def test_no_elvlc_raises_index_error(hdf5_dbase_root):
         fiasco.Ion('H 2', temperature, hdf5_dbase_root=hdf5_dbase_root)[0]
 
 
-def test_ioneq(ion):
-    t_data = ion._ioneq[ion._dset_names['ioneq_filename']]['temperature']
-    ioneq_data = ion._ioneq[ion._dset_names['ioneq_filename']]['ionization_fraction']
+def test_ionization_fraction(ion):
+    t_data = ion._ion_fraction[ion._dset_names['ionization_fraction']]['temperature']
+    ionization_data = ion._ion_fraction[ion._dset_names['ionization_fraction']]['ionization_fraction']
     ion_at_nodes = ion._new_instance(temperature=t_data)
-    assert u.allclose(ion_at_nodes.ioneq, ioneq_data, rtol=1e-6)
+    assert u.allclose(ion_at_nodes.ionization_fraction, ionization_data, rtol=1e-6)
 
 
-def test_ioneq_positive(ion):
-    assert np.all(ion.ioneq >= 0)
+def test_ionization_fraction_positive(ion):
+    assert np.all(ion.ionization_fraction >= 0)
 
 
-def test_ioneq_out_bounds_is_nan(ion):
-    t_data = ion._ioneq[ion._dset_names['ioneq_filename']]['temperature']
+def test_ionization_fraction_out_bounds_is_nan(ion):
+    t_data = ion._ion_fraction[ion._dset_names['ionization_fraction']]['temperature']
     t_out_of_bounds = t_data[[0,-1]] + [-100, 1e6] * u.K
     ion_out_of_bounds = ion._new_instance(temperature=t_out_of_bounds)
-    assert np.isnan(ion_out_of_bounds.ioneq).all()
+    assert np.isnan(ion_out_of_bounds.ionization_fraction).all()
 
+def test_ionization_fraction_setter(ion):
+    ion.ionization_fraction = 'mazzotta_etal'
+    assert u.isclose(ion.ionization_fraction[0], 5.88800000e-01)
+    ion.ionization_fraction = np.zeros(len(temperature))
+    assert u.allclose(ion.ionization_fraction, 0.0)
+    ion.ionization_fraction = 0.1
+    assert u.allclose(ion.ionization_fraction, 0.1)
+    with pytest.raises(ValueError):
+        ion.ionization_fraction = [0.1,0.2]
 
 def test_formation_temperature(ion):
-    assert ion.formation_temperature == ion.temperature[np.argmax(ion.ioneq)]
+    assert ion.formation_temperature == ion.temperature[np.argmax(ion.ionization_fraction)]
 
 
 def test_abundance(ion):
@@ -514,3 +523,17 @@ def test_has_dataset(ion, c6):
     assert not ion._has_dataset('psplups')
     # C VI has no dielectronic data
     assert not c6._has_dataset('dielectronic_elvlc')
+
+@pytest.mark.parametrize(('value', 'dset'),[
+    (7.06000000e-01, 'chianti'),
+    (5.88800000e-01, 'mazzotta_etal'),
+    (np.zeros(len(temperature)), None),
+])
+def test_change_ionization_fraction(ion, value, dset):
+    ion.ionization_fraction = value if dset is None else dset
+    assert u.isclose(ion.ionization_fraction[0], (value if dset is not None else 0.0) )
+    assert ion._dset_names['ionization_fraction'] == dset
+    if dset:
+        assert ion._instance_kwargs['ionization_fraction'] == dset
+    else:
+        assert u.isclose(ion._instance_kwargs['ionization_fraction'][0], 0.0)

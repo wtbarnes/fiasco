@@ -37,7 +37,7 @@ INDEX_WAVE_MAPPING = {
 def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, ion_name, wavelength):
     goft_script = """
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
-    ioneq_file = FILEPATH('{{ioneq}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     density = {{ density | to_unit('cm-3') | log10 | force_double_precision }}
     wave_min = {{ (wavelength - wave_window) | to_unit('angstrom') | force_double_precision }}
     wave_max = {{ (wavelength + wave_window) | to_unit('angstrom') | force_double_precision }}
@@ -61,7 +61,7 @@ def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, ion_name, wav
         'index': INDEX_WAVE_MAPPING[f'{ion_name} {wavelength}'],
         'density': 1e+10 * u.cm**(-3),
         'abundance': 'sun_coronal_1992_feldman_ext',
-        'ioneq': 'chianti',
+        'ionization_fraction': 'chianti',
     }
     formatters = {'temperature': lambda x: 10**x*u.K,
                   'contribution_function': lambda x: x*u.Unit('erg cm3 s-1')}
@@ -77,7 +77,7 @@ def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, ion_name, wav
                      idl_result['temperature'],
                      hdf5_dbase_root=hdf5_dbase_root,
                      abundance=idl_result['abundance'],
-                     ioneq_filename=idl_result['ioneq'])
+                     ionization_fraction=idl_result['ioneq'])
     contribution_func = ion.contribution_function(idl_result['density'])
     idx = np.argmin(np.abs(ion.transitions.wavelength[~ion.transitions.is_twophoton] - idl_result['wavelength']))
     # NOTE: Multiply by 0.83 because the fiasco calculation does not include the n_H/n_e ratio

@@ -23,7 +23,7 @@ def build_hash_table(dbase_root):
     filepaths = chain(
         map(build_ion_path, catalogue['ion_files']),
         map(lambda x: pathlib.Path('abundance') / x, catalogue['abundance_files']),
-        map(lambda x: pathlib.Path('ioneq') / x, catalogue['ioneq_files']),
+        map(lambda x: pathlib.Path('ioneq') / x, catalogue['ionization_files']),
         map(lambda x: pathlib.Path('ip') / x, catalogue['ip_files']),
         map(lambda x: pathlib.Path('continuum') / x, catalogue['continuum_files']),
         map(lambda x: pathlib.Path('dem') / x, catalogue['dem_files']),
@@ -35,7 +35,7 @@ def build_hash_table(dbase_root):
 @click.command()
 @click.option('--database', required=True, type=str)
 def write_hash_table(database):
-    data_dir = pathlib.Path(get_pkg_data_path('data', package='fiasco.util'))
+    data_dir = pathlib.Path(get_pkg_data_path('data', package='fiasco.tests'))
     dbase_version = read_chianti_version(database)
     file_path = data_dir / f'file_hashes_v{dbase_version}.json'
     hash_table = build_hash_table(database)
