@@ -168,7 +168,7 @@ def test_ionization_fraction_setter(ion):
     assert u.allclose(ion.ionization_fraction, 0.0)
     ion.ionization_fraction = 0.1
     assert u.allclose(ion.ionization_fraction, 0.1)
-    
+
 def test_formation_temperature(ion):
     assert ion.formation_temperature == ion.temperature[np.argmax(ion.ionization_fraction)]
 

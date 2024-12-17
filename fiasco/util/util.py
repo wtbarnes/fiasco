@@ -113,9 +113,8 @@ def get_chianti_catalog(ascii_dbase_root):
 
         return subdir_files
 
-    non_ion_subdirs = ['abundance', 'ip', 'continuum', 'dem']
+    non_ion_subdirs = ['abundance', 'ip', 'ioneq', 'continuum', 'dem']
     all_files = {f'{sd}_files': walk_sub_dir(sd) for sd in non_ion_subdirs}
-    all_files['ionization_files'] = walk_sub_dir('ioneq')
     all_files['ion_files'] = ion_files
 
     return all_files
