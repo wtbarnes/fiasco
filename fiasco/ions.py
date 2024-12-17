@@ -40,8 +40,9 @@ class Ion(IonBase, ContinuumBase):
         input formats.
     temperature : `~astropy.units.Quantity`
         Temperature array over which to evaluate temperature dependent quantities.
-    ionization_fraction : `str`, optional
-        Ionization equilibrium dataset
+    ionization_fraction : `str` or `float` or array-like, optional
+        If a string is provided, use the appropriate "ioneq" dataset. If an array is provided, it must be the same shape
+        as ``temperature``. If a scalar value is passed in, the ionization fraction is assumed constant at all temperatures.
     abundance : `str` or `float`, optional
         If a string is provided, use the appropriate abundance dataset.
         If a float is provided, use that value as the abundance.
