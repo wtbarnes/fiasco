@@ -205,14 +205,12 @@ Using Datasets:
             self._dset_names['ionization_fraction'] = ionization_fraction
             self._ionization_fraction = self._interpolate_ionization_fraction()
         else:
-            ionization_fraction = np.atleast_1d(ionization_fraction)
-            if np.min(ionization_fraction) < 0.0 or np.max(ionization_fraction) > 1.0:
-                raise ValueError("Ionization fractions must be between 0 and 1, inclusive.")
-            elif ionization_fraction.shape != self.temperature.shape:
+           # Multiplying by np.ones allows for passing in scalar values
+            _ionization_fraction = np.atleast_1d(ionization_fraction) * np.ones(self.temperature.shape)
+            if _ionization_fraction.shape != self.temperature.shape:
                 raise ValueError("Ionization fraction array must match the shape of the temperature array.")
-            else:
-                self._dset_names['ionization_fraction'] = None
-                self._ionization_fraction = ionization_fraction
+            self._dset_names['ionization_fraction'] = None
+            self._ionization_fraction = _ionization_fraction
 
     def _interpolate_ionization_fraction(self):
         """
