@@ -200,17 +200,6 @@ Using Datasets:
 
     @ionization_fraction.setter
     def ionization_fraction(self, ionization_fraction):
-        """
-        Sets the ionization fraction for an ion
-
-        Parameters
-        ----------
-        self :
-            The `~fiasco.Ion` instance
-        ionization_fraction :
-            An array of ionization fractions as a function of temperature
-
-        """
         if isinstance(ionization_fraction, str):
             self._dset_names['ionization_fraction'] = ionization_fraction
             self._ionization_fraction = self.calculate_ionization_fraction()
