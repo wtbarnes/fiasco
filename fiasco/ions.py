@@ -214,7 +214,7 @@ Using Datasets:
                 self._dset_names['ionization_fraction'] = None
                 self._ionization_fraction = ionization_fraction
 
-    def calculate_ionization_fraction(self):
+    def _interpolate_ionization_fraction(self):
         """
         Ionization equilibrium data interpolated to the given temperature
 
