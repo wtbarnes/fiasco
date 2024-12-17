@@ -203,7 +203,7 @@ Using Datasets:
     def ionization_fraction(self, ionization_fraction):
         if isinstance(ionization_fraction, str):
             self._dset_names['ionization_fraction'] = ionization_fraction
-            self._ionization_fraction = self.calculate_ionization_fraction()
+            self._ionization_fraction = self._interpolate_ionization_fraction()
         else:
             ionization_fraction = np.atleast_1d(ionization_fraction)
             if np.min(ionization_fraction) < 0.0 or np.max(ionization_fraction) > 1.0:
