@@ -23,6 +23,7 @@ def build_hash_table(dbase_root):
     filepaths = chain(
         map(build_ion_path, catalogue['ion_files']),
         map(lambda x: pathlib.Path('abundance') / x, catalogue['abundance_files']),
+        map(lambda x: pathlib.Path('ioneq') / x, catalogue['ioneq_files']),
         map(lambda x: pathlib.Path('ip') / x, catalogue['ip_files']),
         map(lambda x: pathlib.Path('continuum') / x, catalogue['continuum_files']),
         map(lambda x: pathlib.Path('dem') / x, catalogue['dem_files']),
