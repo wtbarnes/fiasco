@@ -88,7 +88,6 @@ def get_chianti_catalog(ascii_dbase_root):
     -------
     : `dict`
         All CHIANTI files, separated by category. The resulting dictionary should have the
-        following keys: 'abundance_files', 'ionization_files', 'ip_files', 'continuum_files',
         'ion_files'.
     """
     ascii_dbase_root = pathlib.Path(ascii_dbase_root)
