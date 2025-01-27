@@ -69,7 +69,7 @@ def plot_idl_comparison(x, y_idl, y_python, fig, n_rows, i_row, quantity_name, t
 # as differences due to the interpolation schemes may show large deviations between
 # the two approaches. However, the ionization fraction in these regions does not
 # meaningfully contribute to any other derived quantities.
-ioneq_files = [
+ionization_files = [
     'ioneq_1_1',
     'ioneq_6_1',
     'ioneq_6_2',
@@ -81,19 +81,19 @@ ioneq_files = [
     'ioneq_26_20',
     'ioneq_26_27',
 ]
-fig = plt.figure(figsize=(9,3*len(ioneq_files)), layout='constrained')
-for i, name in enumerate(ioneq_files):
+fig = plt.figure(figsize=(9,3*len(ionization_files)), layout='constrained')
+for i, name in enumerate(ionization_files):
     idl_result = read_idl_test_output(name, '8.0.7')
     ion = fiasco.Ion((idl_result['Z'], idl_result['iz']),
                      idl_result['temperature'],
-                     ioneq_filename=idl_result['ioneq_filename'])
+                     ionization_filename=idl_result['ioneq_filename'])
     element = fiasco.Element(ion.atomic_symbol, ion.temperature)
-    ioneq = element.equilibrium_ionization
-    print(f'IDL code to produce ioneq result for {ion.ion_name_roman}:')
+    ionization_fraction = element.equilibrium_ionization
+    print(f'IDL code to produce ionization_fraction result for {ion.ion_name_roman}:')
     print(Template(idl_result['idl_script']).render(**idl_result))
-    axes = plot_idl_comparison(ion.temperature, idl_result['ioneq'], ion.ioneq,
-                               fig, len(ioneq_files), 3*i, f'{ion.ion_name_roman}')
-    axes[0].plot(element.temperature, ioneq[:, ion.charge_state],
+    axes = plot_idl_comparison(ion.temperature, idl_result['ioneq'], ion.ionization_fraction,
+                               fig, len(ionization_files), 3*i, f'{ion.ion_name_roman}')
+    axes[0].plot(element.temperature, ionization_fraction[:, ion.charge_state],
                  label='fiasco (rates)', color='C1', ls='-')
     axes[0].legend()
 plt.show()

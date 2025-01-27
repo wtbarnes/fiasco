@@ -76,9 +76,9 @@ def test_equilibrium_ionization(hdf5_dbase_root):
     # NOTE: Using an element with Z>1 so that we are testing the full rate matrix
     # computation. Using C here because we are already using this for the gallery
     carbon = fiasco.Element('C', temperature, hdf5_dbase_root=hdf5_dbase_root)
-    ioneq = carbon.equilibrium_ionization
-    assert ioneq.shape == carbon.temperature.shape + (carbon.atomic_number + 1,)
-    assert u.allclose(ioneq[33, 5], u.Quantity(0.5787345345914312), atol=0.0, rtol=1e-10)
+    ionization_fraction = carbon.equilibrium_ionization
+    assert ionization_fraction.shape == carbon.temperature.shape + (carbon.atomic_number + 1,)
+    assert u.allclose(ionization_fraction[33, 5], u.Quantity(0.5787345345914312), atol=0.0, rtol=1e-10)
 
 
 def test_element_repr(element):

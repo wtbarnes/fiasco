@@ -95,7 +95,7 @@ def test_free_free(another_collection, wavelength):
     ff = another_collection.free_free(wavelength)
     assert ff.shape == temperature.shape + wavelength.shape if wavelength.shape else (1,)
     index_w = 50 if wavelength.shape else 0
-    index_t = 24  # This is approximately where the ioneq for Fe V peaks
+    index_t = 24  # This is approximately where the ionization fraction for Fe V peaks
     assert u.allclose(ff[index_t, index_w], 3.2914969734961024e-42 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
 
@@ -104,7 +104,7 @@ def test_free_bound(another_collection, wavelength):
     fb = another_collection.free_bound(wavelength)
     assert fb.shape == temperature.shape + wavelength.shape if wavelength.shape else (1,)
     index_w = 50 if wavelength.shape else 0
-    index_t = 24  # This is approximately where the ioneq for Fe V peaks
+    index_t = 24  # This is approximately where the ionization fraction for Fe V peaks
     assert u.allclose(fb[index_t, index_w], 3.057781475607237e-36 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
 

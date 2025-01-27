@@ -118,12 +118,12 @@ Available Ions
             ff = ion.free_free(wavelength)
             try:
                 abundance = ion.abundance
-                ioneq = ion.ioneq
+                ionization_fraction = ion.ionization_fraction
             except MissingDatasetException as e:
                 self.log.warning(f'{ion.ion_name} not included in free-free emission. {e}')
                 continue
             else:
-                free_free += ff * abundance * ioneq[:, np.newaxis]
+                free_free += ff * abundance * ionization_fraction[:, np.newaxis]
         return free_free
 
     @u.quantity_input
@@ -164,12 +164,12 @@ Available Ions
                 # NOTE: the free-bound emissivity gets multiplied by the population
                 # fraction of the recombining ion, that is, the ion with one higher
                 # charge state.
-                ioneq = ion.next_ion().ioneq
+                ionization_fraction = ion.next_ion().ionization_fraction
             except MissingDatasetException as e:
                 self.log.warning(f'{ion.ion_name} not included in free-bound emission. {e}')
                 continue
             else:
-                free_bound += fb * abundance * ioneq[:, np.newaxis]
+                free_bound += fb * abundance * ionization_fraction[:, np.newaxis]
         return free_bound
 
     @u.quantity_input
@@ -211,7 +211,7 @@ Available Ions
                 self.log.warning(f'{ion.ion_name} not included in two-photon emission. {e}')
                 continue
             else:
-                two_photon += tp * ion.abundance * ion.ioneq[:, np.newaxis, np.newaxis]
+                two_photon += tp * ion.abundance * ion.ionization_fraction[:, np.newaxis, np.newaxis]
         return two_photon
 
     @u.quantity_input
@@ -399,12 +399,12 @@ Available Ions
             try:
                 ff = ion.free_free_radiative_loss(use_itoh=use_itoh)
                 abundance = ion.abundance
-                ioneq = ion.ioneq
+                ionization_fraction = ion.ionization_fraction
             except MissingDatasetException as e:
                 self.log.warning(f'{ion.ion_name} not included in free-free radiative loss. {e}')
                 continue
             else:
-                free_free += ff * abundance * ioneq
+                free_free += ff * abundance * ionization_fraction
         return free_free
 
     @u.quantity_input
@@ -423,10 +423,10 @@ Available Ions
             try:
                 fb = ion.free_bound_radiative_loss()
                 abundance = ion.abundance
-                ioneq = ion.ioneq
+                ionization_fraction = ion.ionization_fraction
             except MissingDatasetException as e:
                 self.log.warning(f'{ion.ion_name} not included in free-bound radiative loss. {e}')
                 continue
             else:
-                free_bound += fb * abundance * ioneq
+                free_bound += fb * abundance * ionization_fraction
         return free_bound

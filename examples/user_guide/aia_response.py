@@ -12,6 +12,7 @@ import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
 
+from aiapy.calibrate.util import get_correction_table
 from aiapy.response import Channel
 from astropy.visualization import quantity_support
 from scipy.interpolate import interp1d
@@ -26,7 +27,9 @@ quantity_support()
 # First, create the `~aiapy.response.Channel` object for the
 # 94 angstrom channel and compute the wavelength response.
 ch = Channel(94*u.angstrom)
-response = ch.wavelength_response() * ch.plate_scale
+correction_table = get_correction_table("jsoc")
+response = ch.wavelength_response(correction_table=correction_table)
+response *= ch.plate_scale
 
 #############################################################
 # Plot the wavelength response
