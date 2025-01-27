@@ -124,6 +124,12 @@ class DataIndexerHDF5:
                     data = data.astype(str)
         return data
 
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
     def __repr__(self):
 
         def ufilter(x):
