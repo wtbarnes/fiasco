@@ -161,15 +161,6 @@ def test_ionization_fraction_out_bounds_is_nan(ion):
     ion_out_of_bounds = ion._new_instance(temperature=t_out_of_bounds)
     assert np.isnan(ion_out_of_bounds.ionization_fraction).all()
 
-def test_ionization_fraction_setter(ion):
-    ion.ionization_fraction = 'mazzotta_etal'
-    assert u.isclose(ion.ionization_fraction[0], 5.88800000e-01)
-    ion.ionization_fraction = np.zeros(len(temperature))
-    assert u.allclose(ion.ionization_fraction, 0.0)
-    ion.ionization_fraction = 0.1
-    assert u.allclose(ion.ionization_fraction, 0.1)
-    with pytest.raises(ValueError):
-        ion.ionization_fraction = [0.1,0.2]
 
 def test_formation_temperature(ion):
     assert ion.formation_temperature == ion.temperature[np.argmax(ion.ionization_fraction)]
@@ -179,6 +170,7 @@ def test_abundance(ion):
     assert ion.abundance.dtype == np.dtype('float64')
     # This value has not been tested for correctness
     assert u.allclose(ion.abundance, 0.0001258925411794166)
+
 
 @pytest.mark.requires_dbase_version('>= 8')
 def test_proton_collision(fe10):
@@ -190,22 +182,23 @@ def test_proton_collision(fe10):
 
 
 def test_missing_abundance(hdf5_dbase_root):
-    with pytest.raises(KeyError):
-        fiasco.Ion('Li 1',
-                    temperature,
-                    abundance='sun_coronal_1992_feldman',
-                    hdf5_dbase_root=hdf5_dbase_root)
+    _ion = fiasco.Ion('Li 1',
+                          temperature,
+                          abundance='sun_coronal_1992_feldman',
+                          hdf5_dbase_root=hdf5_dbase_root)
+    with pytest.raises(MissingDatasetException):
+        _ion.abundance
 
-def test_ip(ion):
-    assert ion.ip.dtype == np.dtype('float64')
+def test_ionization_potential(ion):
+    assert ion.ionization_potential.dtype == np.dtype('float64')
     # This value has not been tested for correctness
-    assert u.allclose(ion.ip, 1.2017997435751017e-10 * u.erg)
+    assert u.allclose(ion.ionization_potential, 1.2017997435751017e-10 * u.erg)
 
 
-def test_missing_ip(hdf5_dbase_root):
+def test_missing_ionization_potential(hdf5_dbase_root):
     ion = fiasco.Ion('Fe 27', temperature, hdf5_dbase_root=hdf5_dbase_root)
     with pytest.raises(MissingDatasetException):
-        _ = ion.ip
+        _ = ion.ionization_potential
 
 
 @pytest.mark.requires_dbase_version('>= 8')
@@ -490,32 +483,6 @@ def test_previous_ion(ion):
     assert prev_ion.atomic_number == ion.atomic_number
 
 
-@pytest.mark.parametrize(('value', 'dset'),[
-    (0.0001258925411794166, 'sun_coronal_1992_feldman_ext'),
-    (2.818382931264455e-05, 'sun_photospheric_2007_grevesse'),
-    (1e-3, None),
-])
-def test_change_ion_abundance(ion, value, dset):
-    ion.abundance = value if dset is None else dset
-    assert u.allclose(ion.abundance, value)
-    assert ion._dset_names['abundance'] == dset
-    assert ion._instance_kwargs['abundance'] == (value if dset is None else dset)
-
-
-def test_new_instance_abundance_preserved_float(ion):
-    ion.abundance = 1e-3
-    new_ion = ion._new_instance()
-    assert u.allclose(new_ion.abundance, ion.abundance)
-    assert new_ion._dset_names['abundance'] is None
-
-
-def test_new_instance_abundance_preserved_string(ion):
-    ion.abundance = 'sun_photospheric_2007_grevesse'
-    new_ion = ion._new_instance()
-    assert u.allclose(new_ion.abundance, 2.818382931264455e-05)
-    assert new_ion._dset_names['abundance'] == 'sun_photospheric_2007_grevesse'
-
-
 def test_has_dataset(ion, c6):
     # Fe 5 has energy level data
     assert ion._has_dataset('elvlc')
@@ -524,16 +491,55 @@ def test_has_dataset(ion, c6):
     # C VI has no dielectronic data
     assert not c6._has_dataset('dielectronic_elvlc')
 
+
 @pytest.mark.parametrize(('value', 'dset'),[
-    (7.06000000e-01, 'chianti'),
-    (5.88800000e-01, 'mazzotta_etal'),
-    (np.zeros(len(temperature)), None),
+    (0.0001258925411794166, 'sun_coronal_1992_feldman_ext'),
+    (2.818382931264455e-05, 'sun_photospheric_2007_grevesse'),
+    (1e-3, None),
 ])
-def test_change_ionization_fraction(ion, value, dset):
-    ion.ionization_fraction = value if dset is None else dset
-    assert u.isclose(ion.ionization_fraction[0], (value if dset is not None else 0.0) )
-    assert ion._dset_names['ionization_fraction'] == dset
-    if dset:
-        assert ion._instance_kwargs['ionization_fraction'] == dset
+def test_abundance_setter(ion, value, dset):
+    ion.abundance = value if dset is None else dset
+    assert u.allclose(ion.abundance, value)
+    assert ion._dset_names['abundance'] == dset
+    assert ion._instance_kwargs['abundance'] == (value if dset is None else dset)
+
+
+@pytest.mark.parametrize(('ioneq_input', 'ioneq_output'),[
+    ('mazzotta_etal', [5.88800000e-01, 5.72774861e-01, 5.34213282e-01]),
+    (np.zeros((100,)), [0, 0, 0]),
+    (0.1, [0.1, 0.1, 0.1])
+])
+def test_ionization_fraction_setter(ion, ioneq_input, ioneq_output):
+    ion.ionization_fraction = ioneq_input
+    assert u.allclose(ion.ionization_fraction[:3], ioneq_output)
+    if isinstance(ioneq_input, str):
+        assert ion._dset_names['ionization_fraction'] == ioneq_input
+        assert ion._instance_kwargs['ionization_fraction'] == ioneq_input
     else:
-        assert u.isclose(ion._instance_kwargs['ionization_fraction'][0], 0.0)
+        assert ion._dset_names['ionization_fraction'] is None
+        assert u.allclose(ion._instance_kwargs['ionization_fraction'], ioneq_input)
+
+
+def test_ionization_fraction_setter_exception(ion):
+    # This should fail because the input has len>1 but is not the same
+    # shape as the temperature array
+    with pytest.raises(ValueError):
+        ion.ionization_fraction = [0.1,0.2]
+
+
+@pytest.mark.parametrize(('ip_input', 'ip_output'), [
+    ('chianti', 1.2017997435751017e-10*u.erg),
+    (1*u.AA**(-1), 12398.419843320024*u.eV),
+])
+def test_ionization_potential_setter(ion, ip_input, ip_output):
+    ion.ionization_potential = ip_input
+    assert u.allclose(ion.ionization_potential, ip_output)
+    if isinstance(ip_input, str):
+        assert ion._dset_names['ionization_potential'] == ip_input
+        assert ion._instance_kwargs['ionization_potential'] == ip_input
+    else:
+        assert ion._dset_names['ionization_potential'] is None
+        assert u.allclose(
+            ion._instance_kwargs['ionization_potential'],
+            ip_input.to('eV', equivalencies=u.equivalencies.spectral()),
+        )
