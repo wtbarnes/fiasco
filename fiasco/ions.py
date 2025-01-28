@@ -558,51 +558,19 @@ Using Datasets:
                 raise ValueError('Temperature and density must be of equal length if density is '
                                  'coupled to the temperature axis.')
 
-        level = self._elvlc['level']
-        lower_level = self._scups['lower_level']
-        upper_level = self._scups['upper_level']
-        coeff_matrix = np.zeros(self.temperature.shape + (level.max(), level.max(),))/u.s
-
-        # Radiative decay out of current level
-        coeff_matrix[:, level-1, level-1] -= vectorize_where_sum(
-            self.transitions.upper_level, level, self.transitions.A.value) * self.transitions.A.unit
-        # Radiative decay into current level from upper levels
-        coeff_matrix[:, self.transitions.lower_level-1, self.transitions.upper_level-1] += (
-            self.transitions.A)
-
-        # Collisional--electrons
-        dex_rate_e = self.electron_collision_deexcitation_rate
-        ex_rate_e = self.electron_collision_excitation_rate
-        ex_diagonal_e = vectorize_where_sum(
-            lower_level, level, ex_rate_e.value.T, 0).T * ex_rate_e.unit
-        dex_diagonal_e = vectorize_where_sum(
-            upper_level, level, dex_rate_e.value.T, 0).T * dex_rate_e.unit
-
-        # Collisional--protons
+        proton_density = None
         if include_protons:
-            # NOTE: Cannot include protons if psplups data not available for this ion
-            try:
-                ex_rate_p = self.proton_collision_excitation_rate
-                dex_rate_p = self.proton_collision_deexcitation_rate
-            except MissingDatasetException:
+            if self._has_dataset('psplups'):
+                pe_ratio = proton_electron_ratio(self.temperature, **self._instance_kwargs)
+                if couple_density_to_temperature:
+                    proton_density = (pe_ratio * density)[:, np.newaxis, np.newaxis]
+                else:
+                    proton_density = np.outer(pe_ratio, density)[:, :, np.newaxis]
+            else:
                 self.log.warning(
                     f'No proton data available for {self.ion_name}. '
-                    'Not including proton excitation and de-excitation in level populations calculation.')
-                include_protons = False
-        # NOTE: Having two of the same if blocks here is ugly, but necessary. We cannot continue
-        # with the proton rate calculation if the data is not available.
-        if include_protons:
-            lower_level_p = self._psplups['lower_level']
-            upper_level_p = self._psplups['upper_level']
-            pe_ratio = proton_electron_ratio(self.temperature, **self._instance_kwargs)
-            if couple_density_to_temperature:
-                proton_density = (pe_ratio * density)[:, np.newaxis, np.newaxis]
-            else:
-                proton_density = np.outer(pe_ratio, density)[:, :, np.newaxis]
-            ex_diagonal_p = vectorize_where_sum(
-                lower_level_p, level, ex_rate_p.value.T, 0).T * ex_rate_p.unit
-            dex_diagonal_p = vectorize_where_sum(
-                upper_level_p, level, dex_rate_p.value.T, 0).T * dex_rate_p.unit
+                    'Not including proton excitation and de-excitation in level populations calculation.'
+                )
 
         # NOTE: The reason for this conditional is so that the loop below only
         # performs one iteration and the density value at that one iteration is
@@ -612,28 +580,19 @@ Using Datasets:
             density_shape = (1,)
         else:
             density_shape = density.shape
-        populations = np.zeros(self.temperature.shape + density_shape + (level.max(),))
+        n_levels = self._elvlc['level'].max()
+        populations = np.zeros(self.temperature.shape + density_shape + (n_levels,))
         # Populate density dependent terms and solve matrix equation for each density value
         for i, _d in enumerate(density):
-            c_matrix = coeff_matrix.copy()
             # NOTE: the following manipulation is needed such that both
             # scalar densities (in the case of no n-T coupling) and arrays
             # (in the case of n-T coupling) can be multiplied by the multi-
             # dimensional excitation rates, whose leading dimension
             # corresponds to the temperature axis.
             d = np.atleast_1d(_d)[:, np.newaxis]
-            # Collisional excitation and de-excitation out of current state
-            c_matrix[:, level-1, level-1] -= d*(ex_diagonal_e + dex_diagonal_e)
-            # De-excitation from upper states
-            c_matrix[:, lower_level-1, upper_level-1] += d*dex_rate_e
-            # Excitation from lower states
-            c_matrix[:, upper_level-1, lower_level-1] += d*ex_rate_e
-            # Same processes as above, but for protons
-            if include_protons:
-                d_p = proton_density[:, i, :]
-                c_matrix[:, level-1, level-1] -= d_p*(ex_diagonal_p + dex_diagonal_p)
-                c_matrix[:, lower_level_p-1, upper_level_p-1] += d_p * dex_rate_p
-                c_matrix[:, upper_level_p-1, lower_level_p-1] += d_p * ex_rate_p
+            d_p = proton_density[:, i, :] if proton_density is not None else None
+            # Compute rate matrix
+            c_matrix = self._build_coefficient_matrix(d, proton_density=d_p)
             # Invert matrix
             val, vec = np.linalg.eig(c_matrix.value)
             # Eigenvectors with eigenvalues closest to zero are the solutions to the homogeneous
@@ -655,8 +614,48 @@ Using Datasets:
 
         return u.Quantity(populations)
 
-    def _build_coefficient_matrix(self, density):
-        ...
+    def _build_coefficient_matrix(self, density, proton_density=None):
+        level = self._elvlc['level']
+        lower_level = self._scups['lower_level']
+        upper_level = self._scups['upper_level']
+        coeff_matrix = np.zeros(self.temperature.shape + (level.max(), level.max(),))/u.s
+
+        # Radiative decay out of current level
+        coeff_matrix[:, level-1, level-1] -= vectorize_where_sum(
+            self.transitions.upper_level, level, self.transitions.A.value) * self.transitions.A.unit
+        # Radiative decay into current level from upper levels
+        coeff_matrix[:, self.transitions.lower_level-1, self.transitions.upper_level-1] += (
+            self.transitions.A)
+
+        # Collisional--electrons
+        dex_rate_e = self.electron_collision_deexcitation_rate
+        ex_rate_e = self.electron_collision_excitation_rate
+        ex_diagonal_e = vectorize_where_sum(
+            lower_level, level, ex_rate_e.value.T, 0).T * ex_rate_e.unit
+        dex_diagonal_e = vectorize_where_sum(
+            upper_level, level, dex_rate_e.value.T, 0).T * dex_rate_e.unit
+        # Collisional excitation and de-excitation out of current state
+        coeff_matrix[:, level-1, level-1] -= density*(ex_diagonal_e + dex_diagonal_e)
+        # De-excitation from upper states
+        coeff_matrix[:, lower_level-1, upper_level-1] += density*dex_rate_e
+        # Excitation from lower states
+        coeff_matrix[:, upper_level-1, lower_level-1] += density*ex_rate_e
+
+        # Same processes as above, but for protons
+        if proton_density is not None:
+            ex_rate_p = self.proton_collision_excitation_rate
+            dex_rate_p = self.proton_collision_deexcitation_rate
+            lower_level_p = self._psplups['lower_level']
+            upper_level_p = self._psplups['upper_level']
+            ex_diagonal_p = vectorize_where_sum(
+                lower_level_p, level, ex_rate_p.value.T, 0).T * ex_rate_p.unit
+            dex_diagonal_p = vectorize_where_sum(
+                upper_level_p, level, dex_rate_p.value.T, 0).T * dex_rate_p.unit
+            coeff_matrix[:, level-1, level-1] -= proton_density*(ex_diagonal_p + dex_diagonal_p)
+            coeff_matrix[:, lower_level_p-1, upper_level_p-1] += proton_density * dex_rate_p
+            coeff_matrix[:, upper_level_p-1, lower_level_p-1] += proton_density * ex_rate_p
+
+        return coeff_matrix
 
     def _level_resolved_rates_interpolation(self, temperature_table, rate_table,
                                             extrapolate_above=False,
