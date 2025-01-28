@@ -34,6 +34,8 @@ Each version of the CHIANTI database is described in detail in a set of publicat
 - Version 8: :cite:t:`del_zanna_chianti_2015`
 - Version 9: :cite:t:`dere_chiantiatomic_2019`
 - Version 10: :cite:t:`del_zanna_chiantiatomic_2021`
+- Version 10.1: :cite:t:`dere_chianti-atomic_2023`
+- Version 11: :cite:t:`dufresne_chiantiatomic_2024`
 
 Bibliography
 ------------

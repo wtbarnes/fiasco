@@ -15,12 +15,15 @@ from fiasco.io.generic import GenericIonParser
 from fiasco.util import check_database, parse_ion_name
 from fiasco.util.exceptions import MissingIonError
 
-__all__ = ['Base', 'IonBase', 'ContinuumBase']
+__all__ = ['IonBase']
 
 
-class Base:
+class IonBase:
     """
-    Base class for setting up ion metadata and building database if necessary.
+    Base class for accessing data attached to a particular ion.
+
+    .. note:: This is not meant to be instantiated directly by the user
+              and primarily serves as a base class for `~fiasco.Ion`.
 
     Parameters
     ----------
@@ -97,14 +100,6 @@ class Base:
         "Name of the element and ionization stage in roman numeral format."
         return f'{self.atomic_symbol} {self.ionization_stage_roman}'
 
-
-class ContinuumBase(Base):
-    """
-    Base class for retrieving continuum datasets.
-
-    .. note:: This is not meant to be instantiated directly by the user
-              and primarily serves as a base class for `~fiasco.Ion`.
-    """
     @property
     def _verner(self):
         data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, 'continuum',
@@ -120,22 +115,6 @@ class ContinuumBase(Base):
     def _heseq(self):
         data_path = '/'.join([self.atomic_symbol.lower(), 'continuum', 'heseq_2photon'])
         return DataIndexer.create_indexer(self.hdf5_dbase_root, data_path)
-
-
-class IonBase(Base):
-    """
-    Base class for accessing CHIANTI data attached to a particular ion
-
-    .. note::
-        This is not meant to be instantiated directly by the user
-        and primarily serves as a base class for `~fiasco.Ion`.
-
-    Parameters
-    ----------
-    ion_name : `str`
-        Name of ion, e.g. for Fe V, 'Fe 5', 'iron 5', 'Fe 4+'
-    hdf5_path : `str`, optional
-    """
 
     @property
     def _abund(self):

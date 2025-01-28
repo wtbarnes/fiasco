@@ -9,7 +9,7 @@ from functools import cached_property
 from scipy.interpolate import CubicSpline, interp1d, PchipInterpolator
 
 from fiasco import proton_electron_ratio
-from fiasco.base import ContinuumBase, IonBase
+from fiasco.base import IonBase
 from fiasco.collections import IonCollection
 from fiasco.gaunt import GauntFactor
 from fiasco.levels import Level, Transitions
@@ -24,7 +24,7 @@ from fiasco.util.exceptions import MissingDatasetException
 __all__ = ['Ion']
 
 
-class Ion(IonBase, ContinuumBase):
+class Ion(IonBase):
     """
     Class for representing a CHIANTI ion.
 
@@ -52,11 +52,14 @@ class Ion(IonBase, ContinuumBase):
     """
 
     @u.quantity_input
-    def __init__(self, ion_name, temperature: u.K,
-                abundance='sun_coronal_1992_feldman_ext',
-                ionization_fraction='chianti',
-                ionization_potential='chianti',
-                *args, **kwargs):
+    def __init__(self,
+                 ion_name,
+                 temperature: u.K,
+                 abundance='sun_coronal_1992_feldman_ext',
+                 ionization_fraction='chianti',
+                 ionization_potential='chianti',
+                 *args,
+                 **kwargs):
         super().__init__(ion_name, *args, **kwargs)
         self.temperature = np.atleast_1d(temperature)
         self._dset_names = {}
@@ -162,6 +165,14 @@ Using Datasets:
             return False
         else:
             return True
+
+    @property
+    @u.quantity_input
+    def thermal_energy(self) -> u.erg:
+        """
+        Thermal energy, :math:`k_BT`, as a function of temperature.
+        """
+        return self.temperature.to('erg', equivalencies=u.equivalencies.temperature_energy())
 
     def next_ion(self):
         """
@@ -373,7 +384,7 @@ Using Datasets:
         --------
         fiasco.util.burgess_tully_descale : Descale and interpolate :math:`\Upsilon`.
         """
-        kBTE = np.outer(const.k_B * self.temperature, 1.0 / self._scups['delta_energy'])
+        kBTE = np.outer(self.thermal_energy, 1.0 / self._scups['delta_energy'])
         upsilon = burgess_tully_descale(self._scups['bt_t'],
                                         self._scups['bt_upsilon'],
                                         kBTE.T,
@@ -406,10 +417,10 @@ Using Datasets:
         electron_collision_excitation_rate : Excitation rate due to collisions
         effective_collision_strength : Maxwellian-averaged collision strength, :math:`\Upsilon`
         """
-        c = (const.h**2) / ((2. * np.pi * const.m_e)**(1.5) * np.sqrt(const.k_B))
+        c = const.h**2 / (2. * np.pi * const.m_e)**(1.5)
         upsilon = self.effective_collision_strength
         omega_upper = 2. * self._elvlc['J'][self._scups['upper_level'] - 1] + 1.
-        return c * upsilon / np.sqrt(self.temperature[:, np.newaxis]) / omega_upper
+        return c * upsilon / np.sqrt(self.thermal_energy[:, np.newaxis]) / omega_upper
 
     @cached_property
     @needs_dataset('elvlc', 'scups')
@@ -439,7 +450,7 @@ Using Datasets:
         """
         omega_upper = 2. * self._elvlc['J'][self._scups['upper_level'] - 1] + 1.
         omega_lower = 2. * self._elvlc['J'][self._scups['lower_level'] - 1] + 1.
-        kBTE = np.outer(1./const.k_B/self.temperature, self._scups['delta_energy'])
+        kBTE = np.outer(1./self.thermal_energy, self._scups['delta_energy'])
         return omega_upper / omega_lower * self.electron_collision_deexcitation_rate * np.exp(-kBTE)
 
     @cached_property
@@ -461,7 +472,7 @@ Using Datasets:
         # Create scaled temperature--these are not stored in the file
         bt_t = [np.linspace(0, 1, ups.shape[0]) for ups in self._psplups['bt_rate']]
         # Get excitation rates directly from scaled data
-        kBTE = np.outer(const.k_B * self.temperature, 1.0 / self._psplups['delta_energy'])
+        kBTE = np.outer(self.thermal_energy, 1.0 / self._psplups['delta_energy'])
         ex_rate = burgess_tully_descale(bt_t,
                                         self._psplups['bt_rate'],
                                         kBTE.T,
@@ -494,7 +505,7 @@ Using Datasets:
         --------
         proton_collision_excitation_rate : Excitation rate due to collisions with protons
         """
-        kBTE = np.outer(const.k_B * self.temperature, 1.0 / self._psplups['delta_energy'])
+        kBTE = np.outer(self.thermal_energy, 1.0 / self._psplups['delta_energy'])
         omega_upper = 2. * self._elvlc['J'][self._psplups['upper_level'] - 1] + 1.
         omega_lower = 2. * self._elvlc['J'][self._psplups['lower_level'] - 1] + 1.
         dex_rate = (omega_lower / omega_upper) * self.proton_collision_excitation_rate * np.exp(1. / kBTE)
@@ -1006,7 +1017,7 @@ Using Datasets:
         direct_ionization_cross_section : Calculation of :math:`\sigma_I` as a function of :math:`E`.
         """
         xgl, wgl = np.polynomial.laguerre.laggauss(12)
-        kBT = const.k_B * self.temperature
+        kBT = self.thermal_energy
         energy = np.outer(xgl, kBT) + self.ionization_potential
         cross_section = self.direct_ionization_cross_section(energy)
         term1 = np.sqrt(8./np.pi/const.m_e)*np.sqrt(kBT)*np.exp(-self.ionization_potential/kBT)
@@ -1126,8 +1137,8 @@ Using Datasets:
         Additionally, note that the constant has been rewritten in terms of :math:`h`
         rather than :math:`I_H` and :math:`a_0`.
         """
-        c = (const.h**2)/((2. * np.pi * const.m_e)**(1.5) * np.sqrt(const.k_B))
-        kBTE = np.outer(const.k_B*self.temperature, 1.0/self._easplups['delta_energy'])
+        c = const.h**2/(2. * np.pi * const.m_e)**(1.5)
+        kBTE = np.outer(self.thermal_energy, 1.0/self._easplups['delta_energy'])
         # NOTE: Transpose here to make final dimensions compatible with multiplication with
         # temperature when computing rate
         kBTE = kBTE.T
@@ -1139,7 +1150,7 @@ Using Datasets:
                                         self._easplups['bt_type'])
         # NOTE: The 1/omega multiplicity factor is already included in the scaled upsilon
         # values provided by CHIANTI
-        rate = c * upsilon * np.exp(-1 / kBTE) / np.sqrt(self.temperature)
+        rate = c * upsilon * np.exp(-1 / kBTE) / np.sqrt(self.thermal_energy)
 
         return rate.sum(axis=0)
 
@@ -1369,13 +1380,13 @@ Using Datasets:
         fiasco.IonCollection.free_free: Includes abundance and ionization equilibrium.
         """
         prefactor = (const.c / 3. / const.m_e * (const.alpha * const.h / np.pi)**3
-                     * np.sqrt(2. * np.pi / 3. / const.m_e / const.k_B))
-        tmp = np.outer(self.temperature, wavelength)
-        exp_factor = np.exp(-const.h * const.c / const.k_B / tmp) / (wavelength**2)
+                     * np.sqrt(2. * np.pi / 3. / const.m_e))
+        tmp = np.outer(self.thermal_energy, wavelength)
+        exp_factor = np.exp(-const.h * const.c / tmp) / (wavelength**2)
         gf = self.gaunt_factor.free_free(self.temperature, wavelength, self.atomic_number, self.charge_state, )
 
         return (prefactor * self.charge_state**2 * exp_factor * gf
-                / np.sqrt(self.temperature)[:, np.newaxis])
+                / np.sqrt(self.thermal_energy)[:, np.newaxis])
 
     @u.quantity_input
     def free_free_radiative_loss(self, use_itoh=False) -> u.erg * u.cm**3 / u.s:
@@ -1414,9 +1425,9 @@ Using Datasets:
         --------
         fiasco.GauntFactor.free_free_integrated: Calculation of :math:`\langle g_{t,ff}\rangle`.
         """
-        prefactor = (16./3**1.5) * np.sqrt(2. * np.pi * const.k_B/(const.hbar**2 * const.m_e**3)) * (const.e.esu**6 / const.c**3)
+        prefactor = (16./3**1.5) * np.sqrt(2. * np.pi / (const.hbar**2 * const.m_e**3)) * (const.e.esu**6 / const.c**3)
         gf = self.gaunt_factor.free_free_integrated(self.temperature, self.charge_state, use_itoh=use_itoh)
-        return (prefactor * self.charge_state**2 * gf * np.sqrt(self.temperature))
+        return (prefactor * self.charge_state**2 * gf * np.sqrt(self.thermal_energy))
 
     @needs_dataset('fblvl', 'ip')
     @u.quantity_input
@@ -1465,12 +1476,12 @@ Using Datasets:
             :cite:t:`verner_analytic_1995`.
         """
         wavelength = np.atleast_1d(wavelength)
-        prefactor = (2/np.sqrt(2*np.pi)/(const.h*(const.c**3) * (const.m_e * const.k_B)**(3/2)))
+        prefactor = 2/np.sqrt(2*np.pi)/(const.h*(const.c**3) * const.m_e**(3/2))
         recombining = self.next_ion()
         omega_0 = recombining._fblvl['multiplicity'][0] if recombining._has_dataset('fblvl') else 1.0
         E_photon = const.h * const.c / wavelength
         # Precompute this here to avoid repeated outer product calculations
-        exp_energy_ratio = np.exp(-np.outer(1/(const.k_B*self.temperature), E_photon))
+        exp_energy_ratio = np.exp(-np.outer(1/self.thermal_energy, E_photon))
         # Fill in observed energies with theoretical energies
         E_obs = self._fblvl['E_obs']*const.h*const.c
         E_th = self._fblvl['E_th']*const.h*const.c
@@ -1499,13 +1510,13 @@ Using Datasets:
             # At these temperatures, the cross-section is 0 anyway so we can just zero
             # these terms. Just multiplying by 0 is not sufficient because 0*inf=inf
             with np.errstate(over='ignore', invalid='ignore'):
-                exp_ip_ratio = np.exp(E_ionize/(const.k_B*self.temperature))
+                exp_ip_ratio = np.exp(E_ionize/self.thermal_energy)
                 xs_exp_ip_ratio = np.outer(exp_ip_ratio, cross_section)
             xs_exp_ip_ratio[:,cross_section==0.0*u.cm**2] = 0.0 * u.cm**2
             sum_factor += omega * xs_exp_ip_ratio
 
         return (prefactor
-                * np.outer(self.temperature**(-3/2), E_photon**5)
+                * np.outer(self.thermal_energy**(-3/2), E_photon**5)
                 * exp_energy_ratio
                 * sum_factor / omega_0)
 
@@ -1566,8 +1577,8 @@ Using Datasets:
         recombined = self.previous_ion()
         if not recombined._has_dataset('fblvl'):
             return u.Quantity(np.zeros(self.temperature.shape) * u.erg * u.cm**3 / u.s)
-        C_ff = 64 * np.pi / 3.0 * np.sqrt(np.pi/6.) * (const.e.esu**6)/(const.c**2 * const.m_e**1.5 * const.k_B**0.5)
-        prefactor = C_ff * const.k_B * np.sqrt(self.temperature) / (const.h*const.c)
+        C_ff = 64 * np.pi / 3.0 * np.sqrt(np.pi/6.) * (const.e.esu**6)/(const.c**2 * const.m_e**1.5)
+        prefactor = C_ff * np.sqrt(self.thermal_energy) / (const.h*const.c)
 
         E_obs = recombined._fblvl['E_obs']*const.h*const.c
         E_th = recombined._fblvl['E_th']*const.h*const.c
@@ -1587,8 +1598,8 @@ Using Datasets:
                                                         n0,
                                                         recombined.ionization_potential,
                                                         ground_state=False)
-        term1 = g_fb0 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n0))
-        term2 = g_fb1 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n1))
+        term1 = g_fb0 * np.exp(-const.h*const.c/(self.thermal_energy * wvl_n0))
+        term2 = g_fb1 * np.exp(-const.h*const.c/(self.thermal_energy * wvl_n1))
 
         return prefactor * (term1 + term2)
 
