@@ -78,7 +78,12 @@ def test_gaunt_factor_free_bound_nl_missing(gaunt_factor):
 
 @pytest.mark.parametrize(('ground_state', 'expected'), [(True, 55.18573076316151), (False, 11.849092513590998)])
 def test_gaunt_factor_free_bound_integrated(ion, ground_state, expected):
-    gf = ion.gaunt_factor.free_bound_integrated(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=ground_state)
+    gf = ion.gaunt_factor.free_bound_integrated(ion.temperature,
+                                                ion.atomic_number,
+                                                ion.charge_state,
+                                                ion.previous_ion()._fblvl['n'][0],
+                                                ion.previous_ion().ionization_potential,
+                                                ground_state=ground_state)
     assert gf.shape == ion.temperature.shape
     # These values have not been tested for correctness
     assert u.isclose(gf[20], expected * u.dimensionless_unscaled)
@@ -91,5 +96,10 @@ def test_free_bound_gaunt_factor_low_temperature(gs, hdf5_dbase_root):
     # At low temperatures (~1e4 K), exponential terms in the gaunt factor used to compute the
     # free-bound radiative loss can blow up. This just tests to make sure those are handled correctly
     ion = fiasco.Ion('N 8', np.logspace(4,6,100)*u.K, hdf5_dbase_root=hdf5_dbase_root)
-    gf_fb_int = ion.gaunt_factor.free_bound_integrated(ion.temperature, ion.atomic_number, ion.charge_state, ion.previous_ion()._fblvl['n'][0], ion.previous_ion().ip, ground_state=gs)
+    gf_fb_int = ion.gaunt_factor.free_bound_integrated(ion.temperature,
+                                                       ion.atomic_number,
+                                                       ion.charge_state,
+                                                       ion.previous_ion()._fblvl['n'][0],
+                                                       ion.previous_ion().ionization_potential,
+                                                       ground_state=gs)
     assert not np.isinf(gf_fb_int).any()

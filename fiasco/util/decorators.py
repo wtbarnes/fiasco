@@ -12,8 +12,7 @@ def needs_dataset(*names):
     """
     Decorator for raising an error when the needed atomic data is not available.
     """
-    non_ion_datasets = ['abundance', 'ionization_fraction']
-    names = [f'_{n}' if n not in non_ion_datasets else f'{n}' for n in names]
+    names = [f'_{n}' for n in names]
 
     def decorator(func):
         """

@@ -40,30 +40,29 @@ class Ion(IonBase, ContinuumBase):
         input formats.
     temperature : `~astropy.units.Quantity`
         Temperature array over which to evaluate temperature dependent quantities.
-    ionization_fraction : `str` or `float` or array-like, optional
-        If a string is provided, use the appropriate "ioneq" dataset. If an array is provided, it must be the same shape
-        as ``temperature``. If a scalar value is passed in, the ionization fraction is assumed constant at all temperatures.
     abundance : `str` or `float`, optional
         If a string is provided, use the appropriate abundance dataset.
         If a float is provided, use that value as the abundance.
-    ip_filename : `str`, optional
-        Ionization potential dataset
+    ionization_fraction : `str` or `float` or array-like, optional
+        If a string is provided, use the appropriate "ioneq" dataset. If an array is provided, it must be the same shape
+        as ``temperature``. If a scalar value is passed in, the ionization fraction is assumed constant at all temperatures.
+    ionization_potential : `str` or `~astropy.units.Quantity`, optional
+        If a string is provided, use the appropriate "ip" dataset.
+        If a scalar value is provided, use that value for the ionization potential. This value should be convertible to eV.
     """
 
     @u.quantity_input
     def __init__(self, ion_name, temperature: u.K,
-                abundance = 'sun_coronal_1992_feldman_ext',
-                ionization_fraction = 'chianti',
+                abundance='sun_coronal_1992_feldman_ext',
+                ionization_fraction='chianti',
+                ionization_potential='chianti',
                 *args, **kwargs):
         super().__init__(ion_name, *args, **kwargs)
         self.temperature = np.atleast_1d(temperature)
-        # Get selected datasets
-        # TODO: do not hardcode defaults, pull from rc file
         self._dset_names = {}
-        self._dset_names['ionization_fraction'] = kwargs.get('ionization_fraction', 'chianti')
-        self._dset_names['ip_filename'] = kwargs.get('ip_filename', 'chianti')
         self.abundance = abundance
         self.ionization_fraction = ionization_fraction
+        self.ionization_potential = ionization_potential
         self.gaunt_factor = GauntFactor(hdf5_dbase_root=self.hdf5_dbase_root)
 
     def _new_instance(self, temperature=None, **kwargs):
@@ -101,8 +100,8 @@ Temperature range: [{self.temperature[0].to(u.MK):.3f}, {self.temperature[-1].to
 HDF5 Database: {self.hdf5_dbase_root}
 Using Datasets:
   ionization_fraction: {self._dset_names['ionization_fraction']}
-  abundance: {self._dset_names.get('abundance', self.abundance)}
-  ip: {self._dset_names['ip_filename']}"""
+  abundance: {self._dset_names['abundance']}
+  ip: {self._dset_names['ionization_potential']}"""
 
     @cached_property
     def _all_levels(self):
@@ -141,16 +140,16 @@ Using Datasets:
             'hdf5_dbase_root': self.hdf5_dbase_root,
             **self._dset_names,
         }
-        # If the abundance is set using a string specifying the abundance dataset,
+        # If any of the datasets are set using a string specifying the name of the dataset,
         # the dataset name is in _dset_names. We want to pass this to the new instance
-        # so that the new instance knows that the abundance was specified using a
-        # dataset name. Otherwise, we can just pass the actual abundance value.
+        # so that the new instance knows that the dataset was specified using a
+        # dataset name. Otherwise, we can just pass the actual value.
         if kwargs['abundance'] is None:
             kwargs['abundance'] = self.abundance
-
         if kwargs['ionization_fraction'] is None:
             kwargs['ionization_fraction'] = self.ionization_fraction
-
+        if kwargs['ionization_potential'] is None:
+            kwargs['ionization_potential'] = self.ionization_potential
         return kwargs
 
     def _has_dataset(self, dset_name):
@@ -193,29 +192,42 @@ Using Datasets:
         return Transitions(self._elvlc, self._wgfa)
 
     @property
-    def ionization_fraction(self):
+    @u.quantity_input
+    def ionization_fraction(self) -> u.dimensionless_unscaled:
         """
         Ionization fraction of an ion
         """
+        if self._ionization_fraction is None:
+            raise MissingDatasetException(
+                f"{self._dset_names['ionization_fraction']} ionization fraction data missing for {self.ion_name}"
+            )
         return self._ionization_fraction
 
     @ionization_fraction.setter
     def ionization_fraction(self, ionization_fraction):
         if isinstance(ionization_fraction, str):
             self._dset_names['ionization_fraction'] = ionization_fraction
-            self._ionization_fraction = self._interpolate_ionization_fraction()
+            ionization_fraction = None
+            if self._has_dataset('ion_fraction') and (ionization_fraction := self._ion_fraction.get(self._dset_names['ionization_fraction'])):
+                ionization_fraction = self._interpolate_ionization_fraction(
+                    self.temperature,
+                    ionization_fraction['temperature'],
+                    ionization_fraction['ionization_fraction']
+                )
+            self._ionization_fraction = ionization_fraction
         else:
            # Multiplying by np.ones allows for passing in scalar values
-            _ionization_fraction = np.atleast_1d(ionization_fraction) * np.ones(self.temperature.shape)
+            ionization_fraction = np.atleast_1d(ionization_fraction) * np.ones(self.temperature.shape)
             self._dset_names['ionization_fraction'] = None
-            self._ionization_fraction = _ionization_fraction
+            self._ionization_fraction = ionization_fraction
 
-    def _interpolate_ionization_fraction(self):
+    @staticmethod
+    def _interpolate_ionization_fraction(temperature, temperature_data, ionization_data):
         """
         Ionization equilibrium data interpolated to the given temperature
 
-        Interpolated the pre-computed ionization fractions stored in CHIANTI to the temperature
-        of the ion. Returns NaN where interpolation is out of range of the data. For computing
+        Interpolated the pre-computed ionization fractions stored in CHIANTI to a new temperature
+        array. Returns NaN where interpolation is out of range of the data. For computing
         ionization equilibrium outside of this temperature range, it is better to use the ionization
         and recombination rates.
 
@@ -225,13 +237,22 @@ Using Datasets:
             Interpolating Polynomial with `~scipy.interpolate.PchipInterpolator`. This helps to
             ensure smoothness while reducing oscillations in the interpolated ionization fractions.
 
+        Parameters
+        ----------
+        temperature: `~astropy.units.Quantity`
+            Temperature array to interpolation onto.
+        temperature_data: `~astropy.units.Quantity`
+            Temperature array on which the ionization fraction is defined
+        ionization_data: `~astropy.units.Quantity`
+            Ionization fraction as a function of temperature.
+
         See Also
         --------
         fiasco.Element.equilibrium_ionization
         """
-        temperature = self.temperature.to_value('K')
-        temperature_data = self._ion_fraction[self._dset_names['ionization_fraction']]['temperature'].to_value('K')
-        ionization_data = self._ion_fraction[self._dset_names['ionization_fraction']]['ionization_fraction'].value
+        temperature = temperature.to_value('K')
+        temperature_data = temperature_data.to_value('K')
+        ionization_data = ionization_data.to_value()
         # Perform PCHIP interpolation in log-space on only the non-zero ionization fractions.
         # See https://github.com/wtbarnes/fiasco/pull/223 for additional discussion.
         is_nonzero = ionization_data > 0.0
@@ -255,6 +276,10 @@ Using Datasets:
         """
         Elemental abundance relative to H.
         """
+        if self._abundance is None:
+            raise MissingDatasetException(
+                f"{self._dset_names['abundance']} abundance data missing for {self.ion_name}"
+            )
         return self._abundance
 
     @abundance.setter
@@ -264,21 +289,43 @@ Using Datasets:
         If the abundance is given as a string, use the matching abundance set.
         If the abundance is given as a float, use that value directly.
         """
+        self._dset_names['abundance'] = None
         if isinstance(abundance, str):
             self._dset_names['abundance'] = abundance
-            self._abundance = self._abund[self._dset_names['abundance']]
-        else:
-            self._dset_names['abundance'] = None
-            self._abundance = abundance
+            abundance = None
+            if self._has_dataset('abund'):
+                abundance = self._abund.get(self._dset_names['abundance'])
+        self._abundance = abundance
 
     @property
-    @needs_dataset('ip')
     @u.quantity_input
-    def ip(self) -> u.erg:
+    def ionization_potential(self) -> u.eV:
         """
         Ionization potential.
         """
-        return self._ip[self._dset_names['ip_filename']] * const.h * const.c
+        if self._ionization_potential is None:
+            raise MissingDatasetException(
+                f"{self._dset_names['ionization_potential']} ionization potential data missing for {self.ion_name}"
+            )
+        # NOTE: Ionization potentials in CHIANTI are stored in units of cm^-1
+        # Using this here also means that ionization potentials can be passed
+        # in wavenumber units as well.
+        return self._ionization_potential.to('eV', equivalencies=u.spectral())
+
+    @ionization_potential.setter
+    def ionization_potential(self, ionization_potential):
+        """
+        Sets the ionization potential of an ion.
+        If the ionization potential is given as a string, use the matching ionization potential set.
+        if the ionization potential is given as a float, use that value directly.
+        """
+        self._dset_names['ionization_potential'] = None
+        if isinstance(ionization_potential, str):
+            self._dset_names['ionization_potential'] = ionization_potential
+            ionization_potential = None
+            if self._has_dataset('ip'):
+                ionization_potential = self._ip.get(self._dset_names['ionization_potential'])
+        self._ionization_potential = ionization_potential
 
     @property
     def hydrogenic(self):
@@ -718,7 +765,7 @@ Using Datasets:
         ratio[:, 0] = 0.0
         return 1.0 + ratio
 
-    @needs_dataset('abundance', 'elvlc')
+    @needs_dataset('elvlc')
     @u.quantity_input
     def contribution_function(self, density: u.cm**(-3), **kwargs) -> u.cm**3 * u.erg / u.s:
         r"""
@@ -921,7 +968,6 @@ Using Datasets:
         return IonCollection(self).spectrum(*args, **kwargs)
 
     @cached_property
-    @needs_dataset('ip')
     @u.quantity_input
     def direct_ionization_rate(self) -> u.cm**3 / u.s:
         r"""
@@ -961,11 +1007,11 @@ Using Datasets:
         """
         xgl, wgl = np.polynomial.laguerre.laggauss(12)
         kBT = const.k_B * self.temperature
-        energy = np.outer(xgl, kBT) + self.ip
+        energy = np.outer(xgl, kBT) + self.ionization_potential
         cross_section = self.direct_ionization_cross_section(energy)
-        term1 = np.sqrt(8./np.pi/const.m_e)*np.sqrt(kBT)*np.exp(-self.ip/kBT)
+        term1 = np.sqrt(8./np.pi/const.m_e)*np.sqrt(kBT)*np.exp(-self.ionization_potential/kBT)
         term2 = ((wgl*xgl)[:, np.newaxis]*cross_section).sum(axis=0)
-        term3 = (wgl[:, np.newaxis]*cross_section).sum(axis=0)*self.ip/kBT
+        term3 = (wgl[:, np.newaxis]*cross_section).sum(axis=0)*self.ionization_potential/kBT
         return term1*(term2 + term3)
 
     @u.quantity_input
@@ -1038,10 +1084,9 @@ Using Datasets:
 
         return cross_section_total
 
-    @needs_dataset('ip')
     @u.quantity_input
     def _fontes_cross_section(self, energy: u.erg) -> u.cm**2:
-        U = energy/self.ip
+        U = energy/self.ionization_potential
         A = 1.13
         B = 1 if self.hydrogenic else 2
         F = 1 if self.atomic_number < 20 else (140 + (self.atomic_number/20)**3.2)/141
@@ -1057,7 +1102,7 @@ Using Datasets:
 
         # NOTE: conversion to Rydbergs equivalent to scaling to the ionization energy
         # of hydrogen such that it is effectively unitless
-        return B * (np.pi * const.a0**2) * F * Qrp / (self.ip.to(u.Ry).value**2)
+        return B * (np.pi * const.a0**2) * F * Qrp / (self.ionization_potential.to_value(u.Ry)**2)
 
     @cached_property
     @needs_dataset('easplups')
@@ -1440,7 +1485,7 @@ Using Datasets:
                                          self._fblvl['L'],
                                          level_fb):
             # Energy required to ionize ion from level i
-            E_ionize = self.ip - E
+            E_ionize = self.ionization_potential - E
             # Check if ionization potential and photon energy sufficient
             if (E_ionize < 0*u.erg) or (E_photon.max() < E):
                 continue
@@ -1528,19 +1573,19 @@ Using Datasets:
         E_th = recombined._fblvl['E_th']*const.h*const.c
         n0 = recombined._fblvl['n'][0]
         E_fb = np.where(E_obs==0*u.erg, E_th, E_obs)
-        wvl_n0 = const.h * const.c / (recombined.ip - E_fb[0])
+        wvl_n0 = 1 / (recombined.ionization_potential - E_fb[0]).to('cm-1', equivalencies=u.spectral())
         wvl_n1 = (n0 + 1)**2 /(const.Ryd * self.charge_state**2)
         g_fb0 = self.gaunt_factor.free_bound_integrated(self.temperature,
                                                         self.atomic_number,
                                                         self.charge_state,
                                                         n0,
-                                                        recombined.ip,
+                                                        recombined.ionization_potential,
                                                         ground_state=True)
         g_fb1 = self.gaunt_factor.free_bound_integrated(self.temperature,
                                                         self.atomic_number,
                                                         self.charge_state,
                                                         n0,
-                                                        recombined.ip,
+                                                        recombined.ionization_potential,
                                                         ground_state=False)
         term1 = g_fb0 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n0))
         term2 = g_fb1 * np.exp(-const.h*const.c/(const.k_B * self.temperature * wvl_n1))
