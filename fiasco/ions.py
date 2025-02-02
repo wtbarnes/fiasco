@@ -81,22 +81,14 @@ class Ion(IonBase):
         return type(self)(self.ion_name, temperature, **new_kwargs)
 
     def __repr__(self):
-        try:
-            n_levels = self._elvlc['level'].shape[0]
-        except KeyError:
-            n_levels = 0
-        try:
-            n_transitions = self._wgfa['lower_level'].shape[0]
-        except KeyError:
-            n_transitions = 0
         return f"""CHIANTI Database Ion
 ---------------------
 Name: {self.ion_name}
 Element: {self.element_name} ({self.atomic_number})
 Charge: +{self.charge_state}
 Isoelectronic Sequence: {self.isoelectronic_sequence}
-Number of Levels: {n_levels}
-Number of Transitions: {n_transitions}
+Number of Levels: {self.n_levels}
+Number of Transitions: {self.n_transitions}
 
 Temperature range: [{self.temperature[0].to(u.MK):.3f}, {self.temperature[-1].to(u.MK):.3f}]
 
@@ -108,13 +100,8 @@ Using Datasets:
 
     @cached_property
     def _all_levels(self):
-        try:
-            _ = self._elvlc
-        except KeyError:
-            return None
-        else:
-            n_levels = self._elvlc['level'].shape[0]
-            return [Level(i, self._elvlc) for i in range(n_levels)]
+        if self.n_levels > 0:
+            return [Level(i, self._elvlc) for i in range(self.n_levels)]
 
     def __getitem__(self, key):
         if self._all_levels is None:
@@ -165,6 +152,23 @@ Using Datasets:
             return False
         else:
             return True
+
+    @property
+    def n_levels(self):
+        """
+        Number of energy levels in the CHIANTI model
+        """
+        return self._elvlc['level'].max() if self._has_dataset('elvlc') else 0
+
+    @property
+    def n_transitions(self):
+        """
+        Number of transitions in the CHIANTI model
+        """
+        if self._has_dataset('wgfa'):
+            return self._wgfa['lower_level'].shape[0]
+        else:
+            return 0
 
     @property
     @u.quantity_input
@@ -579,8 +583,7 @@ Using Datasets:
             density_shape = (1,)
         else:
             density_shape = density.shape
-        n_levels = self._elvlc['level'].max()
-        populations = np.zeros(self.temperature.shape + density_shape + (n_levels,))
+        populations = np.zeros(self.temperature.shape + density_shape + (self.n_levels,))
         # Populate density dependent terms and solve matrix equation for each density value
         for i, _d in enumerate(density):
             # NOTE: the following manipulation is needed such that both
@@ -618,7 +621,7 @@ Using Datasets:
         level = self._elvlc['level']
         lower_level = self._scups['lower_level']
         upper_level = self._scups['upper_level']
-        coeff_matrix = np.zeros(self.temperature.shape + (level.max(), level.max(),))/u.s
+        coeff_matrix = np.zeros(self.temperature.shape + (self.n_levels, self.n_levels,))/u.s
 
         # Radiative decay out of current level
         coeff_matrix[:, level-1, level-1] -= vectorize_where_sum(
@@ -661,10 +664,11 @@ Using Datasets:
         # Get coefficient matrix of recombined ion
         c_matrix_recombined = self._build_coefficient_matrix(density, proton_density=proton_density)
         # Get coefficient matrix of recombining ion
-        c_matrix_recombining = self.next_ion()._build_coefficient_matrix(density, proton_density=proton_density)
+        next_ion = self.next_ion()
+        c_matrix_recombining = next_ion._build_coefficient_matrix(density, proton_density=proton_density)
         # Combine into single coefficient matrix
-        n_levels_recombined = c_matrix_recombined.shape[-1]
-        n_levels_recombining = c_matrix_recombining.shape[-1]
+        n_levels_recombined = self.n_levels
+        n_levels_recombining = next_ion.n_levels
         n_levels_total = n_levels_recombined + n_levels_recombining
         c_matrix_total = u.Quantity(np.zeros(self.temperature.shape+(n_levels_total, n_levels_total)), 's-1')
         c_matrix_total[:, :n_levels_recombined, :n_levels_recombined] += c_matrix_recombined
@@ -690,8 +694,15 @@ Using Datasets:
         # NOTE: The total of the level-resolved rates may sometimes be larger than the ground state rate
         c_matrix_total[:, 0, n_levels_recombined] += np.where(rr_rate_ground<0.0, 0.0, rr_rate_ground)*density
         # Autoionization rates
-        # Dielectronic capture
-        # Dielectronic recombination (subtracting the total of the level-resolved dielectronic recombination rates)
+        if self._has_dataset('auto'):
+            # NOTE: Only include those transitions with an upper level below or equal to that of the highest
+            # energy level of the recombined ion
+            idx = np.where(self._auto['upper_level']<=n_levels_recombined)
+            n_lower = self._auto['lower_level'][idx]
+            n_upper = self._auto['upper_level'][idx]
+            c_matrix_total[:, n_lower+n_levels_recombined-1, n_upper-1] += self._auto['autoionization_rate'][idx]
+            # Dielectronic capture
+            # Dielectronic recombination (subtracting the total of the level-resolved dielectronic recombination rates)
         return c_matrix_total
 
     @u.quantity_input
