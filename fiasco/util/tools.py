@@ -201,4 +201,5 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
         elif s_type == 6:
             out[idxs, ...] = 10**out[idxs]
 
-    return out
+    # This ensures that the result does not have an object dtype
+    return out.astype(energy_ratio.dtype)
