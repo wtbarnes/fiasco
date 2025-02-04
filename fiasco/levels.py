@@ -7,35 +7,39 @@ import numpy as np
 
 from fiasco.util import vectorize_where
 
-__all__ = ['Level', 'Transitions']
+__all__ = ['Levels', 'Transitions']
 
 
-class Level:
+class Levels:
     """
-    An object for holding atomic energy level data from CHIANTI.
+    Data associated with all energy levels of an ion.
 
     .. warning:: This is not meant to be instantiated directly,
                  but rather accessed by indexing a `fiasco.Ion`
                  object.
-
     Parameters
     ----------
-    index: `int`
-        The index of the energy level.
     elvlc: `~fiasco.io.datalayer.DataIndexer`
         Pointer to the energy level information for a given ion in
         the CHIANTI database.
+    index: index or slice
+        Index or slice for which to extract energy level data.
     """
 
-    def __init__(self, index, elvlc):
-        self._index = index
+    def __init__(self, elvlc, index=None):
         self._elvlc = elvlc
+        self._index = np.s_[:] if index is None else index
+
+    def __getitem__(self, index):
+        # NOTE: This throws an IndexError to stop iteration
+        _ = self.level[index]
+        return type(self)(self._elvlc, index=index)
 
     def __repr__(self):
         return f"""Level: {self.level}
 Configuration: {self.configuration}
 Orbital Angular Momentum: {self.orbital_angular_momentum_label}
-Energy: {self.energy.to(u.eV)}"""
+Energy: {self.energy}"""
 
     @property
     def level(self):
@@ -44,12 +48,12 @@ Energy: {self.energy.to(u.eV)}"""
 
     @property
     def configuration(self):
-        "Label denoting the electronic configuration of the level"
+        "Label denoting the electronic configuration of each level"
         return self._elvlc['config'][self._index]
 
     @property
     def multiplicity(self):
-        "The multiplicity of the level"
+        "The multiplicity of each level"
         return self._elvlc['multiplicity'][self._index]
 
     @property
@@ -63,20 +67,21 @@ Energy: {self.energy.to(u.eV)}"""
         return self._elvlc['L_label'][self._index]
 
     @property
-    def is_observed(self) -> u.erg:
+    def is_observed(self):
         "True if the energy of the level is from laboratory measurements."
         return self._elvlc['E_obs'][self._index].to_value('cm-1') != -1
 
     @property
     @u.quantity_input
-    def energy(self) -> u.erg:
+    def energy(self) -> u.eV:
         """
-        Energy of level. Defaults to observed energy and falls back to
+        Energy of each level. Defaults to observed energy and falls back to
         theoretical energy if no measured energy is available.
         """
-        if self.is_observed:
-            return self._elvlc['E_obs'][self._index].to('erg', equivalencies=u.equivalencies.spectral())
-        return self._elvlc['E_th'][self._index].to('erg', equivalencies=u.equivalencies.spectral())
+        energy = np.where(self.is_observed,
+                          self._elvlc['E_obs'][self._index],
+                          self._elvlc['E_th'][self._index])
+        return energy.to('eV', equivalencies=u.equivalencies.spectral())
 
 
 class Transitions:

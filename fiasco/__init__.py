@@ -11,7 +11,7 @@ from fiasco.fiasco import (
 )
 from fiasco.gaunt import GauntFactor
 from fiasco.ions import Ion
-from fiasco.levels import Level, Transitions
+from fiasco.levels import Levels, Transitions
 from fiasco.util.util import setup_paths
 
 try:
