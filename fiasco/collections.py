@@ -255,7 +255,7 @@ Available Ions
         for ion in self:
             # If no elvlc and wgfa data, cannot calculate spectra
             try:
-                wave = ion.transitions.wavelength[~ion.transitions.is_twophoton]
+                wave = ion.transitions.wavelength[ion.transitions.is_bound_bound]
             except MissingDatasetException:
                 self.log.warning(f'No transition data available for {ion.ion_name}')
                 continue

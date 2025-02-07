@@ -37,7 +37,7 @@ wlen = 1031.93 * u.Angstrom
 # Because the contribution function is calculated for all transitions at once,
 # we need to get the index of the transition closest to the
 # wavelength specified earlier.
-transitions = ion.transitions.wavelength[~ion.transitions.is_twophoton]
+transitions = ion.transitions.wavelength[ion.transitions.is_bound_bound]
 idx = np.argmin(np.abs(transitions - wlen))
 
 ###############################################################################
