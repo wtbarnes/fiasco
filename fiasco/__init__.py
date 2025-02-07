@@ -56,7 +56,7 @@ __all__ = [
     "get_isoelectronic_sequence",
     "proton_electron_ratio",
     "Ion",
-    "Level",
+    "Levels",
     "Transitions",
     "GauntFactor",
     "defaults",

@@ -24,12 +24,13 @@ class Levels:
     .. warning:: This is not meant to be instantiated directly,
                  but rather accessed by indexing a `fiasco.Ion`
                  object.
+
     Parameters
     ----------
     elvlc: `~fiasco.io.datalayer.DataIndexer`
         Pointer to the energy level information for a given ion in
         the CHIANTI database.
-    index: index or slice
+    index: `int`, `slice`, or array-like, optional
         Index or slice for which to extract energy level data.
     """
 
