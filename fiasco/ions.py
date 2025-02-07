@@ -1848,8 +1848,7 @@ Using Datasets:
     def two_photon(self,
                    wavelength: u.angstrom,
                    electron_density: u.cm**(-3),
-                   include_protons=False,
-                   couple_density_to_temperature=False) -> u.Unit('erg cm3 s-1 Angstrom-1'):
+                   **kwargs) -> u.Unit('erg cm3 s-1 Angstrom-1'):
         r"""
         Two-photon continuum emission of a hydrogenic or helium-like ion.
 
@@ -1868,15 +1867,15 @@ Using Datasets:
         ----------
         wavelength : `~astropy.units.Quantity`
         electron_density : `~astropy.units.Quantity`
-        include_protons : `bool`, optional
-            If True, use proton excitation and de-excitation rates in the level population calculation.
-        couple_density_to_temperature: `bool`, optional
-            If True, the density will vary along the same axis as temperature
+        kwargs : `dict`, optional
+            All valid keyword arguments to `level_populations` can also be passed here. Note that in this
+            method, proton rates are *not* included by default.
         """
         wavelength = np.atleast_1d(wavelength)
         electron_density = np.atleast_1d(electron_density)
 
         final_shape = self.temperature.shape + electron_density.shape + wavelength.shape
+        couple_density_to_temperature = kwargs.setdefault('couple_density_to_temperature', False)
         if couple_density_to_temperature:
             final_shape = self.temperature.shape + (1,) + wavelength.shape
         if self.hydrogenic:
@@ -1909,8 +1908,11 @@ Using Datasets:
         psi_interp = np.where(x_new>1.0, 0.0, psi_interp)
 
         energy_dist = (A_ji * rest_wavelength * psi_interp) / (psi_norm * wavelength**3)
-
-        level_population = self.level_populations(electron_density, include_protons=include_protons)
+        # NOTE: There are known issues when including the proton rates here for some ions so these
+        # are excluded by default. See https://github.com/wtbarnes/fiasco/pull/260#issuecomment-1955770878
+        # for more details.
+        kwargs.setdefault('include_protons', False)
+        level_population = self.level_populations(electron_density, **kwargs)
         level_population = level_population[..., level_index]
 
         if couple_density_to_temperature:
