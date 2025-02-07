@@ -525,7 +525,8 @@ Using Datasets:
                           density: u.cm**(-3),
                           include_protons=True,
                           include_level_resolved_rate_correction=True,
-                          couple_density_to_temperature=False) -> u.dimensionless_unscaled:
+                          couple_density_to_temperature=False,
+                          use_two_ion_model=True) -> u.dimensionless_unscaled:
         """
         Energy level populations as a function of temperature and density.
 
@@ -550,6 +551,9 @@ Using Datasets:
             the number of temperatures. This is useful, for example, when computing the level
             populations at constant pressure and is also much faster than computing the level
             populations along an independent density axis. By default, this is set to False.
+        use_two_ion_model: `bool`, optional
+            If True, include processes that connect the ion to the adjacent ionization stage
+            :math:`z+1`.
 
         Returns
         -------
@@ -607,11 +611,12 @@ Using Datasets:
     @u.quantity_input
     def _rate_matrix_radiative_decay(self) -> u.Unit('s-1'):
         rate_matrix = u.Quantity(np.zeros((self.n_levels, self.n_levels)), 's-1')
-        # Radiative decay out of current level
-        rate_matrix[self.levels.level-1, self.levels.level-1] -= vectorize_where_sum(
-            self.transitions.upper_level, self.levels.level, self.transitions.A.value) * self.transitions.A.unit
         # Radiative decay into current level from upper levels
         rate_matrix[self.transitions.lower_level-1, self.transitions.upper_level-1] += self.transitions.A
+        # Radiative decay out of current level
+        # NOTE: By summing over the rows, we are computing the processes that depopulate
+        # that level by summing up all of the processes that populate *from* that level.
+        rate_matrix[self.levels.level-1, self.levels.level-1] = -rate_matrix.sum(axis=0)
         return rate_matrix
 
     @cached_property
@@ -621,18 +626,12 @@ Using Datasets:
         rate_matrix = u.Quantity(np.zeros(self.temperature.shape + (self.n_levels, self.n_levels,)), 'cm3 s-1')
         lower_level = self._scups['lower_level']
         upper_level = self._scups['upper_level']
-        dex_rate_e = self.electron_collision_deexcitation_rate
-        ex_rate_e = self.electron_collision_excitation_rate
-        ex_diagonal_e = vectorize_where_sum(
-            lower_level, self.levels.level, ex_rate_e.value.T, 0).T * ex_rate_e.unit
-        dex_diagonal_e = vectorize_where_sum(
-            upper_level, self.levels.level, dex_rate_e.value.T, 0).T * dex_rate_e.unit
-        # Collisional excitation and de-excitation out of current state
-        rate_matrix[:, self.levels.level-1, self.levels.level-1] -= ex_diagonal_e + dex_diagonal_e
         # De-excitation from upper states
-        rate_matrix[:, lower_level-1, upper_level-1] += dex_rate_e
+        rate_matrix[:, lower_level-1, upper_level-1] += self.electron_collision_deexcitation_rate
         # Excitation from lower states
-        rate_matrix[:, upper_level-1, lower_level-1] += ex_rate_e
+        rate_matrix[:, upper_level-1, lower_level-1] += self.electron_collision_excitation_rate
+        # Depopulation by excitation and de-excitation out of the current state
+        rate_matrix[:, self.levels.level-1, self.levels.level-1] = -rate_matrix.sum(axis=1)
         return rate_matrix
 
     @cached_property
@@ -640,17 +639,11 @@ Using Datasets:
     @u.quantity_input
     def _rate_matrix_collisional_proton(self) -> u.Unit('cm3 s-1'):
         rate_matrix = u.Quantity(np.zeros(self.temperature.shape + (self.n_levels, self.n_levels,)), 'cm3 s-1')
-        ex_rate_p = self.proton_collision_excitation_rate
-        dex_rate_p = self.proton_collision_deexcitation_rate
         lower_level_p = self._psplups['lower_level']
         upper_level_p = self._psplups['upper_level']
-        ex_diagonal_p = vectorize_where_sum(
-            lower_level_p, self.levels.level, ex_rate_p.value.T, 0).T * ex_rate_p.unit
-        dex_diagonal_p = vectorize_where_sum(
-            upper_level_p, self.levels.level, dex_rate_p.value.T, 0).T * dex_rate_p.unit
-        rate_matrix[:, self.levels.level-1, self.levels.level-1] -= ex_diagonal_p + dex_diagonal_p
-        rate_matrix[:, lower_level_p-1, upper_level_p-1] +=  dex_rate_p
-        rate_matrix[:, upper_level_p-1, lower_level_p-1] +=  ex_rate_p
+        rate_matrix[:, lower_level_p-1, upper_level_p-1] += self.proton_collision_deexcitation_rate
+        rate_matrix[:, upper_level_p-1, lower_level_p-1] += self.proton_collision_excitation_rate
+        rate_matrix[:, self.levels.level-1, self.levels.level-1] = -rate_matrix.sum(axis=1)
         return rate_matrix
 
     def _build_coefficient_matrix(self, electron_density, include_protons=False):
@@ -665,17 +658,13 @@ Using Datasets:
                     f'No proton data available for {self.ion_name}. '
                     'Not including proton excitation and de-excitation in level populations calculation.'
                 )
-
         return coeff_matrix
 
-    def _empty_rate_matrix(self, temperature_dependent=True):
+    def _empty_rate_matrix(self, temperature_dependent=True, unit='cm3 s-1'):
         n_levels = self.n_levels + self.next_ion().n_levels
         shape = (n_levels, n_levels)
         if temperature_dependent:
             shape = self.temperature.shape + shape
-            unit = 'cm3 s-1'
-        else:
-            unit = 's -1'
         return u.Quantity(np.zeros(shape), unit)
 
     @cached_property
@@ -713,7 +702,7 @@ Using Datasets:
     @needs_dataset('auto')
     @u.quantity_input
     def _rate_matrix_autoionization(self) -> u.Unit('s-1'):
-        rate_matrix = self._empty_rate_matrix(temperature_dependent=False)
+        rate_matrix = self._empty_rate_matrix(temperature_dependent=False, unit='s-1')
         # NOTE: Only include those transitions with an upper level below or equal to that of the highest
         # energy level of the recombined ion
         idx = np.where(self._auto['upper_level']<=self.n_levels)
@@ -789,18 +778,16 @@ Using Datasets:
         dr_rate_ground -= dr_rate_total
         # NOTE: In some cases, the summed dielectronic capture rates may be larger than the
         # ground-ground dielectronic recombination rates
-        rate_matrix[:, 0, self.n_levels] = np.where(dr_rate_ground<0, 0, dr_rate_ground)
+        rate_matrix[:, 0, self.n_levels] += np.where(dr_rate_ground<0, 0, dr_rate_ground)
         return rate_matrix
 
     def _build_two_ion_coefficient_matrix(self, density, include_protons=False):
         # Get coefficient matrix of recombined ion
         c_matrix_recombined = self._build_coefficient_matrix(density, include_protons=include_protons)
         # Get coefficient matrix of recombining ion
-        next_ion = self.next_ion()
-        c_matrix_recombining = next_ion._build_coefficient_matrix(density, include_protons=include_protons)
+        c_matrix_recombining = self.next_ion()._build_coefficient_matrix(density, include_protons=include_protons)
         # Combine into single coefficient matrix
-        n_levels_total = self.n_levels + next_ion.n_levels
-        rate_matrix_total = u.Quantity(np.zeros(self.temperature.shape+(n_levels_total, n_levels_total)), 's-1')
+        rate_matrix_total = self._empty_rate_matrix(unit='s-1')
         rate_matrix_total[:, :self.n_levels, :self.n_levels] += c_matrix_recombined
         rate_matrix_total[:, self.n_levels:, self.n_levels:] += c_matrix_recombining
         # Add terms that include both ions
