@@ -563,6 +563,16 @@ Using Datasets:
             levels. If ``couple_density_to_temperature=True``, then ``m=1`` and ``l``
             represents the number of temperatures and densities.
         """
+        if use_two_ion_model:
+            # This avoids running the two-ion model when the data to connect the
+            # two ionization stages is not available.
+            if not self._has_dataset('auto') and not self._has_dataset('rrlvl'):
+                self.log.warning(
+                    'No autoionization or level-resolved radiative recombination data '
+                    f'available for {self.ion_name}. Using single-ion model for level '
+                    'populations calculation.'
+                )
+                use_two_ion_model = False
         density = np.atleast_1d(density)
         if couple_density_to_temperature:
             if density.shape != self.temperature.shape:
@@ -585,10 +595,13 @@ Using Datasets:
             # corresponds to the temperature axis.
             d = np.atleast_1d(_d)
             # Compute rate matrix
-            c_matrix = self._build_coefficient_matrix(d, include_protons=include_protons)
+            if use_two_ion_model:
+                c_matrix = self._build_two_ion_coefficient_matrix(d, include_protons=include_protons)
+            else:
+                c_matrix = self._build_coefficient_matrix(d, include_protons=include_protons)
             # Invert matrix
             val, vec = np.linalg.eig(c_matrix.to_value('s-1'))
-            # Eigenvectors with eigenvalues closest to zero are the solutions to the homogeneous
+            # NOTE: Eigenvectors with eigenvalues closest to zero are the solutions to the homogeneous
             # system of linear equations
             # NOTE: Sometimes eigenvalues may have complex component due to numerical stability.
             # We will take only the real component as our rate matrix is purely real
@@ -603,9 +616,51 @@ Using Datasets:
                 correction = self._population_correction(pop, d, c_matrix)
                 pop *= correction
                 np.divide(pop, pop.sum(axis=1)[:, np.newaxis], out=pop)
+            # NOTE: In cases where the two-ion model is used, this selects only the populations of the
+            # recombined ion and renormalizes
+            pop = pop[:, :self.n_levels]
+            np.divide(pop, pop.sum(axis=1)[:, np.newaxis], out=pop)
             populations[:, i, :] = pop
 
         return u.Quantity(populations)
+
+    def _build_coefficient_matrix(self, electron_density, include_protons=False):
+        d_e = electron_density[:, np.newaxis, np.newaxis]
+        coeff_matrix = self._rate_matrix_radiative_decay + d_e*self._rate_matrix_collisional_electron
+        if include_protons:
+            try:
+                d_p = self.proton_electron_ratio[:,np.newaxis,np.newaxis]*d_e
+                coeff_matrix += d_p*self._rate_matrix_collisional_proton
+            except MissingDatasetException:
+                self.log.warning(
+                    f'No proton data available for {self.ion_name}. '
+                    'Not including proton excitation and de-excitation in level populations calculation.'
+                )
+        return coeff_matrix
+
+    def _build_two_ion_coefficient_matrix(self, density, include_protons=False):
+        # Get coefficient matrix of recombined ion
+        c_matrix_recombined = self._build_coefficient_matrix(density, include_protons=include_protons)
+        # Get coefficient matrix of recombining ion
+        try:
+            c_matrix_recombining = self.next_ion()._build_coefficient_matrix(density,
+                                                                             include_protons=include_protons)
+        except MissingDatasetException:
+            self.log.warning(
+                f'No rate data available for recombining ion {self.next_ion().ion_name}. '
+                f'Using single-ion model for {self.ion_name}.')
+            return c_matrix_recombined
+        # Combine into single coefficient matrix
+        rate_matrix_total = self._empty_rate_matrix(unit='s-1')
+        rate_matrix_total[:, :self.n_levels, :self.n_levels] += c_matrix_recombined
+        rate_matrix_total[:, self.n_levels:, self.n_levels:] += c_matrix_recombining
+        # Add terms that include both ions
+        rate_matrix_total += self._rate_matrix_autoionization
+        rate_matrix_total += density * (self._rate_matrix_ionization
+                                        + self._rate_matrix_radiative_recombination
+                                        + self._rate_matrix_dielectronic_capture
+                                        + self._rate_matrix_dielectronic_recombination)
+        return rate_matrix_total
 
     @cached_property
     @u.quantity_input
@@ -646,20 +701,6 @@ Using Datasets:
         rate_matrix[:, self.levels.level-1, self.levels.level-1] = -rate_matrix.sum(axis=1)
         return rate_matrix
 
-    def _build_coefficient_matrix(self, electron_density, include_protons=False):
-        d_e = electron_density[:, np.newaxis, np.newaxis]
-        coeff_matrix = self._rate_matrix_radiative_decay + d_e*self._rate_matrix_collisional_electron
-        if include_protons:
-            try:
-                d_p = self.proton_electron_ratio[:,np.newaxis,np.newaxis]*d_e
-                coeff_matrix += d_p*self._rate_matrix_collisional_proton
-            except MissingDatasetException:
-                self.log.warning(
-                    f'No proton data available for {self.ion_name}. '
-                    'Not including proton excitation and de-excitation in level populations calculation.'
-                )
-        return coeff_matrix
-
     def _empty_rate_matrix(self, temperature_dependent=True, unit='cm3 s-1'):
         n_levels = self.n_levels + self.next_ion().n_levels
         shape = (n_levels, n_levels)
@@ -699,10 +740,17 @@ Using Datasets:
         return rate_matrix
 
     @cached_property
-    @needs_dataset('auto')
     @u.quantity_input
     def _rate_matrix_autoionization(self) -> u.Unit('s-1'):
         rate_matrix = self._empty_rate_matrix(temperature_dependent=False, unit='s-1')
+        # NOTE: Explicitly not using a decorator here in order to return an empty matrix
+        # and avoid repeated exception handling later on.
+        if not self._has_dataset('auto'):
+            self.log.debug(
+                f'No .auto data available for {self.ion_name}. '
+                'Not including autoionization rates in two-ion rate matrix.'
+            )
+            return rate_matrix
         # NOTE: Only include those transitions with an upper level below or equal to that of the highest
         # energy level of the recombined ion
         idx = np.where(self._auto['upper_level']<=self.n_levels)
@@ -712,10 +760,17 @@ Using Datasets:
         return rate_matrix
 
     @cached_property
-    @needs_dataset('auto')
     @u.quantity_input
     def _rate_matrix_dielectronic_capture(self) -> u.Unit('cm3 s-1'):
         rate_matrix = self._empty_rate_matrix()
+        # NOTE: Explicitly not using a decorator here in order to return an empty matrix
+        # and avoid repeated exception handling later on.
+        if not self._has_dataset('auto'):
+            self.log.debug(
+                f'No .auto data available for {self.ion_name}. '
+                'Not including level-resolved dielectronic capture rates in two-ion rate matrix.'
+            )
+            return rate_matrix
         # NOTE: Only include those transitions with an upper level below or equal to that of the highest
         # energy level of the recombined ion
         idx = np.where(self._auto['upper_level']<=self.n_levels)
@@ -736,11 +791,23 @@ Using Datasets:
         return rate_matrix
 
     @cached_property
-    @needs_dataset('auto')
     @u.quantity_input
     def _rate_matrix_dielectronic_recombination(self) -> u.Unit('cm3 s-1'):
         # See Eq. A5 of Dere et al. (2019)
         rate_matrix = self._empty_rate_matrix()
+        # Compute ground-ground dielectronic recombination rate
+        try:
+            dr_rate_ground = self.dielectronic_recombination_rate
+        except MissingDatasetException:
+            dr_rate_ground = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
+        # NOTE: Explicitly not using a decorator here in order to return an empty matrix
+        # and avoid repeated exception handling later on.
+        if not self._has_dataset('auto'):
+            self.log.debug(
+                f'No .auto data available for {self.ion_name}. '
+                'Not including dielectronic recombination rates in two-ion rate matrix.'
+            )
+            return rate_matrix
         # Compute total of level-resolved dielectronic recombination rates
         # Select only those transitions which autoionize to the ground state of the
         # recombining ion
@@ -770,33 +837,11 @@ Using Datasets:
                          * self._auto['autoionization_rate'][idx_ground]
                          * np.exp(-kBTE)
                          * branching_ratio).sum(axis=1)
-        # Compute ground-ground dielectronic recombination rate
-        try:
-            dr_rate_ground = self.dielectronic_recombination_rate
-        except MissingDatasetException:
-            dr_rate_ground = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         dr_rate_ground -= dr_rate_total
         # NOTE: In some cases, the summed dielectronic capture rates may be larger than the
         # ground-ground dielectronic recombination rates
         rate_matrix[:, 0, self.n_levels] += np.where(dr_rate_ground<0, 0, dr_rate_ground)
         return rate_matrix
-
-    def _build_two_ion_coefficient_matrix(self, density, include_protons=False):
-        # Get coefficient matrix of recombined ion
-        c_matrix_recombined = self._build_coefficient_matrix(density, include_protons=include_protons)
-        # Get coefficient matrix of recombining ion
-        c_matrix_recombining = self.next_ion()._build_coefficient_matrix(density, include_protons=include_protons)
-        # Combine into single coefficient matrix
-        rate_matrix_total = self._empty_rate_matrix(unit='s-1')
-        rate_matrix_total[:, :self.n_levels, :self.n_levels] += c_matrix_recombined
-        rate_matrix_total[:, self.n_levels:, self.n_levels:] += c_matrix_recombining
-        # Add terms that include both ions
-        rate_matrix_total += self._rate_matrix_autoionization
-        rate_matrix_total += density * (self._rate_matrix_ionization
-                                        + self._rate_matrix_dielectronic_capture
-                                        + self._rate_matrix_radiative_recombination
-                                        + self._rate_matrix_dielectronic_recombination)
-        return rate_matrix_total
 
     @u.quantity_input
     def _level_resolved_rates_interpolation(self,
