@@ -759,6 +759,17 @@ Using Datasets:
         rate_matrix[level_lower+self.n_levels-1, level_upper-1] += self._auto['autoionization_rate'][idx]
         return rate_matrix
 
+    def _dielectronic_capture_rate(self, level_lower, level_upper, A_auto):
+        # See Eq. A4 of Dere et al. (2019)
+        next_ion = self.next_ion()
+        levels_recombined = self[vectorize_where(self.levels.level, level_upper)]
+        levels_recombining = next_ion[vectorize_where(next_ion.levels.level, level_lower)]
+        g_ratio = levels_recombined.weight / levels_recombining.weight
+        delta_energy = levels_recombined.energy - self.ionization_potential - levels_recombining.energy
+        kBTE = np.outer(1/self.thermal_energy, delta_energy)
+        prefactor = const.h**3 / 2 / (2*np.pi*const.m_e*self.thermal_energy)**(3/2)
+        return prefactor[:,np.newaxis] * g_ratio * A_auto * np.exp(-kBTE)
+
     @cached_property
     @u.quantity_input
     def _rate_matrix_dielectronic_capture(self) -> u.Unit('cm3 s-1'):
@@ -776,24 +787,14 @@ Using Datasets:
         idx = np.where(self._auto['upper_level']<=self.n_levels)
         level_lower = self._auto['lower_level'][idx]
         level_upper = self._auto['upper_level'][idx]
-        # See Eq. A4 of Dere et al. (2019)
-        next_ion = self.next_ion()
-        levels_recombined = self[vectorize_where(self.levels.level, level_upper)]
-        levels_recombining = next_ion[vectorize_where(next_ion.levels.level, level_lower)]
-        g_ratio = levels_recombined.weight / levels_recombining.weight
-        delta_energy = levels_recombined.energy - self.ionization_potential - levels_recombining.energy
-        kBTE = np.outer(1/self.thermal_energy, delta_energy)
-        prefactor = const.h**3 / 2 / (2*np.pi*const.m_e*self.thermal_energy)**(3/2)
-        rate_matrix[:, level_upper-1, level_lower+self.n_levels-1] += (prefactor[:,np.newaxis]
-                                                                       * g_ratio
-                                                                       * self._auto['autoionization_rate'][idx]
-                                                                       * np.exp(-kBTE))
+        A_auto = self._auto['autoionization_rate'][idx]
+        dc_rate = self._dielectronic_capture_rate(level_lower, level_upper, A_auto)
+        rate_matrix[:, level_upper-1, level_lower+self.n_levels-1] += dc_rate
         return rate_matrix
 
     @cached_property
     @u.quantity_input
     def _rate_matrix_dielectronic_recombination(self) -> u.Unit('cm3 s-1'):
-        # See Eq. A5 of Dere et al. (2019)
         rate_matrix = self._empty_rate_matrix()
         # Compute ground-ground dielectronic recombination rate
         try:
@@ -802,42 +803,27 @@ Using Datasets:
             dr_rate_ground = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         # NOTE: Explicitly not using a decorator here in order to return an empty matrix
         # and avoid repeated exception handling later on.
-        if not self._has_dataset('auto'):
-            self.log.debug(
-                f'No .auto data available for {self.ion_name}. '
-                'Not including dielectronic recombination rates in two-ion rate matrix.'
-            )
-            return rate_matrix
-        # Compute total of level-resolved dielectronic recombination rates
-        # Select only those transitions which autoionize to the ground state of the
-        # recombining ion
-        idx_ground = np.where(self._auto['lower_level']==1)
-        # Sum autoionization rates between upper level and all states
-        A_auto_sum = vectorize_where_sum(self._auto['upper_level'],
-                                         self._auto['upper_level'][idx_ground],
-                                         self._auto['autoionization_rate'])
-        # Sum radiative decay rates between upper levels and lower bound levels
-        idx_bound = self._wgfa['lower_level'] < self._auto['upper_level'].min()
-        A_rad_sum = vectorize_where_sum(self._wgfa['upper_level'][idx_bound],
-                                        self._auto['upper_level'][idx_ground],
-                                        self._wgfa['A'][idx_bound],)
-        branching_ratio = A_rad_sum / (A_rad_sum + A_auto_sum)
-        # Get needed levels for recombined and recombining ions
-        next_ion = self.next_ion()
-        levels_recombined = self[vectorize_where(self.levels.level,
-                                                 self._auto['upper_level'][idx_ground])]
-        levels_recombining = next_ion[vectorize_where(next_ion.levels.level,
-                                                      self._auto['lower_level'][idx_ground])]
-        g_ratio = levels_recombined.weight / levels_recombining.weight
-        delta_energy = levels_recombined.energy - self.ionization_potential - levels_recombining.energy
-        kBTE = np.outer(1/self.thermal_energy, delta_energy)
-        prefactor = const.h**3 / 2 / (2*np.pi*const.m_e*self.thermal_energy)**(3/2)
-        dr_rate_total = (prefactor[:, np.newaxis]
-                         * g_ratio
-                         * self._auto['autoionization_rate'][idx_ground]
-                         * np.exp(-kBTE)
-                         * branching_ratio).sum(axis=1)
-        dr_rate_ground -= dr_rate_total
+        if self._has_dataset('auto'):
+            # See Eq. A5 of Dere et al. (2019)
+            # Compute total of level-resolved dielectronic recombination rates
+            # Select only those transitions which autoionize to the ground state of the
+            # recombining ion
+            idx_ground = np.where(self._auto['lower_level']==1)
+            # Sum autoionization rates between upper level and all states
+            A_auto_sum = vectorize_where_sum(self._auto['upper_level'],
+                                            self._auto['upper_level'][idx_ground],
+                                            self._auto['autoionization_rate'])
+            # Sum radiative decay rates between upper levels and lower bound levels
+            idx_bound = self._wgfa['lower_level'] < self._auto['upper_level'].min()
+            A_rad_sum = vectorize_where_sum(self._wgfa['upper_level'][idx_bound],
+                                            self._auto['upper_level'][idx_ground],
+                                            self._wgfa['A'][idx_bound],)
+            branching_ratio = A_rad_sum / (A_rad_sum + A_auto_sum)
+            # Get needed levels for recombined and recombining ions
+            dc_rate = self._dielectronic_capture_rate(self._auto['lower_level'][idx_ground],
+                                                      self._auto['upper_level'][idx_ground],
+                                                      self._auto['autoionization_rate'][idx_ground])
+            dr_rate_ground -= (dc_rate * branching_ratio).sum(axis=1)
         # NOTE: In some cases, the summed dielectronic capture rates may be larger than the
         # ground-ground dielectronic recombination rates
         rate_matrix[:, 0, self.n_levels] += np.where(dr_rate_ground<0, 0, dr_rate_ground)
