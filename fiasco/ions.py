@@ -626,17 +626,22 @@ Using Datasets:
 
     def _build_coefficient_matrix(self, electron_density, include_protons=False):
         d_e = electron_density[:, np.newaxis, np.newaxis]
-        coeff_matrix = self._rate_matrix_radiative_decay + d_e*self._rate_matrix_collisional_electron
+        rate_matrix = self._rate_matrix_radiative_decay + d_e*self._rate_matrix_collisional_electron
         if include_protons:
             try:
                 d_p = self.proton_electron_ratio[:,np.newaxis,np.newaxis]*d_e
-                coeff_matrix += d_p*self._rate_matrix_collisional_proton
+                rate_matrix += d_p*self._rate_matrix_collisional_proton
             except MissingDatasetException:
                 self.log.warning(
                     f'No proton data available for {self.ion_name}. '
                     'Not including proton excitation and de-excitation in level populations calculation.'
                 )
-        return coeff_matrix
+        # Add depopulating terms
+        # NOTE: By summing over the rows, we are computing the processes that depopulate
+        # that level by summing up all of the processes that populate *from* that level.
+        idx_diagonal = np.diag_indices_from(rate_matrix[0,...])
+        rate_matrix[:, *idx_diagonal] = -rate_matrix.sum(axis=1)
+        return rate_matrix
 
     def _build_two_ion_coefficient_matrix(self, density, include_protons=False):
         # Get coefficient matrix of recombined ion
@@ -650,16 +655,23 @@ Using Datasets:
                 f'No rate data available for recombining ion {self.next_ion().ion_name}. '
                 f'Using single-ion model for {self.ion_name}.')
             return c_matrix_recombined
-        # Combine into single coefficient matrix
         rate_matrix_total = self._empty_rate_matrix(unit='s-1')
-        rate_matrix_total[:, :self.n_levels, :self.n_levels] += c_matrix_recombined
-        rate_matrix_total[:, self.n_levels:, self.n_levels:] += c_matrix_recombining
         # Add terms that include both ions
         rate_matrix_total += self._rate_matrix_autoionization
         rate_matrix_total += density * (self._rate_matrix_ionization
                                         + self._rate_matrix_radiative_recombination
                                         + self._rate_matrix_dielectronic_capture
                                         + self._rate_matrix_dielectronic_recombination)
+        # Add depopulating terms
+        # NOTE: By summing over the rows, we are computing the processes that depopulate
+        # that level by summing up all of the processes that populate *from* that level.
+        idx_diagonal = np.diag_indices_from(rate_matrix_total[0,...])
+        rate_matrix_total[:, *idx_diagonal] = -rate_matrix_total.sum(axis=1)
+        # Add single-ion terms
+        # NOTE: These are added after the two-ion terms because they already include the depopulating
+        # terms along the diagonal
+        rate_matrix_total[:, :self.n_levels, :self.n_levels] += c_matrix_recombined
+        rate_matrix_total[:, self.n_levels:, self.n_levels:] += c_matrix_recombining
         return rate_matrix_total
 
     @cached_property
@@ -668,10 +680,6 @@ Using Datasets:
         rate_matrix = u.Quantity(np.zeros((self.n_levels, self.n_levels)), 's-1')
         # Radiative decay into current level from upper levels
         rate_matrix[self.transitions.lower_level-1, self.transitions.upper_level-1] += self.transitions.A
-        # Radiative decay out of current level
-        # NOTE: By summing over the rows, we are computing the processes that depopulate
-        # that level by summing up all of the processes that populate *from* that level.
-        rate_matrix[self.levels.level-1, self.levels.level-1] = -rate_matrix.sum(axis=0)
         return rate_matrix
 
     @cached_property
@@ -685,8 +693,6 @@ Using Datasets:
         rate_matrix[:, lower_level-1, upper_level-1] += self.electron_collision_deexcitation_rate
         # Excitation from lower states
         rate_matrix[:, upper_level-1, lower_level-1] += self.electron_collision_excitation_rate
-        # Depopulation by excitation and de-excitation out of the current state
-        rate_matrix[:, self.levels.level-1, self.levels.level-1] = -rate_matrix.sum(axis=1)
         return rate_matrix
 
     @cached_property
@@ -698,7 +704,6 @@ Using Datasets:
         upper_level_p = self._psplups['upper_level']
         rate_matrix[:, lower_level_p-1, upper_level_p-1] += self.proton_collision_deexcitation_rate
         rate_matrix[:, upper_level_p-1, lower_level_p-1] += self.proton_collision_excitation_rate
-        rate_matrix[:, self.levels.level-1, self.levels.level-1] = -rate_matrix.sum(axis=1)
         return rate_matrix
 
     def _empty_rate_matrix(self, temperature_dependent=True, unit='cm3 s-1'):
@@ -713,7 +718,7 @@ Using Datasets:
     def _rate_matrix_ionization(self) -> u.Unit('cm3 s-1'):
         rate_matrix = self._empty_rate_matrix()
         # Ionization from ground state of recombined to ground state of recombining
-        rate_matrix[:, self.n_levels, 0] += self.ionization_rate
+        rate_matrix[:, self.n_levels, 0] = self.ionization_rate
         return rate_matrix
 
     @cached_property
@@ -721,22 +726,28 @@ Using Datasets:
     def _rate_matrix_radiative_recombination(self) -> u.Unit('cm3 s-1'):
         rate_matrix = self._empty_rate_matrix()
         try:
-            rr_rate_ground = self.radiative_recombination_rate
+            # NOTE: Using copy to avoid in-place modification of cached property
+            rr_rate_ground = self.next_ion().radiative_recombination_rate.copy()
         except MissingDatasetException:
             rr_rate_ground = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         if self._has_dataset('rrlvl'):
             rr_rate_interp = self._level_resolved_rates_interpolation(self._rrlvl['temperature'],
-                                                                      self._rrlvl['rate'])
+                                                                      self._rrlvl['rate'],
+                                                                      interpolator=interp1d,
+                                                                      interpolator_kwargs={'fill_value': np.nan},
+                                                                      log_space=True)
             level_final = self._rrlvl['final_level']
             level_initial = self._rrlvl['initial_level']
             # TODO: understand whether we need to sum over repeated level combinations
-            rate_matrix[:, level_final-1, level_initial+self.n_levels-1] += rr_rate_interp
+            rate_matrix[:, level_final-1, level_initial+self.n_levels-1] = rr_rate_interp
             # Subtract total level-resolved rate for the ground level from ground state rate
             # but excluding the ground transition from the sum
             idx_ground = np.logical_and(level_final>1, level_initial==1)
             rr_rate_ground -= rr_rate_interp[:, idx_ground].sum(axis=1)
         # NOTE: The total of the level-resolved rates may sometimes be larger than the ground state rate
-        rate_matrix[:, 0, self.n_levels] += np.where(rr_rate_ground<0.0, 0.0, rr_rate_ground)
+        # NOTE: Explicitly setting (and overriding) this value rather than adding to it as this is what
+        # is done in the IDL code. See https://github.com/chianti-atomic/chianti-idl/issues/11.
+        rate_matrix[:, 0, self.n_levels] = np.where(rr_rate_ground<0.0, 0.0, rr_rate_ground)
         return rate_matrix
 
     @cached_property
@@ -798,7 +809,7 @@ Using Datasets:
         rate_matrix = self._empty_rate_matrix()
         # Compute ground-ground dielectronic recombination rate
         try:
-            dr_rate_ground = self.dielectronic_recombination_rate
+            dr_rate_ground = self.next_ion().dielectronic_recombination_rate
         except MissingDatasetException:
             dr_rate_ground = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         # NOTE: Explicitly not using a decorator here in order to return an empty matrix
@@ -811,8 +822,8 @@ Using Datasets:
             idx_ground = np.where(self._auto['lower_level']==1)
             # Sum autoionization rates between upper level and all states
             A_auto_sum = vectorize_where_sum(self._auto['upper_level'],
-                                            self._auto['upper_level'][idx_ground],
-                                            self._auto['autoionization_rate'])
+                                             self._auto['upper_level'][idx_ground],
+                                             self._auto['autoionization_rate'])
             # Sum radiative decay rates between upper levels and lower bound levels
             idx_bound = self._wgfa['lower_level'] < self._auto['upper_level'].min()
             A_rad_sum = vectorize_where_sum(self._wgfa['upper_level'][idx_bound],
@@ -833,16 +844,19 @@ Using Datasets:
     def _level_resolved_rates_interpolation(self,
                                             temperature_table: u.K,
                                             rate_table: u.cm**3/u.s,
+                                            log_space=False,
                                             fill_above=None,
-                                            fill_below=None) -> u.cm**3/u.s:
+                                            fill_below=None,
+                                            interpolator=None,
+                                            interpolator_kwargs=None) -> u.cm**3/u.s:
         """
         Extrapolate tables of level-resolved rates as a function of temperature.
 
         Extrapolate table of level-resolved ionization or recombination rates to
         the temperature array of the ion. Values within the bounds of the temperature
-        data are interpolated using `~scipy.interpolation.PchipInterpolator`. Values
-        outside of the interpolation range are either filled with a scalare value or
-        interpolated using the two points on the boundary.
+        data are interpolated using ``interpolator``. Values outside of the interpolation
+        range are either filled with a scalare value or interpolated using the two points
+        on the boundary.
 
         .. note:: The reason this is a separate function is that in the CHIANTI IDL
                   code the values above and below the temperature data are handled
@@ -856,16 +870,23 @@ Using Datasets:
         rate_table: `~astropy.units.Quantity`
             Temperature-dependent, level-resolved rate. The first axis must correspond
             to level and the second axis to temperature.
-        fill_above: `str` or `float`
+        log_space: `bool`, optional
+            If True, take the base-10 logarithm of the temperature and the rates before
+            interpolating. This can be useful when interpolating very small numbers.
+        fill_above: `str` or `float`, optional
             If "extrapolate", use the last two points to extrapolate above the temperature
             range. If a `float`, fill in all values above the temperature range using that
             value. If `None` (default), use the rate at the upper temperature boundary as
             the fill value.
-        fill_below: `str` or `float`
+        fill_below: `str` or `float`, optional
             If "extrapolate", use the first two points to extrapolate below the temperature
             range. If a `float`, fill in all values below the temperature range using that
             value. If `None` (default), use the rate at the lower temperature boundary as
             the fill value.
+        interpolator: callable, optional
+            Interpolator to use. By default, this is `~scipy.interpolation.PchipInterpolator`.
+        interpolator_kwargs: `dict`, optional
+            Keyword arguments to be passed to ``interpolator``.
 
         Returns
         -------
@@ -873,6 +894,10 @@ Using Datasets:
             Array of rates where the first axis corresponds to temperature and the
             second axis corresponds to level.
         """
+        if interpolator is None:
+            interpolator = PchipInterpolator
+        if interpolator_kwargs is None:
+            interpolator_kwargs = {'extrapolate': False}
         # NOTE: According to CHIANTI Technical Report No. 20, Section 5,
         # the interpolation of the level resolved recombination,
         # the rates should be zero below the temperature range and above
@@ -885,15 +910,21 @@ Using Datasets:
         # rrlvl files, we choose to fill the values outside of the interpolation range
         # using the minimum and maximum data values as appropriate.
         # NOTE: In the CHIANTI IDL code, the interpolation is done using a cubic spline.
-        # Here, the rates are interpolated using a Piecewise Cubic Hermite Interpolating
+        # Here, by default, the rates are interpolated using a Piecewise Cubic Hermite Interpolating
         # Polynomial (PCHIP) which balances smoothness and also reduces the oscillations
         # that occur with higher order spline fits. This is needed mostly due to the wide
         # range over which this data is fit.
         temperature = self.temperature.to_value('K')
+        temperature_table = temperature_table.to_value('K')
+        rate_table = rate_table.to_value('cm3 s-1')
+        if log_space:
+            temperature = np.log10(temperature)
+            temperature_table = np.log10(temperature_table)
+            rate_table = np.log10(rate_table)
         rates = []
-        for t, r in zip(temperature_table.to_value('K'), rate_table.to_value('cm3 s-1')):
+        for t, r in zip(temperature_table, rate_table):
             # NOTE: Values outside of the temperature data range are set to NaN
-            rate_interp = PchipInterpolator(t, r, extrapolate=False)(temperature)
+            rate_interp = interpolator(t, r, **interpolator_kwargs)(temperature)
             # Extrapolate above temperature range
             f_extrapolate = interp1d(t[-2:],
                                      r[-2:],
@@ -911,6 +942,8 @@ Using Datasets:
             i_extrapolate = np.where(temperature < t[0])
             rate_interp[i_extrapolate] = f_extrapolate(temperature[i_extrapolate])
             rates.append(rate_interp)
+        if log_space:
+            rates = 10**np.array(rates)
         # NOTE: Take transpose to maintain consistent ordering of temperature in the leading
         # dimension and levels in the last dimension
         rates =  u.Quantity(rates, 'cm3 s-1').T
