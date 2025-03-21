@@ -34,7 +34,7 @@ INDEX_WAVE_MAPPING = {
     ('Fe XIV', 197.862*u.Angstrom),
     ('Fe XVI', 262.984*u.Angstrom),
 ])
-def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, ion_name, wavelength):
+def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, chianti_idl_version, ion_name, wavelength):
     goft_script = """
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
@@ -71,6 +71,7 @@ def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, ion_name, wav
                                 ['temperature', 'contribution_function'],
                                 f'goft_{Z}_{iz}_{wavelength.to_value("AA"):.3f}',
                                 dbase_version,
+                                chianti_idl_version,
                                 format_func=formatters)
     # Run equivalent fiasco code
     ion = fiasco.Ion(ion_name,

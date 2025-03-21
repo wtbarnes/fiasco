@@ -12,7 +12,7 @@ from fiasco.util import parse_ion_name
 
 
 @pytest.fixture(params=['fe_23', 'ca_18'])
-def idl_two_ion_model(request, idl_env, dbase_version):
+def idl_two_ion_model(request, idl_env, dbase_version, chianti_idl_version):
     ion_name = request.param
     temperature = np.logspace(5.5, 7.5, 10) * u.K
     abundance = 'sun_coronal_1992_feldman_ext'
@@ -71,6 +71,7 @@ def idl_two_ion_model(request, idl_env, dbase_version):
                                 outputs,
                                 f'two_ion_rate_matrices_{Z}_{iz}',
                                 dbase_version,
+                                chianti_idl_version,
                                 format_func=formatters,
                                 write_file=False)
     return idl_result

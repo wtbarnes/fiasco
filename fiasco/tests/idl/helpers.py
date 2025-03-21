@@ -6,12 +6,18 @@ import os
 import pathlib
 
 from astropy.utils.data import get_pkg_data_path
+from packaging.version import Version
+
+import fiasco
+
+from fiasco.util import read_chianti_version
 
 __all__ = [
     'get_idl_test_output_filepath',
     'read_idl_test_output',
     'setup_idl_environment',
     'run_idl_script',
+    'get_chianti_idl_version',
 ]
 
 
@@ -76,7 +82,15 @@ def setup_idl_environment(ascii_dbase_root,
         return env
 
 
-def run_idl_script(idl_env, script, input_args, save_vars, file_name, version, format_func=None, write_file=True):
+def run_idl_script(idl_env,
+                   script,
+                   input_args,
+                   save_vars,
+                   file_name,
+                   dbase_version,
+                   chianti_idl_version,
+                   format_func=None,
+                   write_file=True):
     """
     Helper function for running CHIANTI IDL via hissw in tests
 
@@ -96,8 +110,10 @@ def run_idl_script(idl_env, script, input_args, save_vars, file_name, version, f
         List of variables to return from the IDL calculation
     file_name: `str`
         Name of the IDL results file
-    version: `packaging.version.Version`, `str`
-        Version of CHIANTI used to generate these test results
+    dbase_version: `packaging.version.Version`, `str`
+        Version of CHIANTI database used to generate these test results
+    chianti_idl_version: `packaging.version.Version`, `str`
+        Version of CHIANTI IDL software used to generate these test results
     format_func: `dict`, optional
         Functions to use to format output from the IDL function.
         This is most useful for adding the necessary units to any of the outputs.
@@ -107,7 +123,7 @@ def run_idl_script(idl_env, script, input_args, save_vars, file_name, version, f
         installation. Setting this to False may be needed to reduce the amount of test
         data.
     """
-    file_path = get_idl_test_output_filepath(file_name, version)
+    file_path = get_idl_test_output_filepath(file_name, dbase_version)
     if not file_path.is_file():
         if idl_env is None:
             # Import here so that this can be used without a hard pytest dependency
@@ -121,10 +137,49 @@ def run_idl_script(idl_env, script, input_args, save_vars, file_name, version, f
         if format_func is not None:
             for k in format_func:
                 result[k] = format_func[k](result[k])
-        variables = {**result, **input_args, 'idl_script': script}
+        variables = {
+            **result,
+            **input_args,
+            'idl_script': script,
+            'database_version': dbase_version,
+            'chianti_idl_version': chianti_idl_version,
+        }
         if write_file:
             with asdf.AsdfFile(variables) as af:
                 af.write_to(file_path)
         else:
             return variables
-    return read_idl_test_output(file_name, version)
+    return read_idl_test_output(file_name, dbase_version)
+
+
+def get_chianti_idl_version(idl_codebase_root):
+    """
+    Get the version of the CHIANTI IDL code being used.
+
+    Get the current version of the CHIANTI IDL code used
+    for generating test data so that it can be recorded in
+    the results files.Try reading version from the current
+    git tag as this is most reliable. If that fails, try to
+    read it from the ``VERSION`` file. If that fails, raise a
+    warning and return None.
+    """
+    # First try to get the version from the current git tag
+    try:
+        import git
+        tag = git.Repo(idl_codebase_root).git.describe('--tags')
+    except (ImportError, git.exc.InvalidGitRepositoryError):
+        fiasco.log.warning('Cannot determine CHIANTI IDL version from git tag.')
+    else:
+        return Version(tag)
+    # Next try to get the version from the version file. This is secondary
+    # because this file is not always present or accurate, particularly for
+    # older versions. This file follows the same naming conventions and format
+    # as the database version file.
+    try:
+        version = read_chianti_version(idl_codebase_root)
+    except FileNotFoundError:
+        fiasco.log.warning('Cannot determine CHIANTI IDL version from VERSION file')
+    else:
+        return version
+    fiasco.log.warning('Cannot determine CHIANTI IDL version. Returning None.')
+    return None
