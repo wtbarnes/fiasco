@@ -84,7 +84,7 @@ jobs:
       envs: |
         - linux: py311
 
-  test_database_v9:
+  test_database_v8:
     if: |
       (
         github.event_name != 'pull_request' && (
@@ -93,12 +93,12 @@ jobs:
         )
       ) || (
         github.event_name == 'pull_request' &&
-        contains(github.event.pull_request.labels.*.name, 'Run v9 tests')
+        contains(github.event.pull_request.labels.*.name, 'Run v8 tests')
       )
     needs: [tests]
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
-      posargs: '--ascii-dbase-root ~/.chianti --ascii-dbase-url http://download.chiantidatabase.org/CHIANTI_v9.0.1_database.tar.gz --disable-file-hash --skip-version-check'
+      posargs: '--ascii-dbase-root ~/.chianti --ascii-dbase-url http://download.chiantidatabase.org/CHIANTI_v8.0.7_database.tar.gz --disable-file-hash --skip-version-check'
       toxdeps: tox-pypi-filter
       envs: |
         - linux: py311
