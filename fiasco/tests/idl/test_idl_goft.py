@@ -41,15 +41,21 @@ def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, chianti_idl_v
     density = {{ density | to_unit('cm-3') | log10 | force_double_precision }}
     wave_min = {{ (wavelength - wave_window) | to_unit('angstrom') | force_double_precision }}
     wave_max = {{ (wavelength + wave_window) | to_unit('angstrom') | force_double_precision }}
+
+    ; Set ioneq_file this way to get around a bug that always causes the GUI picker to pop up
+    ; even when the file is specified.
+    defsysv,'!ioneq_file',ioneq_file
+
     contribution_function = g_of_t({{ Z }},$
-                                    {{ iz }},$
-                                    dens=density,$
-                                    abund_file=abund_file,$
-                                    ioneq_file=ioneq_file,$
-                                    {% if index %}index={{ index }},/quiet,${% endif %}
-                                    wrange=[wave_min, wave_max])
+                                   {{ iz }},$
+                                   dens=density,$
+                                   abund_file=abund_file,$
+                                   {% if index %}index={{ index }},/quiet,${% endif %}
+                                   wrange=[wave_min, wave_max])
     ; Call this function to get the temperature array
     read_ioneq,ioneq_file,temperature,ioneq,ref
+
+    defsysv,'!ioneq_file',''
     """
     # Setup IDl arguments
     Z, iz = parse_ion_name(ion_name)
@@ -78,7 +84,7 @@ def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, chianti_idl_v
                      idl_result['temperature'],
                      hdf5_dbase_root=hdf5_dbase_root,
                      abundance=idl_result['abundance'],
-                     ionization_fraction=idl_result['ioneq'])
+                     ionization_fraction=idl_result['ionization_fraction'])
     contribution_func = ion.contribution_function(idl_result['density'])
     idx = np.argmin(np.abs(ion.transitions.wavelength[ion.transitions.is_bound_bound] - idl_result['wavelength']))
     # NOTE: Multiply by 0.83 because the fiasco calculation does not include the n_H/n_e ratio

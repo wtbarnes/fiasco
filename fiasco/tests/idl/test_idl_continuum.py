@@ -51,20 +51,28 @@ def idl_input_args(ion_input_args, temperature):
 def test_idl_compare_free_free(idl_env, all_ions, idl_input_args, dbase_version, chianti_idl_version):
     script = """
     ; set common block
+    {% if chianti_idl_version | version_check('<', 9) %}
     common elements, abund, abund_ref, ioneq, ioneq_logt, ioneq_ref
+    {% endif %}
 
     ; read abundance and ionization equilibrium
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    {% if chianti_idl_version | version_check('<', 9) %}
     read_abund, abund_file, abund, abund_ref
     read_ioneq, ioneq_file, ioneq_logt, ioneq, ioneq_ref
+    {% endif %}
 
     ; set temperature and wavelength
     temperature = {{ temperature | to_unit('K') | force_double_precision }}
     wavelength = {{ wavelength | to_unit('Angstrom') | force_double_precision }}
 
     ; calculate free-free
+    {% if chianti_idl_version | version_check('<', 9) %}
     freefree, temperature, wavelength, free_free, /no_setup
+    {% else %}
+    freefree, temperature, wavelength, free_free, abund_file=abund_file, ioneq_file=ioneq_file
+    {% endif %}
     """
     idl_result = run_idl_script(idl_env,
                                 script,
@@ -83,20 +91,28 @@ def test_idl_compare_free_free(idl_env, all_ions, idl_input_args, dbase_version,
 def test_idl_compare_free_bound(idl_env, all_ions, idl_input_args, dbase_version, chianti_idl_version):
     script = """
     ; set common block
+    {% if chianti_idl_version | version_check('<', 9) %}
     common elements, abund, abund_ref, ioneq, ioneq_logt, ioneq_ref
+    {% endif %}
 
     ; read abundance and ionization equilibrium
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    {% if chianti_idl_version | version_check('<', 9) %}
     read_abund, abund_file, abund, abund_ref
     read_ioneq, ioneq_file, ioneq_logt, ioneq, ioneq_ref
+    {% endif %}
 
     ; set temperature and wavelength
     temperature = {{ temperature | to_unit('K') | force_double_precision }}
     wavelength = {{ wavelength | to_unit('Angstrom') | force_double_precision }}
 
     ; calculate free-bound
+    {% if chianti_idl_version | version_check('<', 9) %}
     freebound, temperature, wavelength, free_bound, /no_setup
+    {% else %}
+    freebound, temperature, wavelength, free_bound, abund_file=abund_file, ioneq_file=ioneq_file
+    {% endif %}
     """
     idl_result = run_idl_script(idl_env,
                                 script,
@@ -199,22 +215,37 @@ def test_idl_compare_free_bound_radiative_loss(idl_env, ion_input_args, hdf5_dba
 @pytest.mark.xfail()
 def test_idl_compare_two_photon(idl_env, all_ions, idl_input_args, dbase_version, chianti_idl_version):
     script = """
+    {% if chianti_idl_version | version_check('<', 9) %}
     ; set common block
     common elements, abund, abund_ref, ioneq, ioneq_logt, ioneq_ref
+    {% endif %}
 
     ; read abundance and ionization equilibrium
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+    {% if chianti_idl_version | version_check('<', 9) %}
     read_abund, abund_file, abund, abund_ref
     read_ioneq, ioneq_file, ioneq_logt, ioneq, ioneq_ref
+    {% endif %}
 
     ; set temperature and wavelength
     temperature = {{ temperature | to_unit('K') | force_double_precision }}
     density = {{ density | to_unit('cm-3') | force_double_precision }}
     wavelength = {{ wavelength | to_unit('Angstrom') | force_double_precision }}
 
+    ; Set ioneq_file this way to get around a bug that always causes the GUI picker to pop up
+    ; even when the file is specified.
+    defsysv,'!ioneq_file',ioneq_file
+
     ; calculate two-photon
+    {% if chianti_idl_version | version_check('<', 9) %}
     two_photon,temperature,wavelength,two_photon_continuum,edensity=density,/no_setup
+    {% else %}
+    two_photon,temperature,wavelength,two_photon_continuum,$
+               edensity=density,abund_file=abund_file,ioneq_file=ioneq_file
+    {% endif %}
+
+    defsysv,'!ioneq_file',''
     """
     # NOTE: Extend wavelength range for the two-photon test
     new_input_args = copy.deepcopy(idl_input_args)

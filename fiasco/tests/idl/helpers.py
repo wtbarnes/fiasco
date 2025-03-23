@@ -2,6 +2,7 @@
 Helpers for tests related to comparing with IDL output
 """
 import asdf
+import numpy as np
 import os
 import pathlib
 
@@ -33,6 +34,23 @@ def read_idl_test_output(name, version, keys=None):
             keys = af.tree.keys()
         output = {k: af.tree[k] for k in keys}
     return output
+
+
+def version_check_filter(current_version, conditional, version):
+    """
+    Filter for easily evaluating conditional on version
+    """
+    op_dict = {'<': np.less,
+               '<=': np.less_equal,
+               '>': np.greater,
+               '>=': np.greater_equal,
+               '=': np.equal,
+               '==': np.equal,
+               '!=': np.not_equal}
+    return op_dict[conditional](
+        Version(str(current_version)),
+        Version(str(version)),
+    )
 
 
 def setup_idl_environment(ascii_dbase_root,
@@ -72,7 +90,8 @@ def setup_idl_environment(ascii_dbase_root,
         idl_only=True,
         idl_home=idl_executable,
         header=header,
-        extra_paths=extra_paths
+        extra_paths=extra_paths,
+        filters={'version_check': version_check_filter},
     )
     try:
         _ = env.run('print,!xuvtop', verbose=False)
@@ -133,6 +152,12 @@ def run_idl_script(idl_env,
                             2. Specify a path to the CHIANTI IDL code,
                             3. Install the hissw package (pip install hissw)
                            Without the following, you will not be able to generate new IDL comparison test results.""")
+        # Add versions so they are accessible from within the script if needed
+        input_args = {
+            **input_args,
+            'database_version': str(dbase_version),
+            'chianti_idl_version': str(chianti_idl_version)
+        }
         result = idl_env.run(script, args=input_args, save_vars=save_vars)
         if format_func is not None:
             for k in format_func:
@@ -140,9 +165,7 @@ def run_idl_script(idl_env,
         variables = {
             **result,
             **input_args,
-            'idl_script': script,
-            'database_version': dbase_version,
-            'chianti_idl_version': chianti_idl_version,
+            'idl_script': idl_env.render_script(script, input_args),
         }
         if write_file:
             with asdf.AsdfFile(variables) as af:
