@@ -1,21 +1,28 @@
 """
 This script is for generating the file that contains the list of files that go into version of the database used for testing
 """
+import click
 import json
 import pathlib
 
 from astropy.utils.data import get_pkg_data_path
 
+from fiasco.tests import get_test_file_list
+
 __all__ = ['write_test_file_list']
 
 
+@click.command()
+@click.option('--files', '-f', multiple=True, type=str)
 def write_test_file_list(files):
     """
     Write a unique, sorted list of files to use in the test database.
     These are written to fiasco/util/data/test_files.json
     """
+    current_files = get_test_file_list()  # Read current files
+    current_files += files
     # Remove duplicates
-    files_unique = list(set(files))
+    files_unique = list(set(current_files))
 
     # Sort by element name and ionization stage
     def sort_func(x):
@@ -45,15 +52,10 @@ def write_test_file_list(files):
     files_sorted = sorted(files_unique, key=sort_func)
 
     # Write to JSON
-    data_dir = pathlib.Path(get_pkg_data_path('data', package='fiasco.util'))
+    data_dir = pathlib.Path(get_pkg_data_path('data', package='fiasco.tests'))
     with open(data_dir / 'test_file_list.json', mode='w') as f:
         json.dump({'test_files': files_sorted}, f, indent=2)
 
 
 if __name__ == '__main__':
-    # An example of how you might use this function to update the test file list
-    from fiasco.tests import get_test_file_list
-
-    test_files = get_test_file_list()  # Read current files
-    test_files += ...  # Add new files here
-    write_test_file_list(test_files)
+    write_test_file_list()
