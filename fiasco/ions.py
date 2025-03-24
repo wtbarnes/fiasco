@@ -639,8 +639,8 @@ Using Datasets:
         # Add depopulating terms
         # NOTE: By summing over the rows, we are computing the processes that depopulate
         # that level by summing up all of the processes that populate *from* that level.
-        idx_diagonal = np.diag_indices_from(rate_matrix[0,...])
-        rate_matrix[:, *idx_diagonal] = -rate_matrix.sum(axis=1)
+        idx = np.diag_indices_from(rate_matrix[0,...])
+        rate_matrix[:, idx[0], idx[1]] = -rate_matrix.sum(axis=1)
         return rate_matrix
 
     def _build_two_ion_coefficient_matrix(self, density, include_protons=False):
@@ -665,8 +665,8 @@ Using Datasets:
         # Add depopulating terms
         # NOTE: By summing over the rows, we are computing the processes that depopulate
         # that level by summing up all of the processes that populate *from* that level.
-        idx_diagonal = np.diag_indices_from(rate_matrix_total[0,...])
-        rate_matrix_total[:, *idx_diagonal] = -rate_matrix_total.sum(axis=1)
+        idx = np.diag_indices_from(rate_matrix_total[0,...])
+        rate_matrix_total[:, idx[0], idx[1]] = -rate_matrix_total.sum(axis=1)
         # Add single-ion terms
         # NOTE: These are added after the two-ion terms because they already include the depopulating
         # terms along the diagonal
