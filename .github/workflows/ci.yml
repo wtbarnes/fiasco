@@ -22,7 +22,7 @@ jobs:
       posargs: '--ascii-dbase-root ~/.chianti'
       # Pinning setuptools because fortranformat is incompatible with latest release
       # See https://github.com/brendanarnold/py-fortranformat/issues/43
-      toxdeps: tox-pypi-filter 'setuptools<78.0.1'
+      toxdeps: tox-pypi-filter
       envs: |
         - linux: py312
       coverage: 'codecov'
@@ -36,7 +36,7 @@ jobs:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       posargs: '--ascii-dbase-root ~/.chianti'
-      toxdeps: tox-pypi-filter 'setuptools<78.0.1'
+      toxdeps: tox-pypi-filter
       envs: |
         - macos: py311
         - windows: py310
@@ -61,7 +61,7 @@ jobs:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       posargs: '--ascii-dbase-root ~/.chianti --include-all-files'
-      toxdeps: tox-pypi-filter 'setuptools<78.0.1'
+      toxdeps: tox-pypi-filter
       envs: |
         - linux: py311
       cache-path: ~/.chianti
@@ -82,7 +82,7 @@ jobs:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       posargs: '--ascii-dbase-root ~/.chianti --ascii-dbase-url http://download.chiantidatabase.org/CHIANTI_v7.1.4_database.tar.gz --disable-file-hash --skip-version-check'
-      toxdeps: tox-pypi-filter 'setuptools<78.0.1'
+      toxdeps: tox-pypi-filter
       envs: |
         - linux: py311
 
@@ -101,7 +101,7 @@ jobs:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       posargs: '--ascii-dbase-root ~/.chianti --ascii-dbase-url http://download.chiantidatabase.org/CHIANTI_v8.0.7_database.tar.gz --disable-file-hash --skip-version-check'
-      toxdeps: tox-pypi-filter 'setuptools<78.0.1'
+      toxdeps: tox-pypi-filter
       envs: |
         - linux: py311
 
@@ -109,7 +109,7 @@ jobs:
     needs: [tests]
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
-      toxdeps: tox-pypi-filter 'setuptools<78.0.1'
+      toxdeps: tox-pypi-filter
       envs: |
         - linux: build_docs-gallery
           python-version: '3.12'

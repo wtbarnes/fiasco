@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-  "setuptools<78.0.1",  # Pin setuptools because of fortranformat https://github.com/brendanarnold/py-fortranformat/issues/43
+  "setuptools!=78.0.1",  # Pin setuptools because of fortranformat https://github.com/brendanarnold/py-fortranformat/issues/43
   "setuptools_scm[toml]",
   "wheel"
 ]
