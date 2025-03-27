@@ -553,7 +553,8 @@ Using Datasets:
             populations along an independent density axis. By default, this is set to False.
         use_two_ion_model: `bool`, optional
             If True, include processes that connect the ion to the adjacent ionization stage
-            :math:`z+1`.
+            :math:`z+1`. This only makes a difference for CHIANTI database v9 and later. Note
+            that this will likely increase the compute time for ions that have a two-ion model.
 
         Returns
         -------
@@ -570,7 +571,8 @@ Using Datasets:
                 self.log.warning(
                     'No autoionization or level-resolved radiative recombination data '
                     f'available for {self.ion_name}. Using single-ion model for level '
-                    'populations calculation.'
+                    'populations calculation. '
+                    'To silence this warning, set use_two_ion_model=False.'
                 )
                 use_two_ion_model = False
         density = np.atleast_1d(density)
