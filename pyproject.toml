@@ -117,7 +117,9 @@ filterwarnings =[
 [tool.coverage.run]
 branch = true
 omit = [
-  "*/test_idl*.py"
+  "fiasco/conftest.py",
+  "fiasco/tests/idl/conftest.py",
+  "fiasco/tests/idl/helpers.py",
 ]
 
 [tool.coverage.report]
