@@ -60,7 +60,7 @@ g = fe18.contribution_function(density, include_protons=False,
 
 ############################################################
 # Get the corresponding transition wavelengths
-transitions = fe18.transitions.wavelength[~fe18.transitions.is_twophoton]
+transitions = fe18.transitions.wavelength[fe18.transitions.is_bound_bound]
 energy = const.h * const.c / transitions / u.photon
 
 ############################################################

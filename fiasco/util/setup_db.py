@@ -25,6 +25,7 @@ SUPPORTED_VERSIONS = [
     '8.0.2',
     '8.0.6',
     '8.0.7',
+    '9.0.1',
 ]
 LATEST_VERSION = SUPPORTED_VERSIONS[-1]
 

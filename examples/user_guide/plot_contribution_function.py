@@ -3,7 +3,7 @@ Calculating a contribution function
 ===================================
 
 This example shows how to calculate the contribution function of a particular
-transition of a particular ion, at given temperatures and densities.
+transition of O VI as a function of temperature at a given density.
 """
 import astropy.units as u
 import matplotlib.pyplot as plt
@@ -28,22 +28,21 @@ ion = Ion('O 5+', Te)
 print(ion)
 
 ###############################################################################
-# Calculate the contribution function, and get the index of the transition
-# closest to the desired wavelength
+# Calculate the contribution function
 contribution_func = ion.contribution_function(ne)
-wlen = 1031.93 * u.Angstrom
 
 ###############################################################################
 # Because the contribution function is calculated for all transitions at once,
 # we need to get the index of the transition closest to the
-# wavelength specified earlier.
-transitions = ion.transitions.wavelength[~ion.transitions.is_twophoton]
-idx = np.argmin(np.abs(transitions - wlen))
+# specified wavelength.
+wavelength = 1031.92 * u.Angstrom
+transitions = ion.transitions.wavelength[ion.transitions.is_bound_bound]
+idx = np.argmin(np.abs(transitions - wavelength))
 
 ###############################################################################
 # Plot the result
 plt.plot(Te, contribution_func[:, 0, idx],
-         label=f'{ion.atomic_symbol} {ion.charge_state}+ {wlen}')
+         label=f'{ion.atomic_symbol} {ion.charge_state}+ {wavelength:latex}')
 plt.title('Contribution function')
 plt.xscale('log')
 plt.yscale('log')

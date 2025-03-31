@@ -22,7 +22,7 @@ from fiasco.util import parse_ion_name
     'Ca 2',
     'Fe 20',
 ])
-def test_ionization_fraction_from_idl(ion_name, idl_env, dbase_version, hdf5_dbase_root):
+def test_ionization_fraction_from_idl(ion_name, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root):
     Z, iz = parse_ion_name(ion_name)
     script = """
     ioneq_file = FILEPATH('{{ioneq_filename}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
@@ -37,6 +37,7 @@ def test_ionization_fraction_from_idl(ion_name, idl_env, dbase_version, hdf5_dba
                                 ['temperature', 'ioneq'],
                                 f'ioneq_{Z}_{iz}',
                                 dbase_version,
+                                chianti_idl_version,
                                 format_func=formatters)
     ion = fiasco.Ion(ion_name,
                      idl_result['temperature'],

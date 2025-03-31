@@ -34,22 +34,28 @@ INDEX_WAVE_MAPPING = {
     ('Fe XIV', 197.862*u.Angstrom),
     ('Fe XVI', 262.984*u.Angstrom),
 ])
-def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, ion_name, wavelength):
+def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, chianti_idl_version, ion_name, wavelength):
     goft_script = """
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     density = {{ density | to_unit('cm-3') | log10 | force_double_precision }}
     wave_min = {{ (wavelength - wave_window) | to_unit('angstrom') | force_double_precision }}
     wave_max = {{ (wavelength + wave_window) | to_unit('angstrom') | force_double_precision }}
+
+    ; Set ioneq_file this way to get around a bug that always causes the GUI picker to pop up
+    ; even when the file is specified.
+    defsysv,'!ioneq_file',ioneq_file
+
     contribution_function = g_of_t({{ Z }},$
-                                    {{ iz }},$
-                                    dens=density,$
-                                    abund_file=abund_file,$
-                                    ioneq_file=ioneq_file,$
-                                    {% if index %}index={{ index }},/quiet,${% endif %}
-                                    wrange=[wave_min, wave_max])
+                                   {{ iz }},$
+                                   dens=density,$
+                                   abund_file=abund_file,$
+                                   {% if index %}index={{ index }},/quiet,${% endif %}
+                                   wrange=[wave_min, wave_max])
     ; Call this function to get the temperature array
     read_ioneq,ioneq_file,temperature,ioneq,ref
+
+    defsysv,'!ioneq_file',''
     """
     # Setup IDl arguments
     Z, iz = parse_ion_name(ion_name)
@@ -71,15 +77,16 @@ def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, ion_name, wav
                                 ['temperature', 'contribution_function'],
                                 f'goft_{Z}_{iz}_{wavelength.to_value("AA"):.3f}',
                                 dbase_version,
+                                chianti_idl_version,
                                 format_func=formatters)
     # Run equivalent fiasco code
     ion = fiasco.Ion(ion_name,
                      idl_result['temperature'],
                      hdf5_dbase_root=hdf5_dbase_root,
                      abundance=idl_result['abundance'],
-                     ionization_fraction=idl_result['ioneq'])
+                     ionization_fraction=idl_result['ionization_fraction'])
     contribution_func = ion.contribution_function(idl_result['density'])
-    idx = np.argmin(np.abs(ion.transitions.wavelength[~ion.transitions.is_twophoton] - idl_result['wavelength']))
+    idx = np.argmin(np.abs(ion.transitions.wavelength[ion.transitions.is_bound_bound] - idl_result['wavelength']))
     # NOTE: Multiply by 0.83 because the fiasco calculation does not include the n_H/n_e ratio
     goft_python = contribution_func[:, 0, idx] * 0.83
     # Find relevant range for comparison. The solutions may diverge many orders of magnitude below

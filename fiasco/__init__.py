@@ -11,7 +11,7 @@ from fiasco.fiasco import (
 )
 from fiasco.gaunt import GauntFactor
 from fiasco.ions import Ion
-from fiasco.levels import Level, Transitions
+from fiasco.levels import Levels, Transitions
 from fiasco.util.util import setup_paths
 
 try:
@@ -56,7 +56,7 @@ __all__ = [
     "get_isoelectronic_sequence",
     "proton_electron_ratio",
     "Ion",
-    "Level",
+    "Levels",
     "Transitions",
     "GauntFactor",
     "defaults",

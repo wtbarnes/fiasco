@@ -84,7 +84,7 @@ for i, name in enumerate(goft_files):
                      abundance_filename=idl_result['abundance'],
                      ionization_fraction=idl_result['ioneq'])
     contribution_func = ion.contribution_function(idl_result['density'])
-    transitions = ion.transitions.wavelength[~ion.transitions.is_twophoton]
+    transitions = ion.transitions.wavelength[ion.transitions.is_bound_bound]
     idx = np.argmin(np.abs(transitions - idl_result['wavelength']))
     # NOTE: Multiply by 0.83 because the fiasco calculation does not include the n_H/n_e ratio
     goft = contribution_func[:, 0, idx] * 0.83

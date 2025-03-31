@@ -71,41 +71,37 @@ def test_new_instance(ion):
     assert ion._instance_kwargs['abundance'] == abundance
 
 
-def test_level_indexing(ion):
-    # Integer
-    assert isinstance(ion[0], fiasco.Level)
-    assert ion[0].__repr__() == fiasco.Level(0, ion._elvlc).__repr__()
-    # Slice
-    levels = ion[:5]
-    assert len(levels) == 5
-    assert isinstance(levels, list)
-    assert isinstance(levels[0], fiasco.Level)
-    assert levels[2].__repr__() == fiasco.Level(2, ion._elvlc).__repr__()
-    # Fancy indexing
-    levels = ion[[1, 5, 10]]
-    assert len(levels) == 3
-    assert isinstance(levels, list)
-    assert isinstance(levels[0], fiasco.Level)
-    assert levels[2].__repr__() == fiasco.Level(10, ion._elvlc).__repr__()
+@pytest.mark.parametrize(('index', 'length'),[
+    (0,0), (np.s_[:5],5), ([1,5,10],3)
+])
+def test_level_indexing(ion, index, length):
+    levels = ion[index]
+    assert isinstance(levels, fiasco.Levels)
+    assert len(levels) == length
+    assert levels.__repr__() == fiasco.Levels(ion._elvlc, index=index).__repr__()
 
 
 @pytest.mark.requires_dbase_version('>= 8')
 def test_level(ion):
     level = ion[0]
-    assert isinstance(level, fiasco.Level)
+    assert isinstance(level, fiasco.Levels)
     assert level.multiplicity == 5
+    assert level.spin == 2
+    assert level.weight == 1
     assert level.total_angular_momentum == 0
     assert level.orbital_angular_momentum_label == 'D'
+    assert level.orbital_angular_momentum == 2
+    assert level.is_observed
 
 
 def test_level_energy_parsing(fe10):
     # Test falling back to theoretical energies if energies are not observed
     for i, level in enumerate(fe10):
         if level.is_observed:
-            assert level.energy == fe10._elvlc['E_obs'][i].to('erg', equivalencies=u.spectral())
+            assert u.allclose(level.energy, fe10._elvlc['E_obs'][i].to('erg', equivalencies=u.spectral()))
         else:
             assert fe10._elvlc['E_obs'][i].to_value('cm-1') == -1
-            assert level.energy == fe10._elvlc['E_th'][i].to('erg', equivalencies=u.spectral())
+            assert u.allclose(level.energy, fe10._elvlc['E_th'][i].to('erg', equivalencies=u.spectral()))
 
 
 def test_repr(ion):
@@ -248,7 +244,7 @@ def test_emissivity_shape(c6, density, use_coupling):
     else:
         density_shape = density.shape
     emiss = c6.emissivity(density, couple_density_to_temperature=use_coupling)
-    wavelength = c6.transitions.wavelength[~c6.transitions.is_twophoton]
+    wavelength = c6.transitions.wavelength[c6.transitions.is_bound_bound]
     assert emiss.shape == c6.temperature.shape + density_shape + wavelength.shape
 
 
@@ -351,6 +347,7 @@ def test_free_free(ion):
     # This value has not been tested for correctness
     assert u.allclose(emission[0], 1.72804216e-29 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
+
 @pytest.mark.parametrize(('index','expected'),
                         [(0, 1.79093013e-22),
                         (75, 3.06577525e-21), ])
@@ -359,6 +356,7 @@ def test_free_free_radiative_loss(h1, fe20, index, expected):
     assert u.allclose(h1.free_free_radiative_loss(), 0.0 * u.erg * u.cm**3 / u.s)
     # This value has not been tested for correctness
     assert u.isclose(fe20.free_free_radiative_loss()[index], expected * u.erg * u.cm**3 / u.s)
+
 
 @pytest.mark.requires_dbase_version('>= 9.0.1')
 @pytest.mark.parametrize(('index','expected'),
@@ -373,6 +371,7 @@ def test_free_free_radiative_loss_itoh(h1, fe20, index, expected):
     assert u.allclose(h1.free_free_radiative_loss(use_itoh=True), 0.0 * u.erg * u.cm**3 / u.s)
     # This value has not been tested for correctness
     assert u.isclose(fe20.free_free_radiative_loss(use_itoh=True)[index], expected * u.erg * u.cm**3 / u.s)
+
 
 def test_free_bound(ion):
     emission = ion.free_bound(200 * u.Angstrom)
@@ -403,7 +402,7 @@ def test_two_photon(c4, c5, c6):
     assert u.allclose(c4_emission[30, 0, 0], 0.0 * u.cm**3 * u.erg / u.Angstrom / u.s)
     # These values have not been tested for correctness
     assert u.allclose(c5_emission[30, 0, 0], 4.04634243e-25 * u.cm**3 * u.erg / u.Angstrom / u.s)
-    assert u.allclose(c6_emission[30, 0, 0], 8.24640862e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
+    assert u.allclose(c6_emission[30, 0, 0], 8.24965967e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
     assert u.allclose(c6_emission_protons[30, 0, 0], 6.79059278e-29 * u.cm**3 * u.erg / u.Angstrom / u.s)
 
 
@@ -437,6 +436,8 @@ def test_transitions(ion):
     assert len(trans) == 361
     # These values have not been tested for correctness
     assert not trans.is_twophoton[0]
+    assert not trans.is_autoionization[0]
+    assert trans.is_bound_bound[0]
     assert trans.is_observed[0]
     assert u.allclose(trans.A[0], 0.000155 / u.s)
     assert u.allclose(trans.wavelength[0], 703729.75 * u.Angstrom)
