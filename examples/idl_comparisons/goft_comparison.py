@@ -4,7 +4,6 @@ CHIANTI IDL Comparison: Contribution Functions
 
 Compare the contribution function calculation to that in the CHIANTI IDL routines for a few select ions.
 """
-import hissw
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -13,6 +12,7 @@ from astropy.visualization import quantity_support
 import fiasco
 
 from fiasco.tests.idl.helpers import read_idl_test_output
+from fiasco.util.setup_db import LATEST_VERSION
 
 quantity_support()
 
@@ -76,13 +76,12 @@ goft_files = [
     'goft_26_16_262.984',
 ]
 fig = plt.figure(figsize=(9,3*len(goft_files)), layout='constrained')
-template_env = hissw.Environment(ssw_home='', idl_home='').env
 for i, name in enumerate(goft_files):
-    idl_result = read_idl_test_output(name, '8.0.7')
+    idl_result = read_idl_test_output(name, LATEST_VERSION)
     ion = fiasco.Ion((idl_result['Z'], idl_result['iz']),
                      idl_result['temperature'],
                      abundance_filename=idl_result['abundance'],
-                     ionization_fraction=idl_result['ioneq'])
+                     ionization_fraction=idl_result['ionization_fraction'])
     contribution_func = ion.contribution_function(idl_result['density'])
     transitions = ion.transitions.wavelength[ion.transitions.is_bound_bound]
     idx = np.argmin(np.abs(transitions - idl_result['wavelength']))
@@ -99,5 +98,7 @@ for i, name in enumerate(goft_files):
         line_label,
     )
     axes[0].legend()
+    print(f'CHIANTI database {idl_result['database_version']}')
+    print(f'CHIANTI IDL {idl_result['chianti_idl_version']}')
     print(f'IDL code to produce {line_label} contribution function result:')
-    print(template_env.from_string(idl_result['idl_script']).render(**idl_result))
+    print(idl_result['idl_script'])
