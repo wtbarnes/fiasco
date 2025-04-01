@@ -90,8 +90,8 @@ def test_idl_compare_free_free(idl_env, all_ions, idl_input_args, dbase_version,
 
 def test_idl_compare_free_bound(idl_env, all_ions, idl_input_args, dbase_version, chianti_idl_version):
     script = """
-    ; set common block
     {% if chianti_idl_version | version_check('<', 9) %}
+    ; set common block
     common elements, abund, abund_ref, ioneq, ioneq_logt, ioneq_ref
     {% endif %}
 
@@ -226,16 +226,16 @@ def test_idl_compare_two_photon(idl_env, all_ions, idl_input_args, dbase_version
     {% if chianti_idl_version | version_check('<', 9) %}
     read_abund, abund_file, abund, abund_ref
     read_ioneq, ioneq_file, ioneq_logt, ioneq, ioneq_ref
+    {% else %}
+    ; Set ioneq_file this way to get around a bug that always causes the GUI picker to pop up
+    ; even when the file is specified. Seems to only happen in v9 and later.
+    defsysv,'!ioneq_file',ioneq_file
     {% endif %}
 
     ; set temperature and wavelength
     temperature = {{ temperature | to_unit('K') | force_double_precision }}
     density = {{ density | to_unit('cm-3') | force_double_precision }}
     wavelength = {{ wavelength | to_unit('Angstrom') | force_double_precision }}
-
-    ; Set ioneq_file this way to get around a bug that always causes the GUI picker to pop up
-    ; even when the file is specified.
-    defsysv,'!ioneq_file',ioneq_file
 
     ; calculate two-photon
     {% if chianti_idl_version | version_check('<', 9) %}
@@ -245,7 +245,9 @@ def test_idl_compare_two_photon(idl_env, all_ions, idl_input_args, dbase_version
                edensity=density,abund_file=abund_file,ioneq_file=ioneq_file
     {% endif %}
 
+    {% if chianti_idl_version | version_check('>=', 9) %}
     defsysv,'!ioneq_file',''
+    {% endif %}
     """
     # NOTE: Extend wavelength range for the two-photon test
     new_input_args = copy.deepcopy(idl_input_args)
