@@ -38,24 +38,20 @@ def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, chianti_idl_v
     goft_script = """
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
+
     density = {{ density | to_unit('cm-3') | log10 | force_double_precision }}
     wave_min = {{ (wavelength - wave_window) | to_unit('angstrom') | force_double_precision }}
     wave_max = {{ (wavelength + wave_window) | to_unit('angstrom') | force_double_precision }}
-
-    ; Set ioneq_file this way to get around a bug that always causes the GUI picker to pop up
-    ; even when the file is specified.
-    defsysv,'!ioneq_file',ioneq_file
 
     contribution_function = g_of_t({{ Z }},$
                                    {{ iz }},$
                                    dens=density,$
                                    abund_file=abund_file,$
+                                   ioneq_file=ioneq_file,$
                                    {% if index %}index={{ index }},/quiet,${% endif %}
                                    wrange=[wave_min, wave_max])
     ; Call this function to get the temperature array
     read_ioneq,ioneq_file,temperature,ioneq,ref
-
-    defsysv,'!ioneq_file',''
     """
     # Setup IDl arguments
     Z, iz = parse_ion_name(ion_name)
