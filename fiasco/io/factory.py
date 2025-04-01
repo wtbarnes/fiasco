@@ -8,6 +8,7 @@ from fiasco.io.sources import *
 
 __all__ = ['Parser']
 
+
 class ParserFactory(type):
     """
     Metaclass for creating source classes for different CHIANTI filetypes
