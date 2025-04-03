@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from astropy.visualization import quantity_support
+from packaging.version import Version
 
 import fiasco
 
@@ -85,8 +86,14 @@ for i, name in enumerate(goft_files):
     contribution_func = ion.contribution_function(idl_result['density'])
     transitions = ion.transitions.wavelength[ion.transitions.is_bound_bound]
     idx = np.argmin(np.abs(transitions - idl_result['wavelength']))
-    # NOTE: Multiply by 0.83 because the fiasco calculation does not include the n_H/n_e ratio
-    goft = contribution_func[:, 0, idx] * 0.83
+    # NOTE: fiasco does not include the n_H/n_e ratio
+    if Version(idl_result['chianti_idl_version']) <  Version('9'):
+        # Prior to v9, the CHIANTI IDL software assumed this ratio was a constant 0.83
+        n_H_n_e = 0.83
+    else:
+        # Later versions use the actual temperature-dependent proton-to-electron ratio
+        n_H_n_e = ion.proton_electron_ratio
+    goft = contribution_func[:, 0, idx] * n_H_n_e
     line_label = f'{ion.ion_name_roman} {idl_result["wavelength"]:latex_inline}'
     axes = plot_idl_comparison(
         ion.temperature,

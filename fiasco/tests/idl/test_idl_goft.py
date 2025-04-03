@@ -7,7 +7,7 @@ import pytest
 
 import fiasco
 
-from fiasco.tests.idl.helpers import run_idl_script
+from fiasco.tests.idl.helpers import run_idl_script, version_check
 from fiasco.util import parse_ion_name
 
 # NOTE: This is necessary because I cannot figure out how to select the contribution function
@@ -17,12 +17,22 @@ from fiasco.util import parse_ion_name
 # NOTE: These indices will change with database version number so they'll need to be updated
 # or we will have to find a way to select them automatically.
 INDEX_WAVE_MAPPING = {
-    'Ca XV 200.972 Angstrom': 297,
-    'Fe IX 171.073 Angstrom': 13946,
-    'Fe IX 188.496 Angstrom': 18403,
-    'Fe XI 188.497 Angstrom': 22527,
-    'Fe XIV 197.862 Angstrom': 27964,
-    'Fe XVI 262.984 Angstrom': 1415,
+    '8.0.7': {
+        'Ca XV 200.972 Angstrom': 297,
+        'Fe IX 171.073 Angstrom': 13946,
+        'Fe IX 188.496 Angstrom': 18403,
+        'Fe XI 188.497 Angstrom': 22527,
+        'Fe XIV 197.862 Angstrom': 27964,
+        'Fe XVI 262.984 Angstrom': 1415,
+    },
+    '9.0.1': {
+        'Ca XV 200.972 Angstrom': 297,
+        'Fe IX 171.073 Angstrom': 10124,
+        'Fe IX 188.496 Angstrom': 14501,
+        'Fe XI 188.497 Angstrom': 22527,
+        'Fe XIV 197.862 Angstrom': 27964,
+        'Fe XVI 262.984 Angstrom': 1358,
+    },
 }
 
 
@@ -65,12 +75,14 @@ def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, chianti_idl_v
     """
     # Setup IDl arguments
     Z, iz = parse_ion_name(ion_name)
+    if (index:=INDEX_WAVE_MAPPING.get(str(dbase_version))) is not None:
+        index = index[f'{ion_name} {wavelength}']
     input_args = {
         'Z': Z,
         'iz': iz,
         'wavelength': wavelength,
         'wave_window': 1 * u.angstrom,
-        'index': INDEX_WAVE_MAPPING[f'{ion_name} {wavelength}'],
+        'index': index,
         'density': 1e+10 * u.cm**(-3),
         'abundance': 'sun_coronal_1992_feldman_ext',
         'ionization_fraction': 'chianti',
@@ -93,14 +105,20 @@ def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, chianti_idl_v
                      ionization_fraction=idl_result['ionization_fraction'])
     contribution_func = ion.contribution_function(idl_result['density'])
     idx = np.argmin(np.abs(ion.transitions.wavelength[ion.transitions.is_bound_bound] - idl_result['wavelength']))
-    # NOTE: Multiply by 0.83 because the fiasco calculation does not include the n_H/n_e ratio
-    goft_python = contribution_func[:, 0, idx] * 0.83
+    # NOTE: fiasco does not include the n_H/n_e ratio
+    if version_check(idl_result['chianti_idl_version'], '<', 9):
+        # Prior to v9, the CHIANTI IDL software assumed this ratio was a constant 0.83
+        n_H_n_e = 0.83
+    else:
+        # Later versions use the actual temperature-dependent proton-to-electron ratio
+        n_H_n_e = ion.proton_electron_ratio
+    goft_python = contribution_func[:, 0, idx] * n_H_n_e
     # Find relevant range for comparison. The solutions may diverge many orders of magnitude below
     # the peak of the contribution function, but that is not relevant in assessing meaningful
     # differences between the IDL and Python approaches. Thus, we only assess the differences
     # where the contribution function is above some threshold relative to the peak of the
     # contribution function.
     goft_idl = idl_result['contribution_function']
-    i_compare = np.where(goft_idl>=goft_idl.max()*1e-10)
+    i_compare = np.where(goft_idl>=goft_idl.max()*1e-6)
     # Compare results
     assert u.allclose(goft_idl[i_compare], goft_python[i_compare], atol=None, rtol=0.05)
