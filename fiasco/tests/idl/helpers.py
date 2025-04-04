@@ -16,6 +16,7 @@ from fiasco.util import read_chianti_version
 __all__ = [
     'get_idl_test_output_filepath',
     'read_idl_test_output',
+    'version_check',
     'setup_idl_environment',
     'run_idl_script',
     'get_chianti_idl_version',
@@ -36,7 +37,7 @@ def read_idl_test_output(name, version, keys=None):
     return output
 
 
-def version_check_filter(current_version, conditional, version):
+def version_check(current_version, conditional, version):
     """
     Filter for easily evaluating conditional on version
     """
@@ -91,7 +92,7 @@ def setup_idl_environment(ascii_dbase_root,
         idl_home=idl_executable,
         header=header,
         extra_paths=extra_paths,
-        filters={'version_check': version_check_filter},
+        filters={'version_check': version_check},
     )
     try:
         _ = env.run('print,!xuvtop', verbose=False)

@@ -222,6 +222,7 @@ def test_contribution_function(ion):
     # This value has not been tested for correctness
     assert u.allclose(cont_func[0, 0, 0], 2.51408088e-30 * u.cm**3 * u.erg / u.s)
 
+
 @pytest.mark.requires_dbase_version('>= 8')
 @pytest.mark.parametrize(('density', 'use_coupling'), [
     ([1e9,] * u.cm**(-3), False),
@@ -287,6 +288,16 @@ def test_level_populations_correction(fe20, pops_no_correction, pops_with_correc
     i_uncorrected = np.where(is_uncorrected)
     assert u.allclose(pops_with_correction[:, i_uncorrected], pops_no_correction[:, i_uncorrected],
                       atol=0.0, rtol=1e-5)
+
+
+@pytest.mark.requires_dbase_version('>= 9')
+def test_two_ion_model_couple_density_temperature(fe20):
+    # This is a smoke test to ensure that the temperature-density coupling keyword argument
+    # works with the two-ion model keyword.
+    p0 = 1e15 * u.cm**(-3) * u.K
+    density = p0 / fe20.temperature
+    pops = fe20.level_populations(density, couple_density_to_temperature=True, use_two_ion_model=True)
+    assert pops.shape[:2] == (fe20.temperature.shape + (1,))
 
 
 @pytest.mark.requires_dbase_version('>= 8')

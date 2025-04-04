@@ -8,11 +8,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from astropy.visualization import quantity_support
-from jinja2 import Template
 
 import fiasco
 
 from fiasco.tests.idl.helpers import read_idl_test_output
+from fiasco.util.setup_db import LATEST_VERSION
 
 quantity_support()
 
@@ -83,14 +83,16 @@ ionization_files = [
 ]
 fig = plt.figure(figsize=(9,3*len(ionization_files)), layout='constrained')
 for i, name in enumerate(ionization_files):
-    idl_result = read_idl_test_output(name, '8.0.7')
+    idl_result = read_idl_test_output(name, LATEST_VERSION)
     ion = fiasco.Ion((idl_result['Z'], idl_result['iz']),
                      idl_result['temperature'],
-                     ionization_filename=idl_result['ioneq_filename'])
+                     ionization_fraction=idl_result['ionization_fraction'])
     element = fiasco.Element(ion.atomic_symbol, ion.temperature)
     ionization_fraction = element.equilibrium_ionization
+    print(f'CHIANTI database {idl_result['database_version']}')
+    print(f'CHIANTI IDL {idl_result['chianti_idl_version']}')
     print(f'IDL code to produce ionization_fraction result for {ion.ion_name_roman}:')
-    print(Template(idl_result['idl_script']).render(**idl_result))
+    print(idl_result['idl_script'])
     axes = plot_idl_comparison(ion.temperature, idl_result['ioneq'], ion.ionization_fraction,
                                fig, len(ionization_files), 3*i, f'{ion.ion_name_roman}')
     axes[0].plot(element.temperature, ionization_fraction[:, ion.charge_state],
