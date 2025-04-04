@@ -20,8 +20,6 @@ jobs:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       posargs: '--ascii-dbase-root ~/.chianti'
-      # Pinning setuptools because fortranformat is incompatible with latest release
-      # See https://github.com/brendanarnold/py-fortranformat/issues/43
       toxdeps: tox-pypi-filter
       envs: |
         - linux: py312
