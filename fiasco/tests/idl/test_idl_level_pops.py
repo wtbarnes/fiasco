@@ -34,7 +34,6 @@ def idl_two_ion_model(request, idl_env, dbase_version, chianti_idl_version):
                               /verbose)
     two_ion = ch_load_2ion_rates(ion_1,ion_2)
 
-    ion_name = ion_1.ion_data.gname
     ionization = two_ion.ioniz
     radiative_recombination = two_ion.rr
     autoionization = two_ion.ai
@@ -51,7 +50,6 @@ def idl_two_ion_model(request, idl_env, dbase_version, chianti_idl_version):
         'ionization_fraction': ionization_fraction,
     }
     outputs = [
-        'ion_name',
         'ionization',
         'radiative_recombination',
         'autoionization',

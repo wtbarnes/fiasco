@@ -645,25 +645,27 @@ Using Datasets:
         rate_matrix[:, idx[0], idx[1]] = -rate_matrix.sum(axis=1)
         return rate_matrix
 
-    def _build_two_ion_coefficient_matrix(self, density, include_protons=False):
+    def _build_two_ion_coefficient_matrix(self, electron_density, include_protons=False):
         # Get coefficient matrix of recombined ion
-        c_matrix_recombined = self._build_coefficient_matrix(density, include_protons=include_protons)
+        c_matrix_recombined = self._build_coefficient_matrix(electron_density, include_protons=include_protons)
         # Get coefficient matrix of recombining ion
         try:
-            c_matrix_recombining = self.next_ion()._build_coefficient_matrix(density,
+            c_matrix_recombining = self.next_ion()._build_coefficient_matrix(electron_density,
                                                                              include_protons=include_protons)
         except MissingDatasetException:
             self.log.warning(
                 f'No rate data available for recombining ion {self.next_ion().ion_name}. '
-                f'Using single-ion model for {self.ion_name}.')
+                f'Using single-ion model for {self.ion_name}.'
+            )
             return c_matrix_recombined
         rate_matrix_total = self._empty_rate_matrix(unit='s-1')
         # Add terms that include both ions
+        d_e = electron_density[:, np.newaxis, np.newaxis]
         rate_matrix_total += self._rate_matrix_autoionization
-        rate_matrix_total += density * (self._rate_matrix_ionization
-                                        + self._rate_matrix_radiative_recombination
-                                        + self._rate_matrix_dielectronic_capture
-                                        + self._rate_matrix_dielectronic_recombination)
+        rate_matrix_total += d_e * (self._rate_matrix_ionization
+                                    + self._rate_matrix_radiative_recombination
+                                    + self._rate_matrix_dielectronic_capture
+                                    + self._rate_matrix_dielectronic_recombination)
         # Add depopulating terms
         # NOTE: By summing over the rows, we are computing the processes that depopulate
         # that level by summing up all of the processes that populate *from* that level.

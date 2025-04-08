@@ -4,15 +4,16 @@ CHIANTI IDL Comparison: Contribution Functions
 
 Compare the contribution function calculation to that in the CHIANTI IDL routines for a few select ions.
 """
-import hissw
 import matplotlib.pyplot as plt
 import numpy as np
 
 from astropy.visualization import quantity_support
+from packaging.version import Version
 
 import fiasco
 
 from fiasco.tests.idl.helpers import read_idl_test_output
+from fiasco.util.setup_db import LATEST_VERSION
 
 quantity_support()
 
@@ -76,18 +77,23 @@ goft_files = [
     'goft_26_16_262.984',
 ]
 fig = plt.figure(figsize=(9,3*len(goft_files)), layout='constrained')
-template_env = hissw.Environment(ssw_home='', idl_home='').env
 for i, name in enumerate(goft_files):
-    idl_result = read_idl_test_output(name, '8.0.7')
+    idl_result = read_idl_test_output(name, LATEST_VERSION)
     ion = fiasco.Ion((idl_result['Z'], idl_result['iz']),
                      idl_result['temperature'],
                      abundance_filename=idl_result['abundance'],
-                     ionization_fraction=idl_result['ioneq'])
+                     ionization_fraction=idl_result['ionization_fraction'])
     contribution_func = ion.contribution_function(idl_result['density'])
     transitions = ion.transitions.wavelength[ion.transitions.is_bound_bound]
     idx = np.argmin(np.abs(transitions - idl_result['wavelength']))
-    # NOTE: Multiply by 0.83 because the fiasco calculation does not include the n_H/n_e ratio
-    goft = contribution_func[:, 0, idx] * 0.83
+    # NOTE: fiasco does not include the n_H/n_e ratio
+    if Version(idl_result['chianti_idl_version']) <  Version('9'):
+        # Prior to v9, the CHIANTI IDL software assumed this ratio was a constant 0.83
+        n_H_n_e = 0.83
+    else:
+        # Later versions use the actual temperature-dependent proton-to-electron ratio
+        n_H_n_e = ion.proton_electron_ratio
+    goft = contribution_func[:, 0, idx] * n_H_n_e
     line_label = f'{ion.ion_name_roman} {idl_result["wavelength"]:latex_inline}'
     axes = plot_idl_comparison(
         ion.temperature,
@@ -99,5 +105,7 @@ for i, name in enumerate(goft_files):
         line_label,
     )
     axes[0].legend()
+    print(f'CHIANTI database {idl_result['database_version']}')
+    print(f'CHIANTI IDL {idl_result['chianti_idl_version']}')
     print(f'IDL code to produce {line_label} contribution function result:')
-    print(template_env.from_string(idl_result['idl_script']).render(**idl_result))
+    print(idl_result['idl_script'])

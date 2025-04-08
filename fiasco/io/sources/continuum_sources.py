@@ -64,7 +64,7 @@ class GffguParser(GenericParser):
 
         for name in df.colnames:
             col = df[name]
-            if type(col) == u.Quantity:
+            if isinstance(col, u.Quantity):
                 data = col.value
             else:
                 data = col.data
@@ -139,7 +139,7 @@ comment: These are the coefficients a_ik tabulated in Table 1."""
 
         for name in df.colnames:
             col = df[name]
-            if type(col) == u.Quantity:
+            if isinstance(col, u.Quantity):
                 data = col.value
             else:
                 data = col.data
@@ -190,7 +190,7 @@ Comment: Data taken from Table 2 of this work."""
 
         for name in df.colnames:
             col = df[name]
-            if type(col) == u.Quantity:
+            if isinstance(col, u.Quantity):
                 data = col.value
             else:
                 data = col.data
@@ -251,7 +251,7 @@ From Karzas, W. J. and Latter, R., 1961, ApJS, 6, 167"""
 
         for name in df.colnames:
             col = df[name]
-            if type(col) == u.Quantity:
+            if isinstance(col, u.Quantity):
                 data = col.value
             else:
                 data = col.data
@@ -356,7 +356,7 @@ From Itoh, N., et al., ApJS, 2000, 128, 125"""
 
         for name in df.colnames:
             col = df[name]
-            if type(col) == u.Quantity:
+            if isinstance(col, u.Quantity):
                 data = col.value
             else:
                 data = col.data
