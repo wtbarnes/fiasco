@@ -42,6 +42,6 @@ def test_create_invalid_ion_raises_missing_ion_error(hdf5_dbase_root):
     ("Fe 25", "He"),
     ("C 7", None),
 ])
-def test_isoelectronic_sequence(ion_name, sequence_name):
-    ion = fiasco.base.IonBase(ion_name)
+def test_isoelectronic_sequence(ion_name, sequence_name, hdf5_dbase_root):
+    ion = fiasco.base.IonBase(ion_name, hdf5_dbase_root=hdf5_dbase_root)
     assert ion.isoelectronic_sequence == sequence_name
