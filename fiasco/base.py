@@ -83,7 +83,8 @@ class IonBase:
     @property
     def isoelectronic_sequence(self):
         "Atomic symbol denoting to which isoelectronic sequence this ion belongs."
-        return plasmapy.particles.atomic_symbol(self.atomic_number - self.charge_state)
+        if (Z_iso := self.atomic_number - self.charge_state) > 0:
+            return plasmapy.particles.atomic_symbol(Z_iso)
 
     @property
     def _ion_name(self):
