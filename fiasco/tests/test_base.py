@@ -34,3 +34,14 @@ def test_create_ion_input_formats(hdf5_dbase_root, ion_name):
 def test_create_invalid_ion_raises_missing_ion_error(hdf5_dbase_root):
     with pytest.raises(MissingIonError):
         fiasco.base.IonBase('hydrogen 3', hdf5_dbase_root=hdf5_dbase_root)
+
+
+@pytest.mark.parametrize(('ion_name', 'sequence_name'), [
+    ("Fe 21", "C"),
+    ("Fe 26", "H"),
+    ("Fe 25", "He"),
+    ("C 7", None),
+])
+def test_isoelectronic_sequence(ion_name, sequence_name, hdf5_dbase_root):
+    ion = fiasco.base.IonBase(ion_name, hdf5_dbase_root=hdf5_dbase_root)
+    assert ion.isoelectronic_sequence == sequence_name
