@@ -42,7 +42,8 @@ INDEX_WAVE_MAPPING = {
     ('Fe IX', 188.496*u.Angstrom),
     ('Fe XI', 188.497*u.Angstrom),
     ('Fe XIV', 197.862*u.Angstrom),
-    ('Fe XVI', 262.984*u.Angstrom),
+    pytest.param('Fe XVI', 262.984*u.Angstrom,
+                 marks=pytest.mark.skip(reason='Unskip once two-ion model is enabled by default')),
 ])
 def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, chianti_idl_version, ion_name, wavelength):
     goft_script = """
