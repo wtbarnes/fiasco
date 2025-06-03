@@ -13,20 +13,21 @@ The citation for most current version on Zenodo is,
 
 .. code:: bibtex
 
-   @software{Barnes2024,
+   @software{Barnes2025,
       author       = {Will Barnes and
                       David Stansby and
                       Nick Murphy and
                       Jeffrey Reep and
                       Laura Hayes and
-                      Stuart Mumford},
-      title        = {wtbarnes/fiasco: v0.2.3},
-      month        = feb,
-      year         = 2024,
+                      Stuart Mumford and
+                      Nabil Freij},
+      title        = {wtbarnes/fiasco: v0.4.0},
+      month        = jan,
+      year         = 2025,
       publisher    = {Zenodo},
-      version      = {v0.2.3},
-      doi          = {10.5281/zenodo.10612118},
-      url          = {https://doi.org/10.5281/zenodo.10612118}
+      version      = {v0.4.0},
+      doi          = {10.5281/zenodo.14757042},
+      url          = {https://doi.org/10.5281/zenodo.14757042}
    }
 
 You can also obtain this information with ``fiasco.__citation__``.
@@ -34,4 +35,4 @@ You can also obtain this information with ``fiasco.__citation__``.
 In addition to citing ``fiasco``, you should also cite the CHIANTI atomic database according to the
 `instructions here <https://www.chiantidatabase.org/referencing.html>`__.
 
-.. _Zenodo DOI: https://zenodo.org/records/10612118
+.. _Zenodo DOI: https://doi.org/10.5281/zenodo.7504257
