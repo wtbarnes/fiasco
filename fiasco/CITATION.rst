@@ -9,7 +9,7 @@ Please add the following line within your methods, conclusion or acknowledgement
 *This research used version X.Y.Z (software citation) of the fiasco open source software package.*
 
 The software citation should be the specific `Zenodo DOI`_ for the version used within your work.
-The citation for most current version on Zenodo is,
+The citation for the most current version on Zenodo is,
 
 .. code:: bibtex
 
