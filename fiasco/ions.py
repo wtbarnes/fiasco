@@ -362,11 +362,12 @@ Using Datasets:
         return self.isoelectronic_sequence == 'He'
 
     @property
+    @u.quantity_input
     def mass(self) -> u.g:
         """
         Returns the atomic mass
         """
-        return plasmapy.particles.Particle(self.ion_name_roman).mass.to(u.g)
+        return plasmapy.particles.Particle(self.ion_name_roman).mass
 
     @property
     @u.quantity_input
