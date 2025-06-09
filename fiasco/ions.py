@@ -4,6 +4,7 @@ Ion object. Holds all methods and properties of a CHIANTI ion.
 import astropy.constants as const
 import astropy.units as u
 import numpy as np
+import plasmapy
 
 from functools import cached_property
 from scipy.interpolate import CubicSpline, interp1d, PchipInterpolator
@@ -359,6 +360,12 @@ Using Datasets:
         Is the ion in the helium isoelectronic sequence.
         """
         return self.isoelectronic_sequence == 'He'
+
+    @property
+    @u.quantity_input
+    def mass(self) -> u.g:
+        """Atomic mass of the ion."""
+        return plasmapy.particles.Particle(self.ion_name_roman).mass
 
     @property
     @u.quantity_input

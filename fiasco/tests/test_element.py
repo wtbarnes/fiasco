@@ -94,3 +94,8 @@ def test_change_element_abundance(another_element, value, dset):
     another_element.abundance = value if dset is None else dset
     assert u.allclose(another_element.abundance, value)
     assert u.allclose(another_element[1].abundance, value)
+
+def test_element_mass(element, another_element):
+    assert element.mass.unit.physical_type == 'mass'
+    assert u.isclose(element.mass, 1.67382338e-24*u.g)
+    assert u.isclose(another_element.mass, 6.64647699e-24*u.g)

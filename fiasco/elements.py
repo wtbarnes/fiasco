@@ -61,6 +61,12 @@ class Element(fiasco.IonCollection):
         return self[0].element_name
 
     @property
+    @u.quantity_input
+    def mass(self) -> u.g:
+        """The atomic mass of the element."""
+        return plasmapy.particles.Particle(self.element_name).mass
+
+    @property
     def abundance(self):
         "Elemental abundance relative to H."
         return self[0].abundance
