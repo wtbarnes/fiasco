@@ -364,9 +364,7 @@ Using Datasets:
     @property
     @u.quantity_input
     def mass(self) -> u.g:
-        """
-        Returns the atomic mass
-        """
+        """Atomic mass of the ion."""
         return plasmapy.particles.Particle(self.ion_name_roman).mass
 
     @property
