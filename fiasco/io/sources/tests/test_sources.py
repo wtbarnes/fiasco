@@ -1,6 +1,8 @@
 """
 Test parsers for all files attached to specific ions
 """
+import numpy as np
+import plasmapy.particles
 import pytest
 
 from astropy.table import QTable
@@ -43,13 +45,14 @@ def test_ion_sources(ascii_dbase_root, filename,):
 
 @pytest.mark.parametrize('filename', [
     'chianti.ioneq',
-    'sun_coronal_1992_feldman.abund',
+    pytest.param('sun_coronal_1992_feldman.abund', marks=pytest.mark.requires_dbase_version('< 11')),
+    pytest.param('sun_coronal_2021_chianti.abund', marks=pytest.mark.requires_dbase_version('>= 11')),
     'chianti.ip',
     'gffgu.dat',
     'gffint.dat',
     'hseq_2photon.dat',
     'itoh.dat',
-    'klgfb.dat',
+    pytest.param('klgfb.dat', marks=pytest.mark.requires_dbase_version('< 11')),
     'verner_short.txt',
     'flare.dem',
     pytest.param('itoh_integrated_gaunt.txt', marks=pytest.mark.requires_dbase_version('>= 9.0.1')),
@@ -64,3 +67,21 @@ def test_non_ion_sources(ascii_dbase_root, filename):
     for h, unit in zip(parser.headings, parser.units):
         assert table[h].unit == unit
     assert table.meta['filename'] == filename
+
+
+@pytest.mark.parametrize('filename', [
+    # Many abundance files were moved in v11 of the database
+    pytest.param('sun_coronal_1992_feldman.abund', marks=pytest.mark.requires_dbase_version('< 11')),
+    pytest.param('archive/sun_coronal_1992_feldman.abund', marks=pytest.mark.requires_dbase_version('>= 11')),
+    pytest.param('sun_coronal_2021_chianti.abund', marks=pytest.mark.requires_dbase_version('>= 11')),
+    'version_3/allen.abund',
+    'version_3/grevesse_anders.abund'
+])
+def test_abundance_parsing(ascii_dbase_root, filename):
+    parser = fiasco.io.Parser(filename, ascii_dbase_root=ascii_dbase_root)
+    table = parser.parse()
+    assert all([h in table.colnames for h in ['Z', 'abundance', 'element']])
+    for row in table:
+        Z = row['Z'].item() if isinstance(row['Z'], np.int64) else row['Z']
+        assert row['element'] == plasmapy.particles.atomic_symbol(Z)
+        assert row['element'] == plasmapy.particles.atomic_symbol(row['element'])

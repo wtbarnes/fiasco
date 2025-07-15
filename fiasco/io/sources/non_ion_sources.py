@@ -20,7 +20,7 @@ class AbundParser(GenericParser):
     units = [None, u.dimensionless_unscaled, None]
     headings = ['Z', 'abundance', 'element']
     descriptions = ['atomic number', 'abundance relative to H', 'element']
-    fformat = fortranformat.FortranRecordReader('(I3,F7.3,A5)')
+    fformat = fortranformat.FortranRecordReader('(I2,F9.3,A2)')
 
     def __init__(self, abundance_filename, **kwargs):
         super().__init__(abundance_filename, **kwargs)
