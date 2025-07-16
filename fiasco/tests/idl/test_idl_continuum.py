@@ -8,7 +8,7 @@ import pytest
 
 import fiasco
 
-from fiasco.tests.idl.helpers import run_idl_script
+from fiasco.tests.idl.helpers import run_idl_script, version_check
 from fiasco.util.exceptions import MissingDatasetException
 
 
@@ -39,12 +39,15 @@ def all_ions(ion_input_args, temperature, hdf5_dbase_root):
 
 
 @pytest.fixture
-def idl_input_args(ion_input_args, temperature):
+def idl_input_args(ion_input_args, temperature, chianti_idl_version):
+    input_args = copy.deepcopy(ion_input_args)
+    if version_check(chianti_idl_version, '>=', '11'):
+        input_args['abundance'] = f'archive/{input_args["abundance"]}'
     return {
         'wavelength': np.arange(25, 414, 1) * u.Angstrom,
         'temperature': temperature,
         'density': 1e9*u.cm**(-3),
-        **ion_input_args,
+        **input_args,
     }
 
 
@@ -166,15 +169,18 @@ def test_idl_compare_free_bound_ion(idl_env, all_ions, idl_input_args, dbase_ver
         assert u.allclose(idl_result['free_bound'], free_bound_python, atol=None, rtol=0.006)
 
 
-def test_idl_compare_free_free_radiative_loss(idl_env, ion_input_args, hdf5_dbase_root, dbase_version, chianti_idl_version):
+def test_idl_compare_free_free_radiative_loss(idl_env, ion_input_args, idl_input_args, hdf5_dbase_root, dbase_version, chianti_idl_version):
     script = """
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     ff_rad_loss, temperature, free_free_radiative_loss, abund_file=abund_file, ioneq_file=ioneq_file
     """
+    # Making a copy because we want to exclude temperature in this case to avoid overwriting the temperature output by ff_rad_loss
+    _idl_input_args = copy.deepcopy(idl_input_args)
+    del _idl_input_args['temperature']
     idl_result = run_idl_script(idl_env,
                                 script,
-                                ion_input_args,
+                                _idl_input_args,
                                 ['temperature', 'free_free_radiative_loss'],
                                 'freefree_radiative_loss_all_ions',
                                 dbase_version,
@@ -183,23 +189,27 @@ def test_idl_compare_free_free_radiative_loss(idl_env, ion_input_args, hdf5_dbas
                                              'temperature': lambda x: x*u.K})
     all_ions = build_ion_collection(hdf5_dbase_root, idl_result['temperature'], **ion_input_args)
     free_free_radiative_loss_python = all_ions.free_free_radiative_loss(use_itoh=False)
-    # FIXME: Decrease the relative tolerance back to 0.005 once https://github.com/wtbarnes/fiasco/issues/348
-    # is resolved.
+    # FIXME: This tolerance is version-dependent because of a few different bugs in the CHIANTI IDL prior to v11.0.1.
+    # See https://github.com/wtbarnes/fiasco/issues/348 for more details.
+    rtol = 0.05 if version_check(chianti_idl_version, '<', '11.0.1') else 0.001
     assert u.allclose(idl_result['free_free_radiative_loss'],
                       free_free_radiative_loss_python,
                       atol=None,
-                      rtol=0.05)
+                      rtol=rtol)
 
 
-def test_idl_compare_free_bound_radiative_loss(idl_env, ion_input_args, hdf5_dbase_root, dbase_version, chianti_idl_version):
+def test_idl_compare_free_bound_radiative_loss(idl_env, ion_input_args, idl_input_args, hdf5_dbase_root, dbase_version, chianti_idl_version):
     script = """
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     fb_rad_loss, temperature, free_bound_radiative_loss, abund_file=abund_file, ioneq_file=ioneq_file
     """
+    # Making a copy because we want to exclude temperature in this case to avoid overwriting the temperature output by fb_rad_loss
+    _idl_input_args = copy.deepcopy(idl_input_args)
+    del _idl_input_args['temperature']
     idl_result = run_idl_script(idl_env,
                                 script,
-                                ion_input_args,
+                                _idl_input_args,
                                 ['temperature', 'free_bound_radiative_loss'],
                                 'freebound_radiative_loss_all_ions',
                                 dbase_version,
