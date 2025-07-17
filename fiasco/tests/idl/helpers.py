@@ -163,6 +163,10 @@ def run_idl_script(idl_env,
         if format_func is not None:
             for k in format_func:
                 result[k] = format_func[k](result[k])
+        if any([k in result for k in input_args]):
+            fiasco.log.warning(
+                'Conflict between input variables and result variables. Outputs to be unintentionally overwritten'
+            )
         variables = {
             **result,
             **input_args,
@@ -190,11 +194,18 @@ def get_chianti_idl_version(idl_codebase_root):
     # First try to get the version from the current git tag
     try:
         import git
-        tag = git.Repo(idl_codebase_root).git.describe('--tags')
-    except (ImportError, git.exc.InvalidGitRepositoryError):
+    except ImportError:
         fiasco.log.warning('Cannot determine CHIANTI IDL version from git tag.')
     else:
-        return Version(tag)
+        # NOTE: Nesting these exceptions like this because catching both
+        # exceptions at once is not impossible as the second is imported
+        # from a package that may be missing.
+        try:
+            tag = git.Repo(idl_codebase_root).git.describe('--tags')
+        except git.exc.InvalidGitRepositoryError:
+            fiasco.log.warning('Cannot determine CHIANTI IDL version from git tag.')
+        else:
+            return Version(tag)
     # Next try to get the version from the version file. This is secondary
     # because this file is not always present or accurate, particularly for
     # older versions. This file follows the same naming conventions and format
