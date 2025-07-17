@@ -39,9 +39,9 @@ def all_ions(ion_input_args, temperature, hdf5_dbase_root):
 
 
 @pytest.fixture
-def idl_input_args(ion_input_args, temperature, chianti_idl_version):
+def idl_input_args(ion_input_args, temperature, dbase_version):
     input_args = copy.deepcopy(ion_input_args)
-    if version_check(chianti_idl_version, '>=', '11'):
+    if version_check(dbase_version, '>=', '11'):
         input_args['abundance'] = f'archive/{input_args["abundance"]}'
     return {
         'wavelength': np.arange(25, 414, 1) * u.Angstrom,
@@ -191,7 +191,7 @@ def test_idl_compare_free_free_radiative_loss(idl_env, ion_input_args, idl_input
     free_free_radiative_loss_python = all_ions.free_free_radiative_loss(use_itoh=False)
     # FIXME: This tolerance is version-dependent because of a few different bugs in the CHIANTI IDL prior to v11.0.1.
     # See https://github.com/wtbarnes/fiasco/issues/348 for more details.
-    rtol = 0.05 if version_check(chianti_idl_version, '<', '11.0.1') else 0.001
+    rtol = 0.05 if version_check(idl_result['chianti_idl_version'], '<', '11.0.1') else 0.001
     assert u.allclose(idl_result['free_free_radiative_loss'],
                       free_free_radiative_loss_python,
                       atol=None,
