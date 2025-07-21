@@ -24,6 +24,7 @@ import fiasco.io
     'fe_2.trparams',
     'fe_12.drparams',
     'al_3.diparams',
+    'al_6.diparams',  # NOTE: This file does not have the row of EA scaling factors
     pytest.param('fe_23.auto', marks=pytest.mark.requires_dbase_version('>= 9')),
     pytest.param('fe_23.rrlvl', marks=pytest.mark.requires_dbase_version('>= 9')),
     pytest.param('c_5.splups', marks=pytest.mark.requires_dbase_version('< 8')),
