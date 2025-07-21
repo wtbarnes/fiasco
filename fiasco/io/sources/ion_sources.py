@@ -491,7 +491,7 @@ class DiparamsParser(GenericIonParser):
     ]
 
     def preprocessor(self, table, line, index):
-        # NOTE: The order of these conditionals is important table is being modified in place
+        # NOTE: The order of these conditionals is important as the table is being modified in place
         if index == 0:
             # The first line has information about the number of fit points and number of transitions
             # included as well as the number of EA scaling coefficients.
