@@ -331,7 +331,7 @@ def test_intensity(ion, em):
 @pytest.mark.parametrize(('rate_name','answer'), [
     # NOTE: The expected values have not been tested for correctness and
     # are only meant to indicate whether a value has changed or not.
-    ('direct_ionization_rate', 9.448935172152884e-13*u.cm**3 / u.s),
+    ('direct_ionization_rate', 9.362601290430508e-13*u.cm**3 / u.s),
     ('excitation_autoionization_rate', 1.14821255e-12 * u.cm**3 / u.s),
     ('dielectronic_recombination_rate', 1.60593802e-11 * u.cm**3 / u.s),
     ('radiative_recombination_rate', 1.6221634159408823e-12*u.cm**3 / u.s),
@@ -339,7 +339,7 @@ def test_intensity(ion, em):
 def test_rates(ion, rate_name, answer):
     rate = getattr(ion, rate_name)
     assert rate.shape == ion.temperature.shape
-    assert u.allclose(rate[0], answer)
+    assert u.allclose(rate[0], answer, rtol=1e-6)
 
 
 def test_total_recombination_rate_priority(ion):
@@ -377,6 +377,7 @@ def test_free_free_radiative_loss_itoh(h1, fe20, index, expected):
     """
     For database versions >= 9.0.1, the Itoh Gaunt factors give a different
     result for the free-free radiative loss at temperature > 1 MK.
+    See https://github.com/wtbarnes/fiasco/issues/248.
     """
     assert fe20.free_free_radiative_loss(use_itoh=True).shape == fe20.temperature.shape
     assert u.allclose(h1.free_free_radiative_loss(use_itoh=True), 0.0 * u.erg * u.cm**3 / u.s)
@@ -555,6 +556,7 @@ def test_ionization_potential_setter(ion, ip_input, ip_output):
             ion._instance_kwargs['ionization_potential'],
             ip_input.to('eV', equivalencies=u.equivalencies.spectral()),
         )
+
 
 def test_ion_mass(fe10, c5):
     assert fe10.mass.unit.physical_type == 'mass'

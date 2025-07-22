@@ -1247,144 +1247,48 @@ Using Datasets:
         return IonCollection(self).spectrum(*args, **kwargs)
 
     @cached_property
+    @needs_dataset('diparams')
     @u.quantity_input
     def direct_ionization_rate(self) -> u.cm**3 / u.s:
         r"""
-        Total ionization rate due to collisions as a function of temperature.
+        Ionization rate due to collisions as a function of temperature.
 
-        The ionization rate due to the collisions with free electrons can
-        be written as the integral of the velocity-weighted collisional
-        cross-section over the Maxwell-Boltzmann distribution.
-        Following Section 3.5.1 of :cite:t:`del_zanna_solar_2018`, this can be
-        written as,
-
-        .. math::
-
-            C^I = \sqrt{\frac{8}{\pi m_e}}(k_BT)^{-3/2}\int_I^{\infty}\mathrm{d}E\,E\sigma_I(E)\exp{\left(-\frac{E}{k_BT}\right)}
-
-        where :math:`E` is the energy of the incident electron,
-        :math:`I` is the ionization energy of the initially bound electron,
-        and :math:`\sigma_I` is the ionization cross-section.
-
-        Making the substitution :math:`x=(E-I)/k_BT`, the above integral can be
-        rewritten as,
-
-        .. math::
-
-            \begin{aligned}
-                C^I = \sqrt{\frac{8k_BT}{\pi m_e}}\exp{\left(-\frac{I}{k_BT}\right)}&\left(\int_0^{\infty}\mathrm{d}x\,x\sigma_{I}(k_BTx+I)e^{-x} \right. \\
-                                                                                    &\left. + \frac{I}{k_BT}\int_0^{\infty}\mathrm{d}x\,\sigma_{I}(k_BTx+I)e^{-x}\right).
-            \end{aligned}
-
-        Each of these integrals is of the form such that they can be evaluated using Gauss-Laguerre quadrature.
-        Note that there is a typo in the expression for the ionization rate integral in Eq. 32 of :cite:t:`del_zanna_solar_2018`.
-        The details of the ionization cross-section calculation can be found in `direct_ionization_cross_section`.
-
-        See Also
-        --------
-        direct_ionization_cross_section : Calculation of :math:`\sigma_I` as a function of :math:`E`.
+        The ionization rate due to collisions with free electrons assuming a Maxwell-Boltzmann
+        distribution. At a minimum, this represents the contribution from the outer-shell electron
+        though contributions from inner-shell electrons are also considered for some ions.
+        For more details, see the topic guide on :ref:`fiasco-topic-guide-direct-ionization-rate`
+        as well as :cite:t:`young_chianti_2025`.
         """
         xgl, wgl = np.polynomial.laguerre.laggauss(12)
         kBT = self.thermal_energy
-        energy = np.outer(xgl, kBT) + self.ionization_potential
-        cross_section = self.direct_ionization_cross_section(energy)
-        term1 = np.sqrt(8./np.pi/const.m_e)*np.sqrt(kBT)*np.exp(-self.ionization_potential/kBT)
-        term2 = ((wgl*xgl)[:, np.newaxis]*cross_section).sum(axis=0)
-        term3 = (wgl[:, np.newaxis]*cross_section).sum(axis=0)*self.ionization_potential/kBT
-        return term1*(term2 + term3)
-
-    @u.quantity_input
-    def direct_ionization_cross_section(self, energy: u.erg) -> u.cm**2:
-        r"""
-        Direct ionization cross-section as a function of energy.
-
-        The direction ionization cross-section is calculated one of two ways.
-        See :cite:t:`dere_ionization_2007`, Sections 3.1 and 3.2 for details.
-        For H-like ions with :math:`Z\ge6` and He-like ions with :math:`Z\ge10`,
-        the cross-section is computed according to the method of
-        :cite:t:`fontes_fully_1999`,
-
-        .. math::
-
-            \sigma_I = B\frac{\pi a_0^2}{I^2}Q_R
-
-        where :math:`B=1` for H-like ions and :math:`B=2` for He-like ions,
-        :math:`I` is the ionization energy (expressed in Ry),
-        :math:`a_0` is the Bohr radius,
-        and :math:`Q_R` is a reduced cross-section which can be approximated by
-        the fitting formula given in Eqs. 2.10, 2.11, and 2.12 of
-        :cite:t:`fontes_fully_1999`.
-
-        For all other ions, the cross-section is computed according to the method
-        of :cite:t:`dere_ionization_2007` which employs a scaling similar to that
-        used by :cite:t:`burgess_analysis_1992`.
-        Rearranging Eq. 3 of :cite:t:`dere_ionization_2007`,
-
-        .. math::
-
-            \sigma_I = \frac{\Sigma (\log{u} + 1)}{uI^2}
-
-        where :math:`u=E/I` is the energy of the incident electron scaled by ionization
-        potential and :math:`\Sigma` is the scaled cross-section which is defined over,
-
-        .. math::
-
-            U = 1 - \frac{\log{f}}{\log{u - 1 + f}}
-
-        where :math:`f` is a fitting parameter.
-        :math:`U,f,\Sigma` are all stored in the CHIANTI database such that :math:`\sigma_I`
-        can be computed for a given :math:`E`.
-        """
-        if ((self.hydrogenic and self.atomic_number >= 6) or
-            (self.helium_like and self.atomic_number >= 10)):
-            return self._fontes_cross_section(energy)
-        else:
-            return self._dere_cross_section(energy)
+        cross_section = self._direct_ionization_cross_section(np.outer(xgl, kBT))
+        rate_total = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
+        for ip, xs in zip(self._diparams['ip'], cross_section):
+            term1 = np.sqrt(8./np.pi/const.m_e)*np.sqrt(kBT)*np.exp(-ip/kBT)
+            term2 = ((wgl*xgl)[:, np.newaxis]*xs).sum(axis=0)
+            term3 = (wgl[:, np.newaxis]*xs).sum(axis=0)*ip/kBT
+            rate_total += term1*(term2 + term3)
+        return rate_total
 
     @needs_dataset('diparams')
     @u.quantity_input
-    def _dere_cross_section(self, energy: u.erg) -> u.cm**2:
-        # Cross-sections from diparams file
-        cross_section_total = np.zeros(energy.shape)
+    def _direct_ionization_cross_section(self, energy: u.erg) -> u.cm**2:
+        cross_section_all = []
         for ip, bt_c, bt_e, bt_cross_section in zip(self._diparams['ip'],
                                                     self._diparams['bt_c'],
                                                     self._diparams['bt_e'],
                                                     self._diparams['bt_cross_section']):
-            U = energy/ip
+            U = (energy + ip)/ip
             scaled_energy = 1. - np.log(bt_c)/np.log(U - 1. + bt_c)
-            f_interp = interp1d(bt_e, bt_cross_section, kind='cubic', fill_value='extrapolate')
+            f_interp = PchipInterpolator(bt_e, bt_cross_section, extrapolate=True)
             scaled_cross_section = f_interp(scaled_energy) * bt_cross_section.unit
-            # Only nonzero at energies above the ionization potential
-            scaled_cross_section *= (U > 1.)
             cross_section = scaled_cross_section * (np.log(U) + 1.) / U / (ip**2)
-            if not hasattr(cross_section_total, 'unit'):
-                cross_section_total = cross_section_total*cross_section.unit
-            cross_section_total += cross_section
+            cross_section_all.append(cross_section)
 
-        return cross_section_total
-
-    @u.quantity_input
-    def _fontes_cross_section(self, energy: u.erg) -> u.cm**2:
-        U = energy/self.ionization_potential
-        A = 1.13
-        B = 1 if self.hydrogenic else 2
-        F = 1 if self.atomic_number < 20 else (140 + (self.atomic_number/20)**3.2)/141
-        if self.atomic_number >= 16:
-            c, d, C, D = -0.28394, 1.95270, 0.20594, 3.70590
-            if self.atomic_number > 20:
-                C += ((self.atomic_number - 20)/50.5)**1.11
-        else:
-            c, d, C, D = -0.80414, 2.32431, 0.14424, 3.82652
-
-        Qrp = 1./U * (A * np.log(U) + D * (1. - 1./U)**2 + C * U * (1. - 1./U)**4
-                      + (c / U + d / U**2) * (1. - 1. / U))
-
-        # NOTE: conversion to Rydbergs equivalent to scaling to the ionization energy
-        # of hydrogen such that it is effectively unitless
-        return B * (np.pi * const.a0**2) * F * Qrp / (self.ionization_potential.to_value(u.Ry)**2)
+        return u.Quantity(cross_section_all)
 
     @cached_property
-    @needs_dataset('easplups')
+    @needs_dataset('easplups', 'diparams')
     @u.quantity_input
     def excitation_autoionization_rate(self) -> u.cm**3 / u.s:
         r"""
@@ -1416,9 +1320,14 @@ Using Datasets:
                                         kBTE,
                                         self._easplups['bt_c'].value,
                                         self._easplups['bt_type'])
+        # NOTE: Use just the first row as the EA scaling from the diparams files is the same
+        # for all rows as it is not related to the number of lines included in the DI calculation.
+        # They are contained in this datastructure as a result of the quirk of them being stored in
+        # the diparams file in the database.
+        scaling = self._diparams['ea'][0][:, np.newaxis]
         # NOTE: The 1/omega multiplicity factor is already included in the scaled upsilon
         # values provided by CHIANTI
-        rate = c * upsilon * np.exp(-1 / kBTE) / np.sqrt(self.thermal_energy)
+        rate = c * scaling * upsilon * np.exp(-1 / kBTE) / np.sqrt(self.thermal_energy)
 
         return rate.sum(axis=0)
 

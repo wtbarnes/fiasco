@@ -471,41 +471,48 @@ class DrparamsParser(GenericIonParser):
 class DiparamsParser(GenericIonParser):
     """
     Scaled cross-sections for calculating the ionization rate due to direct ionization.
-    See :cite:t:`burgess_analysis_1992` and :cite:t:`dere_ionization_2007` for more details.
+    See :cite:t:`dere_ionization_2007` and :cite:t:`young_chianti_2025` for more details
+    regarding the format of these files.
 
-    Notes
-    -----
-    - The scaled cross-sections date have been multiplied by :math:`10^{14}`
+    .. note::
+
+        The scaled cross-sections date have been multiplied by :math:`10^{14}`
     """
     filetype = 'diparams'
     dtypes = [float, float, float, float, float]
-    units = [u.eV, u.dimensionless_unscaled, u.dimensionless_unscaled, u.cm**2*u.eV**2, None]
+    units = [u.eV, u.dimensionless_unscaled, u.dimensionless_unscaled, u.cm**2*u.eV**2, u.dimensionless_unscaled]
     headings = ['ip', 'bt_c', 'bt_e', 'bt_cross_section', 'ea']
     descriptions = [
         'ionization potential',
         'Burgess-Tully scaling factor',
         'Burgess-Tully scaled energy',
         'Burgess-Tully scaled cross-section',
-        'excitation autoionization'
+        'excitation autoionization scaling factor'
     ]
 
     def preprocessor(self, table, line, index):
-        tmp = line.strip().split()
+        # NOTE: The order of these conditionals is important as the table is being modified in place
         if index == 0:
-            self._num_fits = int(tmp[2])
-            self._num_lines = int(tmp[3])
-            self._has_excitation_autoionization = bool(int(tmp[4]))
-        elif index == self._num_lines*2 + 1 and self._has_excitation_autoionization:
-            for t in table:
-                t[-1] = float(tmp[0])
-        elif index % 2 != 0:
-            bt_factor = tmp[0]
-            u_spline = np.array(tmp[1:], dtype=float)
-            table.append([bt_factor, u_spline])
+            # The first line has information about the number of fit points and number of transitions
+            # included as well as the number of EA scaling coefficients.
+            fformat = fortranformat.FortranRecordReader('(5I5)')
+            _, _, self._n_fits, self._n_lines, self._n_ea = fformat.read(line)
+        elif index == self._n_lines*2 + 1:
+            # The last line is a standalone parameter with a length dependent on the number
+            # of transitions included in the EA files. This is not necessarily present in all
+            # files. In that case, this conditional is never met.
+            ea_scaling = fortranformat.FortranRecordReader(f'({self._n_ea}E12.3)').read(line)
+            for row in table:
+                row[-1] = np.array(ea_scaling)
+        elif index % 2 == 1:
+            # The odd-numbered lines contain the scaling factor and energy array
+            tmp = fortranformat.FortranRecordReader(f'({1+self._n_fits}F10.5)').read(line)
+            table.append([tmp[0], np.array(tmp[1:])])
         else:
-            ionization_potential = tmp[0]
-            cs_spline = np.array(tmp[1:], dtype=float)*1e-14
-            table[-1] = [ionization_potential] + table[-1] + [cs_spline] + [0.0]
+            # The even-numbered lines contain the ionization potential and the
+            # scaled cross-section.
+            tmp = fortranformat.FortranRecordReader(f'({1+self._n_fits}F10.5)').read(line)
+            table[-1] = [tmp[0]] + table[-1] + [np.array(tmp[1:])*1e-14] + [1.0]
 
 
 class AutoParser(GenericIonParser):

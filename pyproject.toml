@@ -66,6 +66,7 @@ test = [
 test_idl = [
   "fiasco[test]",
   "hissw",
+  "GitPython",
 ]
 docs =[
   "fiasco[all]",
