@@ -1247,46 +1247,21 @@ Using Datasets:
         return IonCollection(self).spectrum(*args, **kwargs)
 
     @cached_property
+    @needs_dataset('diparams')
     @u.quantity_input
     def direct_ionization_rate(self) -> u.cm**3 / u.s:
         r"""
-        Total ionization rate due to collisions as a function of temperature.
+        Ionization rate due to collisions as a function of temperature.
 
-        The ionization rate due to the collisions with free electrons can
-        be written as the integral of the velocity-weighted collisional
-        cross-section over the Maxwell-Boltzmann distribution.
-        Following Section 3.5.1 of :cite:t:`del_zanna_solar_2018`, this can be
-        written as,
-
-        .. math::
-
-            C^I = \sqrt{\frac{8}{\pi m_e}}(k_BT)^{-3/2}\int_I^{\infty}\mathrm{d}E\,E\sigma_I(E)\exp{\left(-\frac{E}{k_BT}\right)}
-
-        where :math:`E` is the energy of the incident electron,
-        :math:`I` is the ionization energy of the initially bound electron,
-        and :math:`\sigma_I` is the ionization cross-section.
-
-        Making the substitution :math:`x=(E-I)/k_BT`, the above integral can be
-        rewritten as,
-
-        .. math::
-
-            \begin{aligned}
-                C^I = \sqrt{\frac{8k_BT}{\pi m_e}}\exp{\left(-\frac{I}{k_BT}\right)}&\left(\int_0^{\infty}\mathrm{d}x\,x\sigma_{I}(k_BTx+I)e^{-x} \right. \\
-                                                                                    &\left. + \frac{I}{k_BT}\int_0^{\infty}\mathrm{d}x\,\sigma_{I}(k_BTx+I)e^{-x}\right).
-            \end{aligned}
-
-        Each of these integrals is of the form such that they can be evaluated using Gauss-Laguerre quadrature.
-        Note that there is a typo in the expression for the ionization rate integral in Eq. 32 of :cite:t:`del_zanna_solar_2018`.
-        The details of the ionization cross-section calculation can be found in `direct_ionization_cross_section`.
-
-        See Also
-        --------
-        direct_ionization_cross_section : Calculation of :math:`\sigma_I` as a function of :math:`E`.
+        The ionization rate due to collisions with free electrons assuming a Maxwell-Boltzmann
+        distribution. At a minimum, this represents the contribution from the outer-shell electron
+        though contributions from inner-shell electrons are also considered for some ions.
+        For more details, see the topic guide on :ref:`fiasco-topic-guide-direct-ionization-rate`
+        as well as :cite:t:`young_chianti_2025`.
         """
         xgl, wgl = np.polynomial.laguerre.laggauss(12)
         kBT = self.thermal_energy
-        cross_section = self.direct_ionization_cross_section(np.outer(xgl, kBT))
+        cross_section = self._direct_ionization_cross_section(np.outer(xgl, kBT))
         rate_total = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         for ip, xs in zip(self._diparams['ip'], cross_section):
             term1 = np.sqrt(8./np.pi/const.m_e)*np.sqrt(kBT)*np.exp(-ip/kBT)
@@ -1297,31 +1272,7 @@ Using Datasets:
 
     @needs_dataset('diparams')
     @u.quantity_input
-    def direct_ionization_cross_section(self, energy: u.erg) -> u.cm**2:
-        r"""
-        Direct ionization cross-section as a function of energy.
-
-        The direction ionization cross-section is computed according to the method
-        of :cite:t:`dere_ionization_2007` which employs a scaling similar to that
-        used by :cite:t:`burgess_analysis_1992`.
-        Rearranging Eq. 3 of :cite:t:`dere_ionization_2007`,
-
-        .. math::
-
-            \sigma_I = \frac{\Sigma (\log{u} + 1)}{uI^2}
-
-        where :math:`u=E/I` is the energy of the incident electron scaled by ionization
-        potential and :math:`\Sigma` is the scaled cross-section which is defined over,
-
-        .. math::
-
-            U = 1 - \frac{\log{f}}{\log{u - 1 + f}}
-
-        where :math:`f` is a fitting parameter.
-        :math:`U,f,\Sigma` are all stored in the CHIANTI database such that :math:`\sigma_I`
-        can be computed for a given :math:`E`.
-        These scaled cross-section data are then interpolated to a given energy array.
-        """
+    def _direct_ionization_cross_section(self, energy: u.erg) -> u.cm**2:
         cross_section_all = []
         for ip, bt_c, bt_e, bt_cross_section in zip(self._diparams['ip'],
                                                     self._diparams['bt_c'],
