@@ -2,6 +2,7 @@
 IDL comparison tests for ionization equilibria
 """
 import astropy.units as u
+import numpy as np
 import pytest
 
 import fiasco
@@ -44,3 +45,60 @@ def test_ionization_fraction_from_idl(ion_name, idl_env, dbase_version, chianti_
                      hdf5_dbase_root=hdf5_dbase_root,
                      ionization_fraction=idl_result['ionization_fraction'])
     assert u.allclose(idl_result['ioneq'], ion.ionization_fraction, rtol=0.0, atol=1e-5)
+
+
+@pytest.fixture
+def temperature():
+    return 10**np.arange(5,8,0.05) * u.K
+
+
+@pytest.mark.parametrize('ion_name', [
+    'Ne VII',
+    'Al III',
+    'Fe I',
+    'Fe XI',
+    'Fe XII',
+    'Fe XVIII',
+    'Fe XXIV',
+])
+def test_ionization_rate_from_idl(ion_name, temperature, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root):
+    script = """
+    temperature = {{ temperature | to_unit('K') | force_double_precision }}
+    rate = ioniz_rate('{{ ion_name }}', temperature)
+    """
+    ion = fiasco.Ion(ion_name, temperature, hdf5_dbase_root=hdf5_dbase_root)
+    idl_result = run_idl_script(idl_env,
+                                script,
+                                {'temperature': temperature, 'ion_name': ion._ion_name},
+                                ['rate'],
+                                f'ionization_rate_{ion.atomic_number}_{ion.ionization_stage}',
+                                dbase_version,
+                                chianti_idl_version,
+                                format_func={'rate': lambda x: x*u.Unit('cm3 s-1')})
+    assert u.allclose(idl_result['rate'], ion.ionization_rate, rtol=0.05)
+
+
+@pytest.mark.parametrize('ion_name', [
+    'Ne VII',
+    'Al III',
+    'Fe I',
+    'Fe XI',
+    'Fe XII',
+    'Fe XVIII',
+    'Fe XXIV',
+])
+def test_recombination_rate_from_idl(ion_name, temperature, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root):
+    script = """
+    temperature = {{ temperature | to_unit('K') | force_double_precision }}
+    rate = recomb_rate('{{ ion_name }}', temperature)
+    """
+    ion = fiasco.Ion(ion_name, temperature, hdf5_dbase_root=hdf5_dbase_root)
+    idl_result = run_idl_script(idl_env,
+                                script,
+                                {'temperature': temperature, 'ion_name': ion._ion_name},
+                                ['rate'],
+                                f'recombination_rate_{ion.atomic_number}_{ion.ionization_stage}',
+                                dbase_version,
+                                chianti_idl_version,
+                                format_func={'rate': lambda x: x*u.Unit('cm3 s-1')})
+    assert u.allclose(idl_result['rate'], ion.recombination_rate, rtol=0.02)

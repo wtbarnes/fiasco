@@ -557,6 +557,7 @@ def test_ionization_potential_setter(ion, ip_input, ip_output):
             ip_input.to('eV', equivalencies=u.equivalencies.spectral()),
         )
 
+
 def test_ion_mass(fe10, c5):
     assert fe10.mass.unit.physical_type == 'mass'
     assert u.isclose(fe10.mass, 9.27246057e-23*u.g)
