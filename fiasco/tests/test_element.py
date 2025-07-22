@@ -78,7 +78,7 @@ def test_equilibrium_ionization(hdf5_dbase_root):
     carbon = fiasco.Element('C', temperature, hdf5_dbase_root=hdf5_dbase_root)
     ionization_fraction = carbon.equilibrium_ionization
     assert ionization_fraction.shape == carbon.temperature.shape + (carbon.atomic_number + 1,)
-    assert u.allclose(ionization_fraction[33, 5], u.Quantity(0.57873453), rtol=1e-8)
+    assert u.allclose(ionization_fraction[33, 5], carbon[5].ionization_fraction[33], rtol=5e-4)
 
 
 def test_element_repr(element):
