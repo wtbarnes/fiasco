@@ -609,16 +609,11 @@ Using Datasets:
             else:
                 c_matrix = self._build_coefficient_matrix(d, include_protons=include_protons)
             # Invert matrix
-            val, vec = np.linalg.eig(c_matrix.to_value('s-1'))
-            # NOTE: Eigenvectors with eigenvalues closest to zero are the solutions to the homogeneous
-            # system of linear equations
-            # NOTE: Sometimes eigenvalues may have complex component due to numerical stability.
-            # We will take only the real component as our rate matrix is purely real
-            i_min = np.argmin(np.fabs(np.real(val)), axis=1)
-            pop = np.take(np.real(vec), i_min, axis=2)[range(vec.shape[0]), :, range(vec.shape[0])]
-            # NOTE: The eigenvectors can only be determined up to a sign so we must enforce
-            # positivity
-            np.fabs(pop, out=pop)
+            c_matrix[:, -1, :] = 1.*c_matrix.unit
+            b = np.zeros(c_matrix.shape[2:])
+            b[-1] = 1.0
+            pop = np.linalg.solve(c_matrix.value, b)
+            pop[pop<0] = 0.0
             np.divide(pop, pop.sum(axis=1)[:, np.newaxis], out=pop)
             # Apply ionization/recombination correction
             if include_level_resolved_rate_correction:
