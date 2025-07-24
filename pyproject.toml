@@ -40,7 +40,7 @@ dependencies = [
   "astropy",
   "fortranformat",
   "h5py",
-  "numpy",
+  "numpy<2.3.0",
   "plasmapy",
 ]
 
