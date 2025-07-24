@@ -533,7 +533,7 @@ Using Datasets:
                           include_protons=True,
                           include_level_resolved_rate_correction=True,
                           couple_density_to_temperature=False,
-                          use_two_ion_model=False) -> u.dimensionless_unscaled:
+                          use_two_ion_model=True) -> u.dimensionless_unscaled:
         """
         Energy level populations as a function of temperature and density.
 
