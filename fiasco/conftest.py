@@ -17,7 +17,7 @@ else:
 
 @pytest.fixture(scope='session')
 def ascii_dbase_tree(tmpdir_factory, request):
-    path = request.config.getoption('--ascii-dbase-root')
+    path = request.config.getoption('--ascii-dbase-root', default=None)
     if path is None:
         path = tmpdir_factory.mktemp('chianti_dbase')
     return pathlib.Path(path)
@@ -30,7 +30,7 @@ def hdf5_dbase_root(ascii_dbase_tree, tmpdir_factory, request):
     # Note that this test setup explicitly does not build the test HDF5
     # database in a custom location. It is always in a temporary directory
     # unless you explicitly build it ahead of time.
-    path = request.config.getoption('--hdf5-dbase-root')
+    path = request.config.getoption('--hdf5-dbase-root', default=None)
     if path is not None:
         return path
     # Otherwise, set it up here
@@ -39,16 +39,16 @@ def hdf5_dbase_root(ascii_dbase_tree, tmpdir_factory, request):
     # are included in the test database to make running the tests more
     # efficient and a hash is checked to ensure the correct tests are
     # being checked
-    if request.config.getoption('--include-all-files'):
+    if request.config.getoption('--include-all-files', default=False):
         test_files = None
     else:
         test_files = get_test_file_list()
-    check_hash = not request.config.getoption('--disable-file-hash')
+    check_hash = not request.config.getoption('--disable-file-hash', default=False)
     # Optionally use a different URL for the database (e.g. for testing different versions)
-    ascii_dbase_url = request.config.getoption('--ascii-dbase-url')
+    ascii_dbase_url = request.config.getoption('--ascii-dbase-url', default=None)
     # Optionally disable version checking. This is useful when testing newer/older versions
     # of CHIANTI
-    check_chianti_version = not request.config.getoption('--skip-version-check')
+    check_chianti_version = not request.config.getoption('--skip-version-check', default=False)
     # Finally, run the database setup
     check_database(path,
                    ascii_dbase_root=ascii_dbase_tree,
