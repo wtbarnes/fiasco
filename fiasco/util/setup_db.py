@@ -11,6 +11,7 @@ import tarfile
 from astropy.config import set_temp_cache
 from astropy.utils.console import ProgressBar
 from astropy.utils.data import download_file, get_pkg_data_path
+from packaging.version import Version
 
 import fiasco.io
 
@@ -25,7 +26,12 @@ SUPPORTED_VERSIONS = [
     '8.0.2',
     '8.0.6',
     '8.0.7',
+    '9.0',
     '9.0.1',
+    '10.0',
+    '10.0.1',
+    '10.0.2',
+    '10.1',
 ]
 LATEST_VERSION = SUPPORTED_VERSIONS[-1]
 
@@ -170,10 +176,11 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=F
 
 
 def _check_database_version(ascii_dbase_root):
-    version = read_chianti_version(ascii_dbase_root)
-    if str(version) not in SUPPORTED_VERSIONS:
+    dbase_version = read_chianti_version(ascii_dbase_root)
+    if not any([dbase_version==Version(v) for v in SUPPORTED_VERSIONS]):
         raise UnsupportedVersionError(
-            f'CHIANTI {version} is not in the list of supported versions {SUPPORTED_VERSIONS}.')
+            f'CHIANTI {dbase_version} is not in the list of supported versions {SUPPORTED_VERSIONS}.'
+        )
 
 
 def _md5hash(path):
