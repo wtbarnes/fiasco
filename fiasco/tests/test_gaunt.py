@@ -12,16 +12,20 @@ from fiasco.util.exceptions import MissingDatasetException
 
 temperature = np.logspace(5, 8, 100)*u.K
 
+
 @pytest.fixture
 def ion(hdf5_dbase_root):
     return fiasco.Ion('Fe 5', temperature, hdf5_dbase_root=hdf5_dbase_root)
+
 
 @pytest.fixture
 def gaunt_factor(hdf5_dbase_root):
     return GauntFactor(hdf5_dbase_root=hdf5_dbase_root)
 
+
 def test_repr(gaunt_factor):
     assert 'Gaunt factor' in gaunt_factor.__repr__()
+
 
 @pytest.mark.parametrize(('ionization_stage', 'zeta'), [
     (2, 32.0),
@@ -34,6 +38,7 @@ def test_zeta0(hdf5_dbase_root, ionization_stage, zeta):
     z0 = iron[ionization_stage].gaunt_factor._zeta_0(iron.atomic_number, iron[ionization_stage].charge_state)
     assert u.isclose(z0, zeta)
 
+
 @pytest.mark.parametrize(('charge_state', 'expected'),
                         [(0, 0.0), (1, 1.41409406), (2, 1.3265169), (3, 1.27165875)])
 def test_gaunt_factor_free_free_integrated(gaunt_factor, charge_state, expected):
@@ -41,6 +46,7 @@ def test_gaunt_factor_free_free_integrated(gaunt_factor, charge_state, expected)
     assert gf.shape == temperature.shape
     # This value has not been tested for correctness
     assert u.allclose(gf[0], expected * u.dimensionless_unscaled)
+
 
 @pytest.mark.requires_dbase_version('>= 9.0.1')
 @pytest.mark.parametrize(('charge_state','index','expected'),
@@ -54,6 +60,7 @@ def test_gaunt_factor_free_free_integrated_itoh(gaunt_factor, charge_state, inde
     # This value has not been tested for correctness
     assert u.allclose(gf[index], expected * u.dimensionless_unscaled)
 
+
 @pytest.mark.requires_dbase_version('< 9.0.1')
 def test_free_free_integrated_itoh_missing_data(gaunt_factor):
     gf = gaunt_factor._free_free_itoh_integrated(temperature, 1)
@@ -64,6 +71,7 @@ def test_free_free_integrated_itoh_missing_data(gaunt_factor):
     with pytest.raises(MissingDatasetException):
         gf = gaunt_factor._free_free_itoh_integrated_nonrelativistic(temperature, 1)
 
+
 @pytest.mark.requires_dbase_version('>= 9.0.1')
 @pytest.mark.parametrize(('T'), [(1e3,1e9)])
 def test_gaunt_factor_free_free_integrated_itoh_invalid_temperature(gaunt_factor, T):
@@ -72,9 +80,11 @@ def test_gaunt_factor_free_free_integrated_itoh_invalid_temperature(gaunt_factor
     gf = gaunt_factor._free_free_itoh_integrated_nonrelativistic(T*u.K, 1)
     assert np.isnan(gf[0])
 
+
 def test_gaunt_factor_free_bound_nl_missing(gaunt_factor):
     #test cases where n or l is not in the klgfb data
     assert u.isclose(gaunt_factor.free_bound(0.5, 10, 1), 1.0 * u.dimensionless_unscaled)
+
 
 @pytest.mark.parametrize(('ground_state', 'expected'), [(True, 55.18573076316151), (False, 11.849092513590998)])
 def test_gaunt_factor_free_bound_integrated(ion, ground_state, expected):
@@ -88,8 +98,10 @@ def test_gaunt_factor_free_bound_integrated(ion, ground_state, expected):
     # These values have not been tested for correctness
     assert u.isclose(gf[20], expected * u.dimensionless_unscaled)
 
+
 def test_free_bound_integrated_zero_charge(gaunt_factor):
     assert u.allclose(gaunt_factor.free_bound_integrated(temperature, 1, 0, 1, 13.6*u.eV), 0.0 * u.dimensionless_unscaled)
+
 
 @pytest.mark.parametrize('gs', [True, False])
 def test_free_bound_gaunt_factor_low_temperature(gs, hdf5_dbase_root):
