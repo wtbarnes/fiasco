@@ -332,13 +332,13 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         fiasco.Ion.free_bound
         """
         E_scaled = np.atleast_1d(E_scaled)
-        index_nl = np.where(np.logical_and(self._klgfb['n'] == n, self._klgfb['l'] == l))[0]
+        index_nl = np.where(np.logical_and(self._klgfb['n']==n, self._klgfb['l']==l))
         # If there is no Gaunt factor for n, l, set it to 1
-        if index_nl.shape == (0,):
+        if index_nl[0].shape == (0,):
             gf = np.ones(E_scaled.shape)
         else:
-            gf_interp = splrep(self._klgfb['log_pe'][index_nl, :].squeeze(),
-                               self._klgfb['log_gaunt_factor'][index_nl, :].squeeze())
+            gf_interp = splrep(self._klgfb['log_pe'][index_nl],
+                               self._klgfb['log_gaunt_factor'][index_nl])
             gf = np.exp(splev(E_scaled, gf_interp))
 
         return gf

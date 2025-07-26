@@ -217,9 +217,12 @@ class KlgfbParser(GenericParser):
     dtypes = [int, int, float, float]
     units = [None, None, u.dimensionless_unscaled, u.dimensionless_unscaled]
     headings = ['n', 'l', 'log_pe', 'log_gaunt_factor']
-    descriptions = ['principal quantum number', 'orbital angular momentum number',
-                    'log photon energy divided by ionization potential',
-                    'log free-bound Gaunt factor']
+    descriptions = [
+        'principal quantum number',
+        'orbital angular momentum number',
+        'log photon energy divided by ionization potential',
+        'log free-bound Gaunt factor',
+    ]
 
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
@@ -233,8 +236,12 @@ class KlgfbParser(GenericParser):
             self._photon_energy = np.array(line.strip().split(), dtype=float)
         else:
             line = line.strip().split()
-            gf = np.array(line[2:], dtype=float)
-            table.append(line[:2] + [self._photon_energy, gf])
+            n, l = line[:2]
+            gaunt_factor = np.array(line[2:], dtype=float)
+            if gaunt_factor.shape != self._photon_energy.shape:
+                raise ValueError('K&L gaunt factor and photon energy have unequal dimensions')
+            for pe, gf in zip(self._photon_energy, gaunt_factor):
+                table.append([n, l, pe, gf])
 
     def extract_footer(self, *args):
         return """Log of free-bound Gaunt factors as a function of log of photon energy divided by ionization potential
@@ -271,6 +278,106 @@ From Karzas, W. J. and Latter, R., 1961, ApJS, 6, 167"""
             else:
                 ds.attrs['unit'] = col.unit.to_string()
             ds.attrs['description'] = df.meta['descriptions'][name]
+
+
+class KlgfbNParser(GenericParser):
+    """
+    Free-bound gaunt factor as a function of photon energy for a given principal quantum number.
+
+    .. note::
+
+        This parser returns the same information as `~fiasco.io.sources.continuum_sources.KlgfbParser`
+        but exists because the file format for the Karzas and Latter Gaunt factors changed in v10
+        of the database.
+    """
+    dtypes = [int, int, float, float]
+    units = [None, None, u.dimensionless_unscaled, u.dimensionless_unscaled]
+    headings = ['n', 'l', 'log_pe', 'log_gaunt_factor']
+    descriptions = [
+        'principal quantum number',
+        'orbital angular momentum number',
+        'log of photon energy (in Rydbergs)',
+        'log of free-bound Gaunt factor',
+    ]
+
+    def __init__(self, filename, **kwargs):
+        super().__init__(filename, **kwargs)
+        self.full_path = pathlib.Path(kwargs.get('full_path',
+                                    self.ascii_dbase_root / 'continuum' / filename))
+
+    @property
+    def pqn(self):
+        return int(self.filetype.split('_')[1])
+
+    def extract_footer(self, *args):
+        return f"""Free-bound Gaunt factors as a function of photon energy for principal quantum number n={self.pqn}
+From Karzas, W. J. and Latter, R., 1961, ApJS, 6, 167"""
+
+    def preprocessor(self, table, line, index):
+        line = line.strip().split()
+        pe = float(line[0])
+        gaunt_factor = np.array(line[1:], dtype=float)
+        for i,gf in enumerate(gaunt_factor):
+            table.append([self.pqn, i, pe, gf])
+
+    def postprocessor(self, df):
+        df = super().postprocessor(df)
+        df['log_pe'] = np.log10(df['log_pe'])
+        df['log_gaunt_factor'] = np.log10(df['log_gaunt_factor'])
+        df.sort(keys=['n', 'l', 'log_pe'])
+        return df
+
+    def to_hdf5(self, hf, df, **kwargs):
+        # NOTE: The group name is the same for all klgfb_n files
+        grp_name = 'continuum/klgfb'
+        if grp_name not in hf:
+            grp = hf.create_group(grp_name)
+            grp.attrs['chianti_version'] = df.meta['chianti_version']
+            grp.attrs['footer'] = df.meta['footer']
+        else:
+            grp = hf[grp_name]
+        for name in df.colnames:
+            col = df[name]
+            data = col.value if isinstance(col, u.Quantity) else col.data
+            # This conditional allows for concatenating multiple files into a single
+            # dataset within the HDF5 database
+            if name in grp:
+                ds = grp[name]
+                ds.resize(ds.shape[0]+data.shape[0], axis=0)
+                ds[-data.shape[0]:] = data
+            else:
+                ds = grp.create_dataset(name, data=data, dtype=data.dtype, maxshape=(None,))
+                if col.unit is None:
+                    ds.attrs['unit'] = 'SKIP'
+                else:
+                    ds.attrs['unit'] = col.unit.to_string()
+                ds.attrs['description'] = df.meta['descriptions'][name]
+
+
+# These are implemented separately because of the way the parser factory works.
+# This is more a quirk of this information being split amongst multiple files.
+class Klgfb1Parser(KlgfbNParser):
+    filetype = 'klgfb_1'
+
+
+class Klgfb2Parser(KlgfbNParser):
+    filetype = 'klgfb_2'
+
+
+class Klgfb3Parser(KlgfbNParser):
+    filetype = 'klgfb_3'
+
+
+class Klgfb4Parser(KlgfbNParser):
+    filetype = 'klgfb_4'
+
+
+class Klgfb5Parser(KlgfbNParser):
+    filetype = 'klgfb_5'
+
+
+class Klgfb6Parser(KlgfbNParser):
+    filetype = 'klgfb_6'
 
 
 class VernerParser(GenericParser):
