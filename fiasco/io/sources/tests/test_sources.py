@@ -46,15 +46,15 @@ def test_ion_sources(ascii_dbase_root, filename,):
 
 @pytest.mark.parametrize('filename', [
     'chianti.ioneq',
-    pytest.param('sun_coronal_1992_feldman.abund', marks=pytest.mark.requires_dbase_version('< 11')),
-    pytest.param('sun_coronal_2021_chianti.abund', marks=pytest.mark.requires_dbase_version('>= 11')),
+    pytest.param('sun_coronal_1992_feldman.abund', marks=pytest.mark.requires_dbase_version('< 10')),
+    pytest.param('sun_coronal_2021_chianti.abund', marks=pytest.mark.requires_dbase_version('>= 10')),
     'chianti.ip',
     'gffgu.dat',
     'gffint.dat',
     'hseq_2photon.dat',
     'itoh.dat',
     pytest.param('klgfb.dat', marks=pytest.mark.requires_dbase_version('< 10')),
-    pytest.param('klgfb_6.dat', marks=pytest.mark.requires_dbase_version('>=10')),
+    pytest.param('klgfb_6.dat', marks=pytest.mark.requires_dbase_version('>= 10')),
     'verner_short.txt',
     'flare.dem',
     pytest.param('itoh_integrated_gaunt.txt', marks=pytest.mark.requires_dbase_version('>= 9.0.1')),
@@ -73,9 +73,9 @@ def test_non_ion_sources(ascii_dbase_root, filename):
 
 @pytest.mark.parametrize('filename', [
     # Many abundance files were moved in v11 of the database
-    pytest.param('sun_coronal_1992_feldman.abund', marks=pytest.mark.requires_dbase_version('< 11')),
-    pytest.param('archive/sun_coronal_1992_feldman.abund', marks=pytest.mark.requires_dbase_version('>= 11')),
-    pytest.param('sun_coronal_2021_chianti.abund', marks=pytest.mark.requires_dbase_version('>= 11')),
+    pytest.param('sun_coronal_1992_feldman.abund', marks=pytest.mark.requires_dbase_version('< 10')),
+    pytest.param('archive/sun_coronal_1992_feldman.abund', marks=pytest.mark.requires_dbase_version('>= 10')),
+    pytest.param('sun_coronal_2021_chianti.abund', marks=pytest.mark.requires_dbase_version('>= 10')),
     'version_3/allen.abund',
     'version_3/grevesse_anders.abund'
 ])
