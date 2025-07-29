@@ -22,7 +22,7 @@ jobs:
       posargs: '--ascii-dbase-root ~/.chianti'
       toxdeps: tox-pypi-filter
       envs: |
-        - linux: py312
+        - linux: py313
       coverage: 'codecov'
       cache-path: ~/.chianti
       cache-key: chianti-${{ github.event.number }}
@@ -36,8 +36,8 @@ jobs:
       posargs: '--ascii-dbase-root ~/.chianti'
       toxdeps: tox-pypi-filter
       envs: |
-        - macos: py311
-        - windows: py310
+        - macos: py312
+        - windows: py311
       coverage: 'codecov'
       cache-path: ~/.chianti
       cache-key: chianti-${{ github.event.number }}
@@ -61,7 +61,7 @@ jobs:
       posargs: '--ascii-dbase-root ~/.chianti --include-all-files'
       toxdeps: tox-pypi-filter
       envs: |
-        - linux: py311
+        - linux: py312
       cache-path: ~/.chianti
       cache-key: chianti-${{ github.event.number }}
 
@@ -82,7 +82,7 @@ jobs:
       posargs: '--ascii-dbase-root ~/.chianti --ascii-dbase-url http://download.chiantidatabase.org/CHIANTI_v7.1.4_database.tar.gz --disable-file-hash --skip-version-check'
       toxdeps: tox-pypi-filter
       envs: |
-        - linux: py311
+        - linux: py312
 
   test_database_v8:
     if: |
@@ -101,7 +101,7 @@ jobs:
       posargs: '--ascii-dbase-root ~/.chianti --ascii-dbase-url http://download.chiantidatabase.org/CHIANTI_v8.0.7_database.tar.gz'
       toxdeps: tox-pypi-filter
       envs: |
-        - linux: py311
+        - linux: py312
 
   docs:
     needs: [tests]
