@@ -5,6 +5,7 @@ These classes are not meant to be instantiated directly by the user.
 """
 import plasmapy.particles
 
+from packaging.version import Version
 from plasmapy.utils import roman
 
 import fiasco
@@ -49,6 +50,22 @@ class IonBase:
         # Put import here to avoid circular imports
         from fiasco import log
         self.log = log
+        # Warn users if the database they are using is potentially stale.
+        self._check_dbase_fiasco_version()
+
+    def _check_dbase_fiasco_version(self):
+        "Warn if database was generated with an earlier version of fiasco."
+        dbase_version = DataIndexer(self.hdf5_dbase_root, '/').fiasco_version
+        if dbase_version is not None:
+            current_version = Version(fiasco.__version__)
+            if dbase_version < current_version:
+                self.log(
+                    f'{self.hdf5_dbase_root} was produced with an earlier version of fiasco ({dbase_version}) '
+                    'than the current version (c{current_version}). ',
+                    'You may need to rebuild the HDF5 database. '
+                    'See https://fiasco.readthedocs.io/en/stable/how_to_guides.html#re-building-the-hdf5-database '
+                    'for more information.'
+                )
 
     @property
     def atomic_number(self):

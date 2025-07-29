@@ -169,6 +169,8 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=F
             ion_list = list_ions(hdf5_dbase_root)
             ds = hf.create_dataset('ion_index', data=np.array(ion_list).astype(np.bytes_))
             ds.attrs['unit'] = 'SKIP'
+            # Add the version of fiasco that generated this database
+            hf.attrs['fiasco_version'] = fiasco.__version__
 
 
 def _check_database_version(ascii_dbase_root):
