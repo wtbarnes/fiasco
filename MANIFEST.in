@@ -1,2 +1,1 @@
-prune fiasco/tests/idl/data
 prune fiasco/tests/idl/ssw_gen_functions
