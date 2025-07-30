@@ -7,6 +7,7 @@ import numpy as np
 import pathlib
 
 from astropy.table import QTable
+from packaging.version import Version
 
 from fiasco.util.exceptions import MissingDatabaseError
 
@@ -71,12 +72,17 @@ class DataIndexerHDF5:
             raise KeyError(f'{top_level_path} not found in {hdf5_path}')
 
     @property
+    def fiasco_version(self):
+        with h5py.File(self.hdf5_dbase_root, 'r') as hf:
+            if (version:=hf.attrs.get('fiasco_version', None)):
+                version = Version(version)
+        return version
+
+    @property
     def version(self):
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
-            if 'chianti_version' in hf[self.top_level_path].attrs:
-                version = hf[self.top_level_path].attrs['chianti_version']
-            else:
-                version = None
+            if (version:=hf[self.top_level_path].attrs.get('chianti_version', None)):
+                version = Version(version)
         return version
 
     @property

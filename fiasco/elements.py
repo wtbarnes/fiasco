@@ -108,14 +108,6 @@ class Element(fiasco.IonCollection):
                   function of temperature on the fly using the ionization and
                   recombination rates associated with each ion in the element.
 
-        Examples
-        --------
-        >>> temperature = 10**np.arange(3.9, 6.5, 0.01) * u.K
-        >>> carbon = Element('C', temperature)
-        >>> carbon_ionization = carbon.equilibrium_ionization
-        >>> carbon_ionization[:, 4].max()  # max population fraction of C V as a function of temperature
-        <Quantity 0.99776769>
-
         See Also
         --------
         fiasco.Ion.ionization_rate
