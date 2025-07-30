@@ -35,7 +35,7 @@ def plot_idl_comparison(x, y_idl, y_python, fig, n_rows, i_row, quantity_name, t
     ax1.set_xscale('log')
     ax1.set_yscale('log')
     if i_row == 0:
-        ax1.set_title('Ionization Fraction')
+        ax1.set_title('Contribution Function')
     ax1.set_xlim(1e5, 1e8)
     ax1.set_ylim(y_python.max()*np.array([thresh,2]))
     ax1.set_ylabel(quantity_name)
