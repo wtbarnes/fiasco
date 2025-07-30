@@ -61,7 +61,7 @@ class IonBase:
             if dbase_version < current_version:
                 self.log(
                     f'{self.hdf5_dbase_root} was produced with an earlier version of fiasco ({dbase_version}) '
-                    'than the current version (c{current_version}). ',
+                    f'than the current version ({current_version}). ',
                     'You may need to rebuild the HDF5 database. '
                     'See https://fiasco.readthedocs.io/en/stable/how_to_guides.html#re-building-the-hdf5-database '
                     'for more information.'
