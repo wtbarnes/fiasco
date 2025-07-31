@@ -335,7 +335,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         index_nl = np.where(np.logical_and(self._klgfb['n']==n, self._klgfb['l']==l))
         # If there is no Gaunt factor for n, l, set it to 1
         if index_nl[0].shape == (0,):
-            gf = np.ones(E_scaled.shape)
+            gf = np.ones(log_E_scaled.shape)
         else:
             log_pe = self._klgfb.get('log_pe', None)
             log_gf = self._klgfb.get('log_gaunt_factor', None)
