@@ -291,13 +291,13 @@ class KlgfbNParser(GenericParser):
         of the database.
     """
     dtypes = [int, int, float, float]
-    units = [None, None, u.dimensionless_unscaled, u.dimensionless_unscaled]
-    headings = ['n', 'l', 'log_pe', 'log_gaunt_factor']
+    units = [None, None, u.Ry, u.dimensionless_unscaled]
+    headings = ['n', 'l', 'photon_energy', 'gaunt_factor']
     descriptions = [
         'principal quantum number',
         'orbital angular momentum number',
-        'log of photon energy (in Rydbergs)',
-        'log of free-bound Gaunt factor',
+        'photon energy',
+        'free-bound Gaunt factor',
     ]
 
     def __init__(self, filename, **kwargs):
@@ -319,13 +319,6 @@ From Karzas, W. J. and Latter, R., 1961, ApJS, 6, 167"""
         gaunt_factor = np.array(line[1:], dtype=float)
         for i,gf in enumerate(gaunt_factor):
             table.append([self.pqn, i, pe, gf])
-
-    def postprocessor(self, df):
-        df = super().postprocessor(df)
-        df['log_pe'] = np.log10(df['log_pe'])
-        df['log_gaunt_factor'] = np.log10(df['log_gaunt_factor'])
-        df.sort(keys=['n', 'l', 'log_pe'])
-        return df
 
     def to_hdf5(self, hf, df, **kwargs):
         # NOTE: The group name is the same for all klgfb_n files
