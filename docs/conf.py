@@ -126,6 +126,7 @@ html_sidebars = {
     "quick_start*": [],
     "how_to_guides*": [],
     "citation*": [],
+    "developer*": [],
 }
 # Render inheritance diagrams in SVG
 graphviz_output_format = "svg"
