@@ -367,7 +367,7 @@ HDF5 Database: {self.hdf5_dbase_root}"""
 
     @u.quantity_input
     def free_bound_integrated(self, temperature: u.K, atomic_number, charge_state, n_0,
-                            ionization_potential: u.eV, ground_state=True) -> u.dimensionless_unscaled:
+                              ionization_potential: u.eV, ground_state=True) -> u.dimensionless_unscaled:
         r"""
         The wavelength-integrated Gaunt factor for free-bound emission as a function of temperature.
 

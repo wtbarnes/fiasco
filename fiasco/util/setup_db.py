@@ -19,7 +19,6 @@ from fiasco.util.exceptions import MissingASCIIFileError, UnsupportedVersionErro
 from fiasco.util.util import get_chianti_catalog, query_yes_no, read_chianti_version
 
 FIASCO_HOME = pathlib.Path.home() / '.fiasco'
-CHIANTI_URL = 'http://download.chiantidatabase.org/CHIANTI_{version}_database.tar.gz'
 # List in order (oldest to newest) the supported versions of the database
 SUPPORTED_VERSIONS = [
     '8.0',
@@ -99,12 +98,13 @@ def check_database(hdf5_dbase_root, **kwargs):
 
 
 def _get_chianti_dbase_url(version=None):
+    chianti_url = 'http://download.chiantidatabase.org/CHIANTI_{version}_database.tar.gz'
     if version is None:
         version=LATEST_VERSION
     if Version(version) < Version('10'):
         # The database versions are prepended with a "v" in versions earlier than 10
         version = f'v{version}'
-    return CHIANTI_URL.format(version=version)
+    return chianti_url.format(version=version)
 
 
 def download_dbase(ascii_dbase_url, ascii_dbase_root):
