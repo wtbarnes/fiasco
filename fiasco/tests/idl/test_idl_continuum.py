@@ -41,8 +41,6 @@ def all_ions(ion_input_args, temperature, hdf5_dbase_root):
 @pytest.fixture
 def idl_input_args(ion_input_args, temperature, dbase_version):
     input_args = copy.deepcopy(ion_input_args)
-    if version_check(dbase_version, '>=', '10.1'):
-        input_args['abundance'] = f'archive/{input_args["abundance"]}'
     return {
         'wavelength': np.arange(25, 414, 1) * u.Angstrom,
         'temperature': temperature,
@@ -59,7 +57,12 @@ def test_idl_compare_free_free(idl_env, all_ions, idl_input_args, dbase_version,
     {% endif %}
 
     ; read abundance and ionization equilibrium
-    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
+    {% if database_version | version_check('>=', '10.1') %}
+    abundance_subdirs = ['abundance', 'archive']
+    {% else %}
+    abundance_subdirs = 'abundance'
+    {% endif %}
+    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR=abundance_subdirs)
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     {% if chianti_idl_version | version_check('<', 9) %}
     read_abund, abund_file, abund, abund_ref
@@ -99,7 +102,12 @@ def test_idl_compare_free_bound(idl_env, all_ions, idl_input_args, dbase_version
     {% endif %}
 
     ; read abundance and ionization equilibrium
-    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
+    {% if database_version | version_check('>=', '10.1') %}
+    abundance_subdirs = ['abundance', 'archive']
+    {% else %}
+    abundance_subdirs = 'abundance'
+    {% endif %}
+    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR=abundance_subdirs)
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     {% if chianti_idl_version | version_check('<', 9) %}
     read_abund, abund_file, abund, abund_ref
@@ -161,7 +169,12 @@ def test_idl_compare_free_bound_ion(idl_env, all_ions, idl_input_args, dbase_ver
 
 def test_idl_compare_free_free_radiative_loss(idl_env, ion_input_args, idl_input_args, hdf5_dbase_root, dbase_version, chianti_idl_version):
     script = """
-    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
+    {% if database_version | version_check('>=', '10.1') %}
+    abundance_subdirs = ['abundance', 'archive']
+    {% else %}
+    abundance_subdirs = 'abundance'
+    {% endif %}
+    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR=abundance_subdirs)
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     ff_rad_loss, temperature, free_free_radiative_loss, abund_file=abund_file, ioneq_file=ioneq_file
     """
@@ -190,7 +203,12 @@ def test_idl_compare_free_free_radiative_loss(idl_env, ion_input_args, idl_input
 
 def test_idl_compare_free_bound_radiative_loss(idl_env, ion_input_args, idl_input_args, hdf5_dbase_root, dbase_version, chianti_idl_version):
     script = """
-    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
+    {% if database_version | version_check('>=', '10.1') %}
+    abundance_subdirs = ['abundance', 'archive']
+    {% else %}
+    abundance_subdirs = 'abundance'
+    {% endif %}
+    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR=abundance_subdirs)
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     fb_rad_loss, temperature, free_bound_radiative_loss, abund_file=abund_file, ioneq_file=ioneq_file
     """
@@ -223,7 +241,12 @@ def test_idl_compare_two_photon(idl_env, all_ions, idl_input_args, dbase_version
     {% endif %}
 
     ; read abundance and ionization equilibrium
-    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
+    {% if database_version | version_check('>=', '10.1') %}
+    abundance_subdirs = ['abundance', 'archive']
+    {% else %}
+    abundance_subdirs = 'abundance'
+    {% endif %}
+    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR=abundance_subdirs)
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
     {% if chianti_idl_version | version_check('<', 9) %}
     read_abund, abund_file, abund, abund_ref
