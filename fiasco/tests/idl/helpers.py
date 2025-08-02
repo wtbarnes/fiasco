@@ -24,6 +24,8 @@ __all__ = [
 
 
 def get_idl_test_output_filepath(name, version):
+    if not isinstance(version, Version):
+        version = Version(version)
     data_dir = pathlib.Path(get_pkg_data_path('data', package='fiasco.tests.idl'))
     return data_dir / f"{name}_v{version.major}.{version.minor}.{version.micro}.asdf"
 
