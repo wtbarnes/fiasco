@@ -19,7 +19,6 @@ from fiasco.util.exceptions import MissingASCIIFileError, UnsupportedVersionErro
 from fiasco.util.util import get_chianti_catalog, query_yes_no, read_chianti_version
 
 FIASCO_HOME = pathlib.Path.home() / '.fiasco'
-CHIANTI_URL = 'http://download.chiantidatabase.org/CHIANTI_v{version}_database.tar.gz'
 # List in order (oldest to newest) the supported versions of the database
 SUPPORTED_VERSIONS = [
     '8.0',
@@ -28,6 +27,10 @@ SUPPORTED_VERSIONS = [
     '8.0.7',
     '9.0',
     '9.0.1',
+    '10.0',
+    '10.0.1',
+    '10.0.2',
+    '10.1',
 ]
 LATEST_VERSION = SUPPORTED_VERSIONS[-1]
 
@@ -76,7 +79,7 @@ def check_database(hdf5_dbase_root, **kwargs):
     if not (ascii_dbase_root / "VERSION").is_file():
         ascii_dbase_url = kwargs.get('ascii_dbase_url')
         if ascii_dbase_url is None:
-            ascii_dbase_url = CHIANTI_URL.format(version=LATEST_VERSION)
+            ascii_dbase_url = _get_chianti_dbase_url()
         if ask_before:
             question = f"No CHIANTI database found at {ascii_dbase_root}. Download it from {ascii_dbase_url}?"
             answer = query_yes_no(question, default='no')
@@ -92,6 +95,16 @@ def check_database(hdf5_dbase_root, **kwargs):
     # If we made it this far, build the HDF5 database
     files = kwargs.get('files')
     build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=files, check_hash=kwargs.get('check_hash', False))
+
+
+def _get_chianti_dbase_url(version=None):
+    chianti_url = 'http://download.chiantidatabase.org/CHIANTI_{version}_database.tar.gz'
+    if version is None:
+        version=LATEST_VERSION
+    if Version(version) < Version('10'):
+        # The database versions are prepended with a "v" in versions earlier than 10
+        version = f'v{version}'
+    return chianti_url.format(version=version)
 
 
 def download_dbase(ascii_dbase_url, ascii_dbase_root):

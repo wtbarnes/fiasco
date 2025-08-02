@@ -10,31 +10,6 @@ import fiasco
 from fiasco.tests.idl.helpers import run_idl_script, version_check
 from fiasco.util import parse_ion_name
 
-# NOTE: This is necessary because I cannot figure out how to select the contribution function
-# by wavelength so I have to run the g_of_t function once with the GUI selector to work out
-# what integer index corresponds to which wavelength. For any additional test that is added to
-# the list below, this index will need to be computed and added to the list below.
-# NOTE: These indices will change with database version number so they'll need to be updated
-# or we will have to find a way to select them automatically.
-INDEX_WAVE_MAPPING = {
-    '8.0.7': {
-        'Ca XV 200.972 Angstrom': 297,
-        'Fe IX 171.073 Angstrom': 13946,
-        'Fe IX 188.496 Angstrom': 18403,
-        'Fe XI 188.497 Angstrom': 22527,
-        'Fe XIV 197.862 Angstrom': 27964,
-        'Fe XVI 262.984 Angstrom': 1415,
-    },
-    '9.0.1': {
-        'Ca XV 200.972 Angstrom': 297,
-        'Fe IX 171.073 Angstrom': 10124,
-        'Fe IX 188.496 Angstrom': 14501,
-        'Fe XI 188.497 Angstrom': 22527,
-        'Fe XIV 197.862 Angstrom': 27964,
-        'Fe XVI 262.984 Angstrom': 1358,
-    },
-}
-
 
 @pytest.mark.parametrize(('ion_name', 'wavelength'), [
     ('Ca XV', 200.972*u.Angstrom),
@@ -46,7 +21,12 @@ INDEX_WAVE_MAPPING = {
 ])
 def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, chianti_idl_version, ion_name, wavelength):
     goft_script = """
-    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
+    {% if database_version | version_check('>=', '10.1') %}
+    abundance_subdirs = ['abundance', 'archive']
+    {% else %}
+    abundance_subdirs = 'abundance'
+    {% endif %}
+    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR=abundance_subdirs)
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
 
     {% if chianti_idl_version | version_check('>=', 9) %}
@@ -64,7 +44,6 @@ def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, chianti_idl_v
                                    dens=density,$
                                    abund_file=abund_file,$
                                    ioneq_file=ioneq_file,$
-                                   {% if index %}index={{ index }},/quiet,${% endif %}
                                    wrange=[wave_min, wave_max])
     ; Call this function to get the temperature array
     read_ioneq,ioneq_file,temperature,ioneq,ref
@@ -75,14 +54,11 @@ def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, chianti_idl_v
     """
     # Setup IDl arguments
     Z, iz = parse_ion_name(ion_name)
-    if (index:=INDEX_WAVE_MAPPING.get(str(dbase_version))) is not None:
-        index = index[f'{ion_name} {wavelength}']
     input_args = {
         'Z': Z,
         'iz': iz,
         'wavelength': wavelength,
         'wave_window': 1 * u.angstrom,
-        'index': index,
         'density': 1e+10 * u.cm**(-3),
         'abundance': 'sun_coronal_1992_feldman_ext',
         'ionization_fraction': 'chianti',

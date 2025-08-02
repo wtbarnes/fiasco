@@ -389,7 +389,7 @@ def test_free_bound(ion):
     emission = ion.free_bound(200 * u.Angstrom)
     assert emission.shape == ion.temperature.shape + (1, )
     # This value has not been tested for correctness
-    assert u.allclose(emission[0, 0], 9.7902609e-26 * u.cm**3 * u.erg / u.Angstrom / u.s)
+    assert u.allclose(emission[0, 0], 9.79e-26 * u.cm**3 * u.erg / u.Angstrom / u.s, rtol=1e-2)
 
 
 def test_free_bound_radiative_loss(ion, h1):
@@ -423,8 +423,8 @@ def test_free_bound_no_recombining(h1):
     # ion (H 2)
     emission = h1.free_bound(200 * u.Angstrom)
     assert emission.shape == h1.temperature.shape + (1, )
-        # This value has not been tested for correctness
-    assert u.allclose(emission[0, 0], 1.9611545671496785e-28 * u.cm**3 * u.erg / u.Angstrom / u.s)
+    # This value has not been tested for correctness
+    assert u.allclose(emission[0, 0], 1.961e-28 * u.cm**3 * u.erg / u.Angstrom / u.s, rtol=1e-3)
 
 
 def test_add_ions(ion, another_ion):

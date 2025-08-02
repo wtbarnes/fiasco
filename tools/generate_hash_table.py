@@ -27,8 +27,9 @@ def build_hash_table(dbase_root):
         map(lambda x: pathlib.Path('ip') / x, catalogue['ip_files']),
         map(lambda x: pathlib.Path('continuum') / x, catalogue['continuum_files']),
         map(lambda x: pathlib.Path('dem') / x, catalogue['dem_files']),
+        map(lambda x: pathlib.Path('em') / x, catalogue['em_files']),
     )
-    filepaths = map(lambda x: dbase_root / x, filepaths)
+    filepaths = list(map(lambda x: dbase_root / x, filepaths))
     return {'_'.join(f.relative_to(dbase_root).parts): _md5hash(f) for f in filepaths}
 
 

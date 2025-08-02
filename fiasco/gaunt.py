@@ -5,7 +5,7 @@ import astropy.constants as const
 import astropy.units as u
 import numpy as np
 
-from scipy.interpolate import splev, splrep
+from scipy.interpolate import PchipInterpolator
 from scipy.ndimage import map_coordinates
 from scipy.special import polygamma
 
@@ -320,8 +320,8 @@ HDF5 Database: {self.hdf5_dbase_root}"""
 
         Parameters
         ----------
-        E_scaled : `float`
-            Rratio of photon energy to the ionization energy.
+        E_scaled : array-like
+            Ratio of photon energy to the ionization energy.
         n : `int`
             The principal quantum number
         l : `int`
@@ -331,22 +331,43 @@ HDF5 Database: {self.hdf5_dbase_root}"""
         --------
         fiasco.Ion.free_bound
         """
-        E_scaled = np.atleast_1d(E_scaled)
-        index_nl = np.where(np.logical_and(self._klgfb['n'] == n, self._klgfb['l'] == l))[0]
+        log_E_scaled = np.log(np.atleast_1d(E_scaled))
+        index_nl = np.where(np.logical_and(self._klgfb['n']==n, self._klgfb['l']==l))
         # If there is no Gaunt factor for n, l, set it to 1
-        if index_nl.shape == (0,):
-            gf = np.ones(E_scaled.shape)
+        if index_nl[0].shape == (0,):
+            gf = np.ones(log_E_scaled.shape)
         else:
-            gf_interp = splrep(self._klgfb['log_pe'][index_nl, :].squeeze(),
-                               self._klgfb['log_gaunt_factor'][index_nl, :].squeeze())
-            gf = np.exp(splev(E_scaled, gf_interp))
-
+            log_pe = self._klgfb.get('log_pe', None)
+            log_gf = self._klgfb.get('log_gaunt_factor', None)
+            # NOTE: The reason for this conditional is that the format for the K&L gaunt factor
+            # data changed in v10.1 of the CHIANTI database such that (1) the data are not
+            # log-scaled and (2) the photon energies are in Ry such that they need to be scaled
+            # by the ionization potential (the minimum energy in that file) prior to taking the
+            # log.
+            if log_pe is not None and log_gf is not None:
+                log_pe = log_pe[index_nl]
+                log_gf = log_gf[index_nl]
+            else:
+                pe = self._klgfb['photon_energy'][index_nl]
+                log_pe = np.log((pe/pe.min()).decompose())
+                log_gf = np.log(self._klgfb['gaunt_factor'][index_nl])
+            # Sort for interpolation
+            log_gf = log_gf[np.argsort(log_pe)]
+            log_pe = log_pe[np.argsort(log_pe)]
+            f_interp = PchipInterpolator(log_pe, log_gf, extrapolate=False)
+            log_gf_interp = f_interp(log_E_scaled)
+            # For points above the interpolation range, apply linear interpolation using last 5 points
+            idx_above = np.where(log_E_scaled>log_pe.max())
+            log_gf_interp[idx_above] = np.interp(log_E_scaled[idx_above], log_pe[-5:], log_gf[-5:])
+            gf = np.exp(log_gf_interp)
+            # For points below the interpolation range (i.e. below the ionization threshold), set to zero
+            gf[log_E_scaled<log_pe.min()] = 0.0
         return gf
 
 
     @u.quantity_input
     def free_bound_integrated(self, temperature: u.K, atomic_number, charge_state, n_0,
-                            ionization_potential: u.eV, ground_state=True) -> u.dimensionless_unscaled:
+                              ionization_potential: u.eV, ground_state=True) -> u.dimensionless_unscaled:
         r"""
         The wavelength-integrated Gaunt factor for free-bound emission as a function of temperature.
 

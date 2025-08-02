@@ -19,7 +19,12 @@ def idl_two_ion_model(request, idl_env, dbase_version, chianti_idl_version):
     ionization_fraction = 'chianti'
     script = """
     temp = {{ temperature | to_unit('K') | force_double_precision }}
-    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR='abundance')
+    {% if database_version | version_check('>=', '10.1') %}
+    abundance_subdirs = ['abundance', 'archive']
+    {% else %}
+    abundance_subdirs = 'abundance'
+    {% endif %}
+    abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR=abundance_subdirs)
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
 
     ion_1 = ch_load_ion_rates('{{ ion_name }}',$

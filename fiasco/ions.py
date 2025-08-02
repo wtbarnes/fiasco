@@ -1816,8 +1816,7 @@ Using Datasets:
             Orbital angular momentum number
         """
         prefactor = (2**4)*const.h*(const.e.gauss**2)/(3*np.sqrt(3)*const.m_e*const.c)
-        E_scaled = np.log(photon_energy/ionization_energy)
-        gaunt_factor = self.gaunt_factor.free_bound(E_scaled, n, l)
+        gaunt_factor = self.gaunt_factor.free_bound(photon_energy/ionization_energy, n, l)
         cross_section = prefactor * ionization_energy**2 * photon_energy**(-3) * gaunt_factor / n
         cross_section[np.where(photon_energy < ionization_energy)] = 0.*cross_section.unit
         return cross_section

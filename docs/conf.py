@@ -110,7 +110,7 @@ html_theme_options = {
             "icon": "fa-solid fa-wine-glass",
         }
     ],
-    "announcement": "fiasco currently supports versions 8 and 9 of the CHIANTI database.",
+    "announcement": "fiasco currently supports versions 8, 9, and 10 of the CHIANTI database.",
 }
 html_context = {
     "github_user": "wtbarnes",
@@ -126,6 +126,7 @@ html_sidebars = {
     "quick_start*": [],
     "how_to_guides*": [],
     "citation*": [],
+    "developer*": [],
 }
 # Render inheritance diagrams in SVG
 graphviz_output_format = "svg"
@@ -146,7 +147,6 @@ ON_GHA = os.environ.get('CI') == 'true'
 if (ON_RTD or ON_GHA):
     from fiasco.tests import get_test_file_list
     from fiasco.util import check_database
-    from fiasco.util.setup_db import CHIANTI_URL, LATEST_VERSION
     from fiasco.util.util import FIASCO_HOME, FIASCO_RC
     FIASCO_HOME.mkdir(exist_ok=True, parents=True)
     ascii_dbase_root = FIASCO_HOME / 'chianti_dbase'
@@ -154,7 +154,6 @@ if (ON_RTD or ON_GHA):
     check_database(
         hdf5_dbase_root=hdf5_dbase_root,
         ascii_dbase_root=ascii_dbase_root,
-        ascii_dbase_url = CHIANTI_URL.format(version=LATEST_VERSION),
         ask_before=False,
         files=get_test_file_list(),
     )

@@ -95,8 +95,19 @@ def get_chianti_catalog(ascii_dbase_root):
     # TODO: Replace usage with pathlib, noting that pathlib does not
     # have a direct equivalent to os.walk
 
-    skip_dirs = ['version_3', 'deprecated', 'masterlist', 'ioneq', 'dem', 'ancillary_data', 'ip',
-                 'abundance', 'continuum', 'instrument_responses']
+    skip_dirs = [
+        'version_3',
+        'deprecated',
+        'masterlist',
+        'ioneq',
+        'dem',
+        'em',
+        'ancillary_data',
+        'ip',
+        'abundance',
+        'continuum',
+        'instrument_responses',
+    ]
     # List of all files associated with ions
     ion_files = []
     for root, sub, files in os.walk(ascii_dbase_root):
@@ -110,10 +121,16 @@ def get_chianti_catalog(ascii_dbase_root):
         for root, _, files in os.walk(subdir_root):
             subdir_files += [os.path.relpath(os.path.join(root, f), subdir_root) for f in files
                              if f[0] != '.']
-
         return subdir_files
 
-    non_ion_subdirs = ['abundance', 'ip', 'ioneq', 'continuum', 'dem']
+    non_ion_subdirs = [
+        'abundance',
+        'ip',
+        'ioneq',
+        'continuum',
+        'dem',
+        'em',
+    ]
     all_files = {f'{sd}_files': walk_sub_dir(sd) for sd in non_ion_subdirs}
     all_files['ion_files'] = ion_files
 
