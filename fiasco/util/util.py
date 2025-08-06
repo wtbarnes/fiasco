@@ -107,6 +107,7 @@ def get_chianti_catalog(ascii_dbase_root):
         'abundance',
         'continuum',
         'instrument_responses',
+        'citations',
     ]
     # List of all files associated with ions
     ion_files = []
@@ -117,10 +118,11 @@ def get_chianti_catalog(ascii_dbase_root):
     # List all of the non-ion files, excluding any "dot"/hidden files
     def walk_sub_dir(subdir):
         subdir_files = []
-        subdir_root = ascii_dbase_root / subdir
+        subdir_root = ascii_dbase_root
+        for sd in subdir.split('/'):
+            subdir_root = subdir_root / sd
         for root, _, files in os.walk(subdir_root):
-            subdir_files += [os.path.relpath(os.path.join(root, f), subdir_root) for f in files
-                             if f[0] != '.']
+            subdir_files += [os.path.relpath(os.path.join(root, f), subdir_root) for f in files if f[0] != '.']
         return subdir_files
 
     non_ion_subdirs = [
@@ -130,8 +132,9 @@ def get_chianti_catalog(ascii_dbase_root):
         'continuum',
         'dem',
         'em',
+        'ancillary_data/advanced_models',
     ]
-    all_files = {f'{sd}_files': walk_sub_dir(sd) for sd in non_ion_subdirs}
+    all_files = {f'{"_".join(sd.split("/"))}_files': walk_sub_dir(sd) for sd in non_ion_subdirs}
     all_files['ion_files'] = ion_files
 
     return all_files
