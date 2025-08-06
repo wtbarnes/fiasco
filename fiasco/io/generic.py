@@ -150,10 +150,7 @@ class GenericIonParser(GenericParser):
         hf['/'.join([self.element, self.ion_name])].attrs['ion'] = self.ion_name
         for name in df.colnames:
             col = df[name]
-            if type(col) == u.Quantity:
-                data = col.value
-            else:
-                data = col.data
+            data = col.value if type(col) is u.Quantity else col.data
             if '<U' in data.dtype.str:
                 numchar = data.dtype.str[2:]
                 data = data.astype(f'|S{numchar}')

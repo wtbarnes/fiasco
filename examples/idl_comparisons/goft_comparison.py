@@ -105,7 +105,7 @@ for i, name in enumerate(goft_files):
         line_label,
     )
     axes[0].legend()
-    print(f'CHIANTI database {idl_result['database_version']}')
-    print(f'CHIANTI IDL {idl_result['chianti_idl_version']}')
+    print(f"CHIANTI database {idl_result['database_version']}")
+    print(f"CHIANTI IDL {idl_result['chianti_idl_version']}")
     print(f'IDL code to produce {line_label} contribution function result:')
     print(idl_result['idl_script'])
