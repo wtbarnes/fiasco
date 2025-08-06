@@ -73,8 +73,8 @@ plot_idl_comparison(idl_result_freefree['wavelength'],
                     idl_result_freefree['temperature'],
                     free_free,
                     idl_result_freefree['free_free'])
-print(f'CHIANTI database {idl_result_freefree['database_version']}')
-print(f'CHIANTI IDL {idl_result_freefree['chianti_idl_version']}')
+print(f"CHIANTI database {idl_result_freefree['database_version']}")
+print(f"CHIANTI IDL {idl_result_freefree['chianti_idl_version']}")
 print('IDL code to produce free-free result:')
 print(idl_result_freefree['idl_script'])
 
@@ -91,8 +91,8 @@ plot_idl_comparison(idl_result_freebound['wavelength'],
                     idl_result_freebound['temperature'],
                     free_bound,
                     idl_result_freebound['free_bound'])
-print(f'CHIANTI database {idl_result_freebound['database_version']}')
-print(f'CHIANTI IDL {idl_result_freebound['chianti_idl_version']}')
+print(f"CHIANTI database {idl_result_freebound['database_version']}")
+print(f"CHIANTI IDL {idl_result_freebound['chianti_idl_version']}")
 print('IDL code to produce free-bound result:')
 print(idl_result_freebound['idl_script'])
 
@@ -109,7 +109,7 @@ plot_idl_comparison(idl_result_twophoton['wavelength'],
                     idl_result_twophoton['temperature'],
                     two_photon,
                     idl_result_twophoton['two_photon_continuum'])
-print(f'CHIANTI database {idl_result_twophoton['database_version']}')
-print(f'CHIANTI IDL {idl_result_twophoton['chianti_idl_version']}')
+print(f"CHIANTI database {idl_result_twophoton['database_version']}")
+print(f"CHIANTI IDL {idl_result_twophoton['chianti_idl_version']}")
 print('IDL code to produce two-photon result:')
 print(idl_result_twophoton['idl_script'])

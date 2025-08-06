@@ -89,8 +89,8 @@ for i, name in enumerate(ionization_files):
                      ionization_fraction=idl_result['ionization_fraction'])
     element = fiasco.Element(ion.atomic_symbol, ion.temperature)
     ionization_fraction = element.equilibrium_ionization
-    print(f'CHIANTI database {idl_result['database_version']}')
-    print(f'CHIANTI IDL {idl_result['chianti_idl_version']}')
+    print(f"CHIANTI database {idl_result['database_version']}")
+    print(f"CHIANTI IDL {idl_result['chianti_idl_version']}")
     print(f'IDL code to produce ionization_fraction result for {ion.ion_name_roman}:')
     print(idl_result['idl_script'])
     axes = plot_idl_comparison(ion.temperature, idl_result['ioneq'], ion.ionization_fraction,
