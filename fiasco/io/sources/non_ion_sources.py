@@ -232,7 +232,20 @@ class AdvancedModelListParser(GenericParser):
         # The number of levels should be added as an attribute to the ion group
         # and then a property added to IonBase to access these number of advanced models.
         # This should default to 0.
-        pass
+        for row in df:
+            ion_name = row['ion']
+            element_name = ion_name.split('_')[0]
+            grp_name = '/'.join([element_name, ion_name, 'advanced_model'])
+            if grp_name not in hf:
+                grp = hf.create_group(grp_name)
+                grp.attrs['footer'] = df.meta['footer']
+                grp.attrs['chianti_version'] = df.meta['chianti_version']
+            else:
+                grp = hf[grp_name]
+            if 'n_levels' not in grp:
+                ds = grp.create_dataset('n_levels', data=row['n_levels'])
+                ds.attrs['description'] = df.meta['descriptions']['n_levels']
+                ds.attrs['unit'] = 'SKIP'
 
 
 class ModelAtmosphereParser(GenericParser):
@@ -277,5 +290,18 @@ class ModelAtmosphereParser(GenericParser):
         ))
 
     def to_hdf5(self, hf, df):
-        # Add tables based on filename to top level directory
-        pass
+        dataset_name = pathlib.Path(self.filename).stem
+        footer = f"""{dataset_name}
+------------------
+{df.meta['footer']}"""
+        grp_name = '/'.join(['model_atmospheres', dataset_name])
+        if grp_name not in hf:
+            grp = hf.create_group(grp_name)
+            grp.attrs['footer'] = footer
+            grp.attrs['chianti_version'] = df.meta['chianti_version']
+        else:
+            grp = hf[grp_name]
+        for col in df.colnames:
+            ds = grp.create_dataset(col, data=df[col].value)
+            ds.attrs['description'] = df.meta['descriptions'][col]
+            ds.attrs['unit'] = df[col].unit.to_string()
