@@ -66,7 +66,6 @@ def test_old_fiasco_version_warning(tmpdir_factory, caplog):
         del hf['ion_index']
         ds = hf.create_dataset('ion_index', data=np.array([test_ion,]).astype(np.bytes_))
         ds.attrs['unit'] = 'SKIP'
-    #with pytest.warns(UserWarning, match='* was produced with an earlier version of fiasco *'):
     with caplog.at_level(logging.WARN):
         fiasco.base.IonBase(test_ion, hdf5_dbase_root=path)
     assert 'was produced with an earlier version of fiasco' in caplog.text
