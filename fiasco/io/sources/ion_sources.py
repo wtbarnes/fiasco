@@ -411,6 +411,9 @@ class RrparamsParser(GenericIonParser):
 
 
 class TrparamsParser(GenericIonParser):
+    """
+    Total recombination rates as a function of temperature.
+    """
     filetype = 'trparams'
     dtypes = [float, float]
     units = [u.K, (u.cm**3)/u.s]
@@ -593,3 +596,216 @@ class RrlvlParser(GenericIonParser):
         else:
             rate_coefficient = np.array(line[4:], dtype=float)
             table[-1].append(rate_coefficient)
+
+
+class DilvlParser(GenericIonParser):
+    """
+    Level-resolved direct ionization rates as a function of temperature.
+
+    These files contain the direct ionization rates from the ion being ionized
+    to the ionized ion. As an example, the ``c_2.dilvl`` file contains direct ionization
+    rates connecting the levels in C II, given by the ``level_1``, to the levels in C III,
+    given by the ``level_2`` column. For more information about these files, see
+    :cite:t:`dufresne_chianti_2024-1`.
+    """
+    filetype = 'dilvl'
+    dtypes = [int, int, float, float, float]
+    units = [None, None, 'eV', 'cm3 s-1', 'K']
+    headings = [
+        'level_1',
+        'level_2',
+        'ip',
+        'rate',
+        'temperature',
+    ]
+    descriptions = [
+        'initial level of the ion before ionization',
+        'final level of the ion after ionization',
+        'energy input required for the transition to take place',
+        'rate coefficients for the transition',
+        'temperatures at which the rate coefficients are calculated'
+    ]
+
+    def preprocessor(self, table, line, index):
+        if index == 0:
+            self._temperature = line.strip().split()
+        else:
+            n_T = len(self._temperature)
+            # NOTE: There is an annoying inconsistency in the way the ionization potential
+            # is formatted between the dilvl and ealvl files, despite what CHIANTI Technical
+            # Note No. 33 says.
+            ip_format = 'E11.3' if self.filetype=='dilvl' else 'F7.3'
+            fformat = fortranformat.FortranRecordReader(f'(I5,I5,{ip_format},{n_T}E11.3)')
+            line = fformat.read(line)
+            rate = np.array(line[3:])
+            temperature = np.array(self._temperature, dtype=rate.dtype)
+            table.append(line[:3]+[rate,temperature])
+
+
+class EalvlParser(DilvlParser):
+    """
+    Level-resolved indirect ionization rates as a function of temperature.
+
+    These files contain the indirect ionization (also known as excitation autoionization)
+    rates from the ion being ionized to the ionized ion. The format is identical to those
+    files parsed by `DilvlParser`. For more information about these files, see
+    :cite:t:`dufresne_chianti_2024-1`.
+    """
+    filetype = 'ealvl'
+
+
+class RrcoeffsParser(GenericIonParser):
+    """
+    Level-resolved radiative recombination rate fitting coefficients as a function of temperature.
+
+    These files contain the fitting coefficients for the level-resolved radiative recombination rates
+    as a function of temperature. The coefficients in these files are analogous to those data in the files
+    parsed by `RrparamsParser`. For more information about these files, see
+    :cite:t:`dufresne_chianti_2024-1`.
+    """
+    filetype = 'rrcoeffs'
+    dtypes = 3*[int] + 6*[float]
+    units = [None, None, None, 'cm3 s-1', None, 'K', 'K', None, 'K']
+    headings = [
+        'level',
+        'weight',
+        'fit_type',
+        'A_fit',
+        'B_fit',
+        'T0_fit',
+        'T1_fit',
+        'C_fit',
+        'T2_fit',
+    ]
+    descriptions = [
+        'Initial energy level of the ion prior to recombination',
+        'Statistical weight (2J+1) of the initial level',
+        'Type of fitting formula used',
+        'A fit coefficient',
+        'B fit coefficient',
+        'T0 fit coefficient',
+        'T1 fit coefficient',
+        'C fit coefficient',
+        'T2 fit coefficient',
+    ]
+
+    def preprocessor(self, table, line, index):
+        if index == 0:
+            return
+        # NOTE: Format is dependent on fit type and there can be multiple fit types in a single
+        # file. As such, we have to pull out the fit type first and adjust the format appropriately.
+        # A type 1 fit has fewer parameters so we just pad those extra columns with NaN.
+        _line = line.strip().split()
+        fit_type = int(_line[2])
+        if fit_type == 1:
+            fformat = fortranformat.FortranRecordReader('(3I5,E12.4,F10.5,2E12.4)')
+            line = fformat.read(line)
+            line += 3*[np.nan]
+        elif fit_type == 2:
+            fformat = fortranformat.FortranRecordReader('(3I5,E12.4,F10.5,2E11.4,F10.5,E12.4)')
+            line = fformat.read(line)
+        else:
+            raise ValueError(f'Unrecognized fit type {fit_type} for rrcoeffs file.')
+        table.append(line)
+
+
+class DrcoeffsParser(GenericIonParser):
+    """
+    Level-resolved dielectronic recombination rate fitting coefficients as a function of temperature.
+
+    These files contain the fitting coefficients for level-resolved dielectronic recombination rates
+    as a function of temperature. The coefficients in these files are analogous to the type 1 fitting
+    coefficients in the files parsed by `DrparamsParser`. For more information about these files, see
+    :cite:t:`dufresne_chianti_2024-1`.
+    """
+    filetype = 'drcoeffs'
+    dtypes = [int, int, int, float, float]
+    units = [None, None, None, 'K', u.cm**3/u.s*u.K**(3/2)]
+    headings = [
+        'level',
+        'weight',
+        'fit_type',
+        'E_fit',
+        'C_fit',
+    ]
+    descriptions = [
+        'Initial energy level of the ion prior to recombination',
+        'Statistical weight (2J+1) of the initial level',
+        'Type of fitting formula used',
+        'E fit parameter',
+        'C fit parameter',
+    ]
+
+    def preprocessor(self, table, line, index):
+        if index == 0:
+            return
+        fformat = fortranformat.FortranRecordReader('(3I5,9E12.4)')
+        line = fformat.read(line)
+        # NOTE: This conditional is because the lines of this file come in pairs, with
+        # the first three entries being repeated on each pair of lines and the remaining
+        # entries being the different arrays of fitting coefficients.
+        if (index-1)%2==0:
+            table.append(line[:3]+[line[3:]])
+        else:
+            table[-1] += [line[3:]]
+
+
+class CtilvlParser(GenericIonParser):
+    """
+    Level-resolved charge transfer ionization rate coefficients as a function of temperature.
+
+    These files contain the rate coefficients for charge transfer ionization as a function
+    of temperature between the levels of the ion before ionization and the ion after ionization.
+    For more information about these files, see :cite:t:`dufresne_chianti_2024-1`.
+    """
+    filetype = 'ctilvl'
+    dtypes = 4*[int] + 3*[float]
+    units = 4*[None] + ['eV', 'cm3 s-1', 'K']
+    headings = [
+        'level_1',
+        'level_2',
+        'Z_perturber',
+        'N_e_perturber',
+        'delta_energy',
+        'rate',
+        'temperature',
+    ]
+    descriptions = [
+        'Initial level of the ion before ionization.',
+        'Final level of the ion after ionization.',
+        'Atomic number of the perturber involved in the transition.',
+        'Number of electrons in perturber before transition.',
+        'Input energy required for the transition to take place.',
+        'Ionization rate coefficients for the transition.',
+        'Temperatures at which the rate coefficients are evaluated.'
+    ]
+
+    def preprocessor(self, table, line, index):
+        if index == 0:
+            self._temperature = np.array(line.strip().split(), dtype=self.dtypes[-1])
+        else:
+            n_T = self._temperature.shape[0]
+            fformat = fortranformat.FortranRecordReader(f'(4I5,E11.3,{n_T}E11.3)')
+            line = fformat.read(line)
+            table.append(line[:5]+[line[5:]]+[self._temperature])
+
+
+class CtrlvlParser(CtilvlParser):
+    """
+    Level-resolved charge transfer recombination rate coefficients as a function of temperature.
+
+    These files contain the rate coefficients for charge transfer recombination as a function
+    of temperature between the levels of the recombining and recombined ion. The format is identical
+    to those parsed by `CtilvlParser`. For more information about these files, see
+    :cite:t:`dufresne_chianti_2024-1`.
+    """
+    filetype = 'ctrlvl'
+    descriptions = [
+        'Initial level of the ion before recombination.',
+        'Final level of the ion after recombination.',
+        'Atomic number of the perturber involved in the transition.',
+        'Number of electrons in perturber before transition.',
+        'Input energy required for the transition to take place.',
+        'Recombination rate coefficients for the transition.',
+        'Temperatures at which the rate coefficients are evaluated.'
+    ]

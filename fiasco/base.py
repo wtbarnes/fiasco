@@ -118,6 +118,14 @@ class IonBase:
         return f'{self.atomic_symbol} {self.ionization_stage_roman}'
 
     @property
+    def _advanced_model_levels(self):
+        dl = DataIndexer.create_indexer(self.hdf5_dbase_root,
+                                        f'{self.atomic_symbol.lower()}/{self._ion_name}')
+        if (advanced_model:=dl.get('advanced_model', None)):
+            return int(advanced_model.get('n_levels', 0))
+        return 0
+
+    @property
     def _verner(self):
         data_path = '/'.join([self.atomic_symbol.lower(), self._ion_name, 'continuum',
                               'verner_short'])

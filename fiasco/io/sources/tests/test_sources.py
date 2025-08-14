@@ -2,6 +2,7 @@
 Test parsers for all files attached to specific ions
 """
 import numpy as np
+import pathlib
 import plasmapy.particles
 import pytest
 
@@ -29,6 +30,12 @@ import fiasco.io
     pytest.param('fe_23.rrlvl', marks=pytest.mark.requires_dbase_version('>= 9')),
     pytest.param('c_5.splups', marks=pytest.mark.requires_dbase_version('< 8')),
     pytest.param('c_6.splups', marks=pytest.mark.requires_dbase_version('< 8')),
+    pytest.param('c_3.dilvl', marks=pytest.mark.requires_dbase_version('>= 11')),
+    pytest.param('c_3.ealvl', marks=pytest.mark.requires_dbase_version('>= 11')),
+    pytest.param('c_3.rrcoeffs', marks=pytest.mark.requires_dbase_version('>= 11')),
+    pytest.param('c_3.drcoeffs', marks=pytest.mark.requires_dbase_version('>= 11')),
+    pytest.param('c_2.ctilvl', marks=pytest.mark.requires_dbase_version('>= 11')),
+    pytest.param('c_2.ctrlvl', marks=pytest.mark.requires_dbase_version('>= 11')),
 ])
 def test_ion_sources(ascii_dbase_root, filename,):
     parser = fiasco.io.Parser(filename, ascii_dbase_root=ascii_dbase_root)
@@ -59,6 +66,8 @@ def test_ion_sources(ascii_dbase_root, filename,):
     'flare.dem',
     pytest.param('itoh_integrated_gaunt.txt', marks=pytest.mark.requires_dbase_version('>= 9.0.1')),
     pytest.param('itoh_integrated_gaunt_nonrel.txt', marks=pytest.mark.requires_dbase_version('>= 9.0.1')),
+    pytest.param('advmodel_list.ions', marks=pytest.mark.requires_dbase_version('>= 11')),
+    pytest.param(pathlib.Path('model_atmospheres') / 'fontenla_plage.dat', marks=pytest.mark.requires_dbase_version('>= 11'))
 ])
 def test_non_ion_sources(ascii_dbase_root, filename):
     parser = fiasco.io.Parser(filename, ascii_dbase_root=ascii_dbase_root)
