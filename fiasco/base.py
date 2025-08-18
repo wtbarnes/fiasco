@@ -3,6 +3,7 @@ Base classes for access to CHIANTI ion data.
 
 These classes are not meant to be instantiated directly by the user.
 """
+import astropy.units as u
 import plasmapy.particles
 
 from packaging.version import Version
@@ -101,6 +102,12 @@ class IonBase:
         "Atomic symbol denoting to which isoelectronic sequence this ion belongs."
         if (Z_iso := self.atomic_number - self.charge_state) > 0:
             return plasmapy.particles.atomic_symbol(Z_iso)
+
+    @property
+    @u.quantity_input
+    def mass(self) -> u.g:
+        "Atomic mass of the ion."
+        return plasmapy.particles.Particle(self.ion_name_roman).mass
 
     @property
     def _ion_name(self):
