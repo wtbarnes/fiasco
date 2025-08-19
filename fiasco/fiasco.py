@@ -189,11 +189,11 @@ def dielectronic_recombination_suppression(ion, density:u.Unit('cm-3')):
         return 1
     # "A" factor
     A_N = _nikolic_a_factor(ion)
-    # Activation log density (Eq. 3 of Nikolic et al. 2018)
-    x_a0 = 10.1821
     q_0 = (1 - np.sqrt(2/3/ion.charge_state))*A_N/np.sqrt(ion.charge_state)
     T_0 = 5e4*u.K * q_0**2
-    x_a = x_a0 + np.log((ion.charge_state/q_0)**7*np.sqrt(ion.temperature/T_0))
+    # Activation log density (Eq. 3 of Nikolic et al. 2018)
+    x_a0 = 10.1821
+    x_a = x_a0 + np.log10((ion.charge_state/q_0)**7*np.sqrt(ion.temperature/T_0))
     # Suppression factor (Eq. 2 of Nikolic et al. 2018)
     width = 5.64586
     x = np.log10(density.to_value('cm-3'))
