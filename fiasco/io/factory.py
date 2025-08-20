@@ -34,12 +34,15 @@ class ParserFactory(type):
         # Create parser based on file extension or name
         filetype_name = path.stem
         filetype_ext = path.suffix[1:]
+        filetype_subdir = str(path.parent)
 
         subclass_dict = {c.filetype: c for c in all_subclasses(GenericParser) if hasattr(c, 'filetype')}
         if filetype_ext in subclass_dict:
             return subclass_dict[filetype_ext](*args, **kwargs)
         elif filetype_name in subclass_dict:
             return subclass_dict[filetype_name](*args, **kwargs)
+        elif filetype_subdir in subclass_dict:
+            return subclass_dict[filetype_subdir](*args, **kwargs)
         else:
             log.debug(f'Unrecognized filename and extension {args[0]}', stacklevel=2)
             return type.__call__(cls, *args, **kwargs)

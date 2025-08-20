@@ -11,7 +11,14 @@ from astropy.table import Column
 
 from fiasco.io.generic import GenericParser
 
-__all__ = ['AbundParser', 'IoneqParser', 'IpParser']
+__all__ = [
+    'AbundParser',
+    'IoneqParser',
+    'IpParser',
+    'DemParser',
+    'AdvancedModelListParser',
+    'ModelAtmosphereParser',
+]
 
 
 class AbundParser(GenericParser):
@@ -195,6 +202,99 @@ class DemParser(GenericParser):
 ------------------
 {df.meta['footer']}"""
         grp_name = '/'.join(['dem', dataset_name])
+        if grp_name not in hf:
+            grp = hf.create_group(grp_name)
+            grp.attrs['footer'] = footer
+            grp.attrs['chianti_version'] = df.meta['chianti_version']
+        else:
+            grp = hf[grp_name]
+        for col in df.colnames:
+            ds = grp.create_dataset(col, data=df[col].value)
+            ds.attrs['description'] = df.meta['descriptions'][col]
+            ds.attrs['unit'] = df[col].unit.to_string()
+
+
+class AdvancedModelListParser(GenericParser):
+    filetype = 'advmodel_list'
+    dtypes = [str, int]
+    units = [None, None]
+    headings = ['ion', 'n_levels']
+    descriptions = ['ion name', 'number of included levels']
+    fformat = fortranformat.FortranRecordReader('(A6,I5)')
+
+    def __init__(self, filename, **kwargs):
+        super().__init__(filename, **kwargs)
+        self.full_path = pathlib.Path(kwargs.get('full_path',
+            self.ascii_dbase_root / 'ancillary_data' / 'advanced_models' / self.filename
+        ))
+
+    def to_hdf5(self, hf, df):
+        # The number of levels should be added as an attribute to the ion group
+        # and then a property added to IonBase to access these number of advanced models.
+        # This should default to 0.
+        for row in df:
+            ion_name = row['ion']
+            element_name = ion_name.split('_')[0]
+            grp_name = '/'.join([element_name, ion_name, 'advanced_model'])
+            if grp_name not in hf:
+                grp = hf.create_group(grp_name)
+                grp.attrs['footer'] = df.meta['footer']
+                grp.attrs['chianti_version'] = df.meta['chianti_version']
+            else:
+                grp = hf[grp_name]
+            if 'n_levels' not in grp:
+                ds = grp.create_dataset('n_levels', data=row['n_levels'])
+                ds.attrs['description'] = df.meta['descriptions']['n_levels']
+                ds.attrs['unit'] = 'SKIP'
+
+
+class ModelAtmosphereParser(GenericParser):
+    filetype = 'model_atmospheres'
+    dtypes = 8*[float]
+    units = [
+        u.K,
+        u.cm**(-3),
+        u.km,
+        u.K*u.cm**(-3),
+        u.cm**(-3),
+        u.dimensionless_unscaled,
+        u.dimensionless_unscaled,
+        u.dimensionless_unscaled,
+    ]
+    headings = [
+        'temperature',
+        'density_e',
+        'height',
+        'pressure',
+        'density_H',
+        'fraction_H_1',
+        'fraction_He_1',
+        'fraction_He_2',
+    ]
+    descriptions = [
+        'temperature',
+        'electron number density',
+        'height',
+        'pressure',
+        'total hydrogen number density',
+        'ionization fraction of neutral hydrogen',
+        'ionization fraction of neutral helium',
+        'ionization fraction of singly-ionized helium',
+    ]
+    fformat = fortranformat.FortranRecordReader('(E9.3,7E12.3)')
+
+    def __init__(self, filename, **kwargs):
+        super().__init__(filename, **kwargs)
+        self.full_path = pathlib.Path(kwargs.get('full_path',
+            self.ascii_dbase_root / 'ancillary_data' / 'advanced_models' / 'model_atmospheres' / pathlib.Path(self.filename).name
+        ))
+
+    def to_hdf5(self, hf, df):
+        dataset_name = pathlib.Path(self.filename).stem
+        footer = f"""{dataset_name}
+------------------
+{df.meta['footer']}"""
+        grp_name = '/'.join(['model_atmospheres', dataset_name])
         if grp_name not in hf:
             grp = hf.create_group(grp_name)
             grp.attrs['footer'] = footer
