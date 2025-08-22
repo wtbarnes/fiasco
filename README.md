@@ -7,7 +7,7 @@
 [![codecov](https://codecov.io/gh/wtbarnes/fiasco/branch/main/graph/badge.svg?token=damCmTyRUN)](https://codecov.io/gh/wtbarnes/fiasco)
 [![matrix](https://img.shields.io/matrix/atomic-data:openastronomy.org.svg?colorB=%23FE7900&label=Chat&logo=matrix&server_fqdn=openastronomy.modular.im)](https://openastronomy.element.io/#/room/#atomic-data:openastronomy.org)
 
-`fiasco` provides a Python interface to the [CHIANTI](http://www.chiantidatabase.org/), an atomic database used primarily for astrophysical spectroscopy.
+`fiasco` provides a Python interface to [CHIANTI](http://www.chiantidatabase.org/), an atomic database for astrophysical spectroscopy.
 In addition to several high-level abstractions of the atomic data, fiasco also provides many common atomic physics calculations.
 
 ## Install
