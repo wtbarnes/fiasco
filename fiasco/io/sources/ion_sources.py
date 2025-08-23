@@ -5,6 +5,8 @@ import astropy.units as u
 import fortranformat
 import numpy as np
 
+from packaging.version import Version
+
 from fiasco.io.generic import GenericIonParser
 
 __all__ = [
@@ -628,15 +630,9 @@ class DilvlParser(GenericIonParser):
 
     def preprocessor(self, table, line, index):
         if index == 0:
-            self._temperature = line.strip().split()
+            self._temperature = np.array(line.strip().split(), dtype=float)
         else:
-            n_T = len(self._temperature)
-            # NOTE: There is an annoying inconsistency in the way the ionization potential
-            # is formatted between the dilvl and ealvl files, despite what CHIANTI Technical
-            # Note No. 33 says.
-            ip_format = 'E11.3' if self.filetype=='dilvl' else 'F7.3'
-            fformat = fortranformat.FortranRecordReader(f'(I5,I5,{ip_format},{n_T}E11.3)')
-            line = fformat.read(line)
+            line = line.strip().split()
             rate = np.array(line[3:])
             temperature = np.array(self._temperature, dtype=rate.dtype)
             table.append(line[:3]+[rate,temperature])
@@ -700,7 +696,7 @@ class RrcoeffsParser(GenericIonParser):
         if fit_type == 1:
             fformat = fortranformat.FortranRecordReader('(3I5,E12.4,F10.5,2E12.4)')
             line = fformat.read(line)
-            line += 3*[np.nan]
+            line += 2*[np.nan]
         elif fit_type == 2:
             fformat = fortranformat.FortranRecordReader('(3I5,E12.4,F10.5,2E11.4,F10.5,E12.4)')
             line = fformat.read(line)
@@ -737,7 +733,12 @@ class DrcoeffsParser(GenericIonParser):
     ]
 
     def preprocessor(self, table, line, index):
-        if index == 0:
+        if self.chianti_version<=Version('11.0.2') and self.ion_name=='he_2':
+            # Prior to and including v11.0.2, the he_2.drcoeffs file includes an erroneous "1"
+            # in the second line. As such, we just need to skip this line. If this continues to persist
+            # in future versions of the database, the version number needs to be incremented.
+            index -= 1
+        if index <= 0:
             return
         fformat = fortranformat.FortranRecordReader('(3I5,9E12.4)')
         line = fformat.read(line)

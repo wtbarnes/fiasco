@@ -20,9 +20,6 @@ class ParserFactory(type):
 
         path = pathlib.Path(args[0])
 
-        # Allow for standalone files
-        if path.exists():
-            kwargs['standalone'] = True
         # Use custom parser if desired
         custom_parser = None
         if 'custom_parser' in kwargs:
