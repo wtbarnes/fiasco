@@ -29,14 +29,28 @@ class GenericParser:
     def __init__(self, filename, **kwargs):
         self.filename = filename
         self.ascii_dbase_root = pathlib.Path(kwargs.get('ascii_dbase_root', fiasco.defaults['ascii_dbase_root']))
-        standalone = kwargs.get('standalone', False)
-        # Cannot supply a version number if this is a standalone file
-        if standalone:
-            self.chianti_version = ''
+
+    @property
+    def full_path(self):
+        if self.standalone:
+            return pathlib.Path(self.filename)
+        elif hasattr(self, '_full_path'):
+            return self._full_path
         else:
-            version = read_chianti_version(self.ascii_dbase_root)
-            self.chianti_version = f"{version}"
-        self.full_path = pathlib.Path(filename) if standalone else self.ascii_dbase_root / self.filename
+            return self.ascii_dbase_root / self.filename
+
+    @full_path.setter
+    def full_path(self, value):
+        self._full_path = value
+
+    @property
+    def standalone(self):
+        return pathlib.Path(self.filename).exists()
+
+    @property
+    def chianti_version(self):
+        if not self.standalone:
+            return read_chianti_version(self.ascii_dbase_root)
 
     def parse(self):
         """
@@ -66,7 +80,7 @@ class GenericParser:
                 df[name] = df[name].astype(dtype)
 
         df.meta['footer'] = self.extract_footer(lines)
-        df.meta['chianti_version'] = self.chianti_version
+        df.meta['chianti_version'] = f'{self.chianti_version}' if self.chianti_version else ''
 
         df = self.postprocessor(df)
 
@@ -120,10 +134,13 @@ class GenericIonParser(GenericParser):
             self.dielectronic = True
             self.ion_name = self.ion_name[:-1]
         self.element = self.ion_name.split('_')[0]
-        if kwargs.get('standalone', False):
-            self.full_path = pathlib.Path(self.filename)
+
+    @property
+    def full_path(self):
+        if self.standalone:
+            return pathlib.Path(self.filename)
         else:
-            self.full_path = self.ascii_dbase_root / self.element / pathlib.Path(self.filename).stem / self.filename
+            return self.ascii_dbase_root / self.element / pathlib.Path(self.filename).stem / self.filename
 
     def postprocessor(self, df):
         df = super().postprocessor(df)

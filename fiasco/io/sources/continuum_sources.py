@@ -22,7 +22,19 @@ __all__ = [
 ]
 
 
-class GffguParser(GenericParser):
+class GenericContinuumParser(GenericParser):
+
+    @property
+    def full_path(self):
+        if hasattr(self, '_full_path'):
+            return self._full_path
+        elif self.standalone:
+            return self.filename
+        else:
+            return pathlib.Path(self.ascii_dbase_root / 'continuum' / self.filename)
+
+
+class GffguParser(GenericContinuumParser):
     """
     Free-free Gaunt factor as a function of scaled frequency and energy
     """
@@ -34,8 +46,6 @@ class GffguParser(GenericParser):
 
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
-        self.full_path = pathlib.Path(kwargs.get('full_path',
-                                    self.ascii_dbase_root / 'continuum' / filename))
         self.body_index = 5
 
     def preprocessor(self, table, line, index):
@@ -102,7 +112,7 @@ class GffintParser(GffguParser):
         super().__init__(filename, **kwargs)
         self.body_index = 4
 
-class ItohIntegratedGauntParser(GenericParser):
+class ItohIntegratedGauntParser(GenericContinuumParser):
     """
     Total (frequency-integrated) relativistic free-free Gaunt factor as a
     function of a scaled temperature and scaled atomic number.
@@ -112,11 +122,6 @@ class ItohIntegratedGauntParser(GenericParser):
     units = [u.dimensionless_unscaled]
     headings = ['a_ik']
     descriptions = ['fitting coefficient']
-
-    def __init__(self, filename, **kwargs):
-        super().__init__(filename, **kwargs)
-        self.full_path = pathlib.Path(kwargs.get('full_path',
-                                    self.ascii_dbase_root / 'continuum' / filename))
 
     def preprocessor(self, table, line, index):
         line = line.strip().split()
@@ -158,7 +163,7 @@ comment: These are the coefficients a_ik tabulated in Table 1."""
             ds.attrs['description'] = df.meta['descriptions'][name]
 
 
-class ItohIntegratedGauntNonrelParser(GenericParser):
+class ItohIntegratedGauntNonrelParser(GenericContinuumParser):
     """
     Total (frequency-integrated) non-relativistic free-free Gaunt factor as a
     function of a scaled temperature.
@@ -168,11 +173,6 @@ class ItohIntegratedGauntNonrelParser(GenericParser):
     units = [u.dimensionless_unscaled]
     headings = ['b_i']
     descriptions = ['fitting coefficient']
-
-    def __init__(self, filename, **kwargs):
-        super().__init__(filename, **kwargs)
-        self.full_path = pathlib.Path(kwargs.get('full_path',
-                                    self.ascii_dbase_root / 'continuum' / filename))
 
     def extract_footer(self, *args):
         return """Fit coefficients for non-relativistic, frequency integrated free-free Gaunt factor
@@ -209,7 +209,7 @@ Comment: Data taken from Table 2 of this work."""
             ds.attrs['description'] = df.meta['descriptions'][name]
 
 
-class KlgfbParser(GenericParser):
+class KlgfbParser(GenericContinuumParser):
     """
     Free-bound gaunt factor as a function of photon energy for several different energy levels.
     """
@@ -223,11 +223,6 @@ class KlgfbParser(GenericParser):
         'log photon energy divided by ionization potential',
         'log free-bound Gaunt factor',
     ]
-
-    def __init__(self, filename, **kwargs):
-        super().__init__(filename, **kwargs)
-        self.full_path = pathlib.Path(kwargs.get('full_path',
-                                    self.ascii_dbase_root / 'continuum' / filename))
 
     def preprocessor(self, table, line, index):
         if index == 0:
@@ -280,7 +275,7 @@ From Karzas, W. J. and Latter, R., 1961, ApJS, 6, 167"""
             ds.attrs['description'] = df.meta['descriptions'][name]
 
 
-class KlgfbNParser(GenericParser):
+class KlgfbNParser(GenericContinuumParser):
     """
     Free-bound gaunt factor as a function of photon energy for a given principal quantum number.
 
@@ -299,11 +294,6 @@ class KlgfbNParser(GenericParser):
         'photon energy',
         'free-bound Gaunt factor',
     ]
-
-    def __init__(self, filename, **kwargs):
-        super().__init__(filename, **kwargs)
-        self.full_path = pathlib.Path(kwargs.get('full_path',
-                                    self.ascii_dbase_root / 'continuum' / filename))
 
     @property
     def pqn(self):
@@ -373,7 +363,7 @@ class Klgfb6Parser(KlgfbNParser):
     filetype = 'klgfb_6'
 
 
-class VernerParser(GenericParser):
+class VernerParser(GenericContinuumParser):
     """
     Fit parameters for calculating partial photoionization cross-sections using
     the method of :cite:t:`verner_analytic_1995`.
@@ -389,11 +379,6 @@ class VernerParser(GenericParser):
                     'threshold energy below which cross-section is 0',
                     'E_0 fit parameter', 'nominal value of cross-section', 'y_a fit parameter',
                     'P fit parameter', 'y_w fit parameter']
-
-    def __init__(self, filename, **kwargs):
-        super().__init__(filename, **kwargs)
-        self.full_path = pathlib.Path(kwargs.get('full_path',
-                                    self.ascii_dbase_root / 'continuum' / filename))
 
     def extract_footer(self, *args):
         return """Fit parameters for calculating partial photoionization cross-sections for individual ions
@@ -421,7 +406,7 @@ From Verner, D. A . and Yakovlev, D. G., 1995, A&AS, 109, 125"""
                     ds.attrs['unit'] = row[col].unit.to_string()
 
 
-class ItohParser(GenericParser):
+class ItohParser(GenericContinuumParser):
     """
     Fit parameters for calculating relativistic free-free Gaunt factor using the method of
     :cite:t:`itoh_relativistic_2000`.
@@ -431,11 +416,6 @@ class ItohParser(GenericParser):
     units = [None, u.dimensionless_unscaled]
     headings = ['Z', 'a']
     descriptions = ['atomic number', 'fit coefficient']
-
-    def __init__(self, filename, **kwargs):
-        super().__init__(filename, **kwargs)
-        self.full_path = pathlib.Path(kwargs.get('full_path',
-                                    self.ascii_dbase_root / 'continuum' / filename))
 
     def preprocessor(self, table, line, index):
         a_matrix = np.array(line.strip().split()).reshape((11, 11))
@@ -478,7 +458,7 @@ From Itoh, N., et al., ApJS, 2000, 128, 125"""
             ds.attrs['description'] = df.meta['descriptions'][name]
 
 
-class HSeqParser(GenericParser):
+class HSeqParser(GenericContinuumParser):
     r"""
     Parameters for calculating two-photon continuum for hydrogen-like ions
 
@@ -496,11 +476,6 @@ class HSeqParser(GenericParser):
     descriptions = ['atomic number', 'fraction of energy carried by one of the two photons',
                     'nominal atomic number', 'radiative decay rate', 'normalization of the integral of psi from 0 to 1',
                     'spectral distribution function']
-
-    def __init__(self, filename, **kwargs):
-        super().__init__(filename, **kwargs)
-        self.full_path = pathlib.Path(kwargs.get('full_path',
-                                    self.ascii_dbase_root / 'continuum' / filename))
 
     def preprocessor(self, table, line, index):
         if index == 0:
@@ -537,7 +512,7 @@ Spectral distribution function from Goldman, S.P. and Drake, G.W.F., 1981, Phys 
                     ds.attrs['unit'] = row[col].unit.to_string()
 
 
-class HeSeqParser(GenericParser):
+class HeSeqParser(GenericContinuumParser):
     """
     Parameters for calculating two-photon continuum for helium-like ions.
     """
@@ -547,11 +522,6 @@ class HeSeqParser(GenericParser):
     headings = ['Z', 'y', 'A', 'psi']
     descriptions = ['atomic number', 'fraction of energy carried by one of the two photons',
                     'radiative decay rate', 'spectral distribution function']
-
-    def __init__(self, filename, **kwargs):
-        super().__init__(filename, **kwargs)
-        self.full_path = pathlib.Path(kwargs.get('full_path',
-                                    self.ascii_dbase_root / 'continuum' / filename))
 
     def preprocessor(self, table, line, index):
         if index == 0:
