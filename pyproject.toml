@@ -114,6 +114,8 @@ filterwarnings =[
   "ignore::asdf.exceptions.AsdfWarning",
   # Python 3.14 issue with extracting tarball
   "ignore:.*filter extracted tar archives and reject files or modify their metadata.*:DeprecationWarning",
+  # Python 3.13 issue with sqlalchemy and pytest. See, for example, https://github.com/pallets-eco/flask-sqlalchemy/issues/1379
+  "ignore::pytest.PytestUnraisableExceptionWarning",
 ]
 
 [tool.coverage.run]
