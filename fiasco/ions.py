@@ -8,6 +8,7 @@ import mendeleev
 import numpy as np
 import pathlib
 import plasmapy.particles
+import scipy.special
 
 from astropy.utils.data import get_pkg_data_path
 from functools import cached_property
@@ -1484,10 +1485,18 @@ Using Datasets:
         # Low-temperature correction (Eq. 14 of Nikolic et al. 2018)
         filename = pathlib.Path(get_pkg_data_path('data', package='fiasco')) / 'nikolic_table_5.dat'
         coefficient_table = astropy.table.QTable.read(filename, format='ascii.mrt')
-        if self.isoelectronic_sequence not in coefficient_table['Sequence']:
-            return suppression
-        row = coefficient_table[coefficient_table['Sequence']==self.isoelectronic_sequence]
-        eps_energies = u.Quantity([row[f'p_{i}']*(self.charge_state/10)**i for i in range(6)]).sum()
+        if self.isoelectronic_sequence in coefficient_table['Sequence']:
+            row = coefficient_table[coefficient_table['Sequence']==self.isoelectronic_sequence]
+        else:
+            # NOTE: if all coefficients are 0, exp_factor evaluates to 1
+            row = {f'p_{i}':0*u.eV for i in range(6)}
+        # NOTE: Per the footnote to Table 5 of Nikolic et al. (2018), there are two special cases for
+        # the p_0 coefficient for H-,He-,and Ne-like ions and for Si-like S III
+        if self._ion_name == 's_3':
+            row['p_0'] = 17.6874 * u.eV
+        if self.isoelectronic_sequence in ['H', 'He', 'Ne']:
+            row['p_0'] = 20*scipy.special.erfc(2*(x-x_a0)) * u.eV
+        eps_energies = u.Quantity([row[f'p_{i}']*(self.charge_state/10)**i for i in range(6)]).sum(axis=0)
         exp_factor = np.exp(-eps_energies/10/self.thermal_energy)
         return 1 - (1 - suppression)*exp_factor
 
