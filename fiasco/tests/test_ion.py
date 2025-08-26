@@ -562,3 +562,15 @@ def test_ion_mass(fe10, c5):
     assert fe10.mass.unit.physical_type == 'mass'
     assert u.isclose(fe10.mass, 9.27246057e-23*u.g)
     assert u.isclose(c5.mass, 1.9941091e-23*u.g)
+
+
+@pytest.fixture
+def oxygen(hdf5_dbase_root):
+    return fiasco.Element('O', 10**4.5*u.K, hdf5_dbase_root=hdf5_dbase_root)
+
+
+def test_dielectronic_recombination_suppression(oxygen):
+    density = np.logspace(0, 15, 30) * u.cm**(-3)
+    for ion in oxygen[1:-1]:
+        suppression = np.array([ion._dielectronic_recombination_suppression(d) for d in density]).squeeze()
+        assert suppression.shape == density.shape

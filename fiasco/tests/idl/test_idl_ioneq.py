@@ -106,6 +106,7 @@ def test_recombination_rate_from_idl(ion_name, temperature, idl_env, dbase_versi
 
 # NOTE: The list of ions here is motivated by the need to test the different cases for different
 # isoelectronic sequences when calculating the suppression factor.
+@pytest.mark.requires_dbase_version('>= 10')
 @pytest.mark.parametrize('ion_name', [
     'Si IV',
     'S V',
@@ -117,10 +118,10 @@ def test_recombination_rate_from_idl(ion_name, temperature, idl_env, dbase_versi
     'O IV',
     'O V',
     'O VI',
-    #'o_7',
-    #'o_8',
+    pytest.param('O VII', marks=pytest.mark.xfail()),
+    pytest.param('O VIII', marks=pytest.mark.xfail()),
 ])
-def test_dielectronic_recombination_suppression_factor(ion_name, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root):
+def test_dielectronic_recombination_suppression_factor_from_idl(ion_name, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root):
     script = """
     temperature = {{ temperature | to_unit('K') | force_double_precision }}
     density = {{ density | to_unit('cm-3') | force_double_precision }}
