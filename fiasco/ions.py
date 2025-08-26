@@ -2,9 +2,14 @@
 Ion object. Holds all methods and properties of a CHIANTI ion.
 """
 import astropy.constants as const
+import astropy.table
 import astropy.units as u
+import mendeleev
 import numpy as np
+import pathlib
+import plasmapy.particles
 
+from astropy.utils.data import get_pkg_data_path
 from functools import cached_property
 from scipy.interpolate import CubicSpline, interp1d, PchipInterpolator
 
@@ -1447,6 +1452,87 @@ Using Datasets:
                     1. + B * np.exp(-T1/self.temperature))
         else:
             raise ValueError(f"Unrecognized fit type {self._drparams['fit_type']}")
+
+    @u.quantity_input
+    def _dielectronic_recombination_suppression(self, density:u.Unit('cm-3')):
+        """
+        Density-dependent suppression factor for dielectronic recombination.
+
+        Calculates the density-dependent suppression factor for dielectronic
+        recombination following the formulation in Eq. 2 of
+        :cite:t:`nikolic_suppression_2018`, including the lower-temperature
+        correction given in Eq. 14.
+
+        Parameters
+        ----------
+        density: `~astropy.units.Quantity`
+        """
+        if self.isoelectronic_sequence is None:
+            return 1
+        # "A" factor
+        A_N = self._nikolic_a_factor()
+        q_0 = (1 - np.sqrt(2/3/self.charge_state))*A_N/np.sqrt(self.charge_state)
+        T_0 = 5e4*u.K * q_0**2
+        # Activation log density (Eq. 3 of Nikolic et al. 2018)
+        x_a0 = 10.1821
+        x_a = x_a0 + np.log10((self.charge_state/q_0)**7*np.sqrt(self.temperature/T_0))
+        # Suppression factor (Eq. 2 of Nikolic et al. 2018)
+        width = 5.64586
+        x = np.log10(density.to_value('cm-3'))
+        suppression = np.exp(-((x-x_a)/width*np.sqrt(np.log(2)))**2)
+        suppression = np.where(x<=x_a, 1, suppression)
+        # Low-temperature correction (Eq. 14 of Nikolic et al. 2018)
+        filename = pathlib.Path(get_pkg_data_path('data', package='fiasco')) / 'nikolic_table_5.dat'
+        coefficient_table = astropy.table.QTable.read(filename, format='ascii.mrt')
+        if self.isoelectronic_sequence not in coefficient_table['Sequence']:
+            return suppression
+        row = coefficient_table[coefficient_table['Sequence']==self.isoelectronic_sequence]
+        eps_energies = u.Quantity([row[f'p_{i}']*(self.charge_state/10)**i for i in range(6)]).sum()
+        exp_factor = np.exp(-eps_energies/10/self.thermal_energy)
+        return 1 - (1 - suppression)*exp_factor
+
+    def _nikolic_a_factor(self):
+        """
+        Compute :math:`A(N)` according to Equations 6 and 9 of :cite:t:`nikolic_suppression_2018`.
+        """
+        Z_iso = plasmapy.particles.atomic_number(self.isoelectronic_sequence)
+        # Compute nominal A value according to Eq. 6 and 7 or Table 1
+        if Z_iso <= 5:
+            # NOTE: According to the paragraph below Eq. 7 of Nikolic et al. (2018), "...the given
+            # parameterization was not flexible enough to provide an adequate fit to the
+            # Summers (1974 & 1979) data for the lower isoelectronic sequences N<=5.
+            # Instead, we explicitly list the optimal values for A(N), for lower ionization
+            # stages, in Table 1."
+            # NOTE: These values comes from the leftmost columns of Table 1 in Nikolic et al. (2018).
+            A_N = {1: 16, 2: 18, 3: 66, 4: 66, 5: 52}[Z_iso]
+        else:
+            # NOTE: This lookup table comes from Eq. 7 of Nikolic et al. (2018). This is dependent
+            # on the "period" (or row on the periodic table) of the isolectronic sequence to which
+            # the given ion belongs.
+            period_iso = mendeleev.element(self.isoelectronic_sequence).period
+            N_1, N_2 = {
+                2: (3,10), 3: (11,18), 4: (19,36), 5: (37,54), 6: (55,86), 7: (87,118)
+            }[period_iso]
+            A_N = 12 + 10*N_1 + (10*N_1 - 2*N_2)/(N_1 - N_2)*(Z_iso - N_1)
+        # Compute additional modifications according to Eqs. 9, 10, and 11
+        filename = pathlib.Path(get_pkg_data_path('data', package='fiasco')) / 'nikolic_table_2.dat'
+        coefficient_table = astropy.table.QTable.read(filename, format='ascii.mrt')
+        if Z_iso not in coefficient_table['N']:
+            return A_N
+        # Calculate pis/gammas. Relabel as c_i as the formula is the same
+        c_i = []
+        for i in range(1,7):
+            row = coefficient_table[np.logical_and(coefficient_table['N'] == Z_iso, coefficient_table['i'] == i)]
+            c_i.append(
+                row['c_1'] + row['c_2']*self.charge_state**row['c_3']*np.exp(-self.charge_state/row['c_4'])
+            )
+        c_i = np.array(c_i)
+        # Calculate psi term According to Eqs. 10 and 11
+        logT = np.log10(self.temperature.to_value('K'))
+        psi = 1 + c_i[2]*np.exp(-((logT-c_i[0])/np.sqrt(2)/c_i[1])**2) + c_i[5]*np.exp(-((logT-c_i[3])/np.sqrt(2)/c_i[4])**2)
+        if Z_iso < 5:
+            psi = 2*psi/(1 + np.exp(-2.5e4*u.K*self.charge_state**2/self.temperature))
+        return A_N*psi
 
     @cached_property
     @needs_dataset('trparams')
