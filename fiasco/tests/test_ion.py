@@ -562,3 +562,28 @@ def test_ion_mass(fe10, c5):
     assert fe10.mass.unit.physical_type == 'mass'
     assert u.isclose(fe10.mass, 9.27246057e-23*u.g)
     assert u.isclose(c5.mass, 1.9941091e-23*u.g)
+
+
+@pytest.fixture
+def oxygen(hdf5_dbase_root):
+    return fiasco.Element('O', 10**4.5*u.K, hdf5_dbase_root=hdf5_dbase_root)
+
+
+def test_dielectronic_recombination_suppression_different_sequences(oxygen):
+    density = np.logspace(0, 15, 30) * u.cm**(-3)
+    for ion in oxygen[1:-1]:
+        suppression = ion._dielectronic_recombination_suppression(density,
+                                                                  couple_density_to_temperature=False)
+        assert suppression.shape == density.shape + oxygen.temperature.shape
+
+
+@pytest.mark.parametrize(('density', 'coupling', 'shape'),[
+    (1e10*u.cm**(-3), False, (1,)),
+    (1e10*u.cm**(-3), True, ()),
+    (10**np.linspace(6,16,20)*u.cm**(-3), False, (20,)),
+    (np.logspace(7,15,50)*u.cm**(-3), True, ()),
+])
+def test_dielectronic_recombination_suppression_density_shapes(density, coupling, shape, hdf5_dbase_root):
+    o_6 = fiasco.Ion('O VI', np.logspace(5,7,50)*u.K, hdf5_dbase_root=hdf5_dbase_root)
+    suppression = o_6._dielectronic_recombination_suppression(density, couple_density_to_temperature=coupling)
+    assert suppression.shape == shape + o_6.temperature.shape

@@ -102,3 +102,46 @@ def test_recombination_rate_from_idl(ion_name, temperature, idl_env, dbase_versi
                                 chianti_idl_version,
                                 format_func={'rate': lambda x: x*u.Unit('cm3 s-1')})
     assert u.allclose(idl_result['rate'], ion.recombination_rate, rtol=0.02)
+
+
+# NOTE: The list of ions here is motivated by the need to test the different cases for different
+# isoelectronic sequences when calculating the suppression factor.
+@pytest.mark.requires_dbase_version('>= 10')
+@pytest.mark.parametrize('ion_name', [
+    'Si IV',
+    'S V',
+    'Fe XII',
+    'Fe XIII',
+    'Fe XIV',
+    'O II',
+    'O III',
+    'O IV',
+    'O V',
+    'O VI',
+    pytest.param('O VII', marks=pytest.mark.xfail()),
+    pytest.param('O VIII', marks=pytest.mark.xfail()),
+])
+def test_dielectronic_recombination_suppression_factor_from_idl(ion_name, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root):
+    script = """
+    temperature = {{ temperature | to_unit('K') | force_double_precision }}
+    density = {{ density | to_unit('cm-3') | force_double_precision }}
+    suppression = fltarr(n_elements(density))
+    for i=0,n_elements(density)-1 do begin
+        rate = ch_dr_suppress('{{ion_name}}', temperature, density=density[i], q0=q0, xa=xa, s=s)
+        suppression[i] = s
+    end
+    """
+    # Derived from the example suppression factor calculation shown in Fig. 2 of Nikolic et al. (2018)
+    temperature = 10**4.5 * u.K
+    ion = fiasco.Ion(ion_name, temperature, hdf5_dbase_root=hdf5_dbase_root)
+    density = np.logspace(0,15,30)*u.cm**(-3)
+    suppression = ion._dielectronic_recombination_suppression(density, couple_density_to_temperature=False)
+    idl_result = run_idl_script(idl_env,
+                                script,
+                                {'temperature': temperature, 'density': density, 'ion_name': ion._ion_name},
+                                ['suppression'],
+                                f'dielectronic_recombination_suppression_factor_{ion.atomic_number}_{ion.ionization_stage}',
+                                dbase_version,
+                                chianti_idl_version,
+                                write_file=False)
+    u.allclose(idl_result['suppression'], suppression.squeeze(), rtol=0.01)

@@ -13,7 +13,12 @@ import fiasco
 from fiasco.io import DataIndexer
 from fiasco.util import parse_ion_name
 
-__all__ = ['list_elements', 'list_ions', 'proton_electron_ratio', 'get_isoelectronic_sequence']
+__all__ = [
+    'list_elements',
+    'list_ions',
+    'proton_electron_ratio',
+    'get_isoelectronic_sequence',
+]
 
 
 def list_elements(hdf5_dbase_root=None, sort=True):

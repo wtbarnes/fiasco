@@ -10,6 +10,7 @@ import plasmapy
 from fiasco.io.generic import GenericParser
 
 __all__ = [
+    'GenericContinuumParser',
     'GffguParser',
     'GffintParser',
     'ItohIntegratedGauntParser',

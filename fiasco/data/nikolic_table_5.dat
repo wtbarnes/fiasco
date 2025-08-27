@@ -1,0 +1,32 @@
+Title: Fitting Coefficients for the Excitation Energies
+Authors: D. Nikolić, T. W. Gorczyca, K. T. Korista , M. Chatzikos, G. J. Ferland,
+F. Guzmán , P A. M. van Hoof , R. J. R. Williams, N. R. Badnell
+Table: 5
+================================================================================
+Byte-by-byte Description of file: nikolic_table_5.dat
+--------------------------------------------------------------------------------
+ Bytes Format Units  Label     Explanations
+--------------------------------------------------------------------------------
+ 1- 2  A2     ---    Sequence Atomic symbol of isoelectronic sequence        
+ 4- 5  I2     ---    N        [3/15] Atomic number of isoelectronic sequence        
+ 7-12  F6.3   eV     p_0      [1.42/11.37] Fitting coefficient p_0
+14-19  F6.3   eV     p_1      [3.9/36.22] Fitting coefficient p_1 
+21-27  F7.4   eV     p_2      [-1.13/7.09] Fitting coefficient p_2
+29-35  F7.4   eV     p_3      [-5.17/0.91] Fitting coefficient p_3
+37-44  F8.5   eV     p_4      [-0.05/2.46] Fitting coefficient p_4
+46-53  F8.5   eV     p_5      [-0.17/0.03] Fitting coefficient p_5
+--------------------------------------------------------------------------------
+Notes: Adapted from Table 5 in Appendix C of Nikolic et al. (2018),
+(doi: 10.3847/1538-4365/aad3c5). Fitting Coefficients for excitation energies
+as given by Eq. 15 for providing an additional lower-temperature correction to 
+the dielectronic recombination suppression factor. Two additional footnotes from
+Table 5:
+1. For $N=1,2,10$, $p_{N,0}=20\,\mathrm{erfc}(2(x-{x}_{a}^{0}))$
+2. Set $p_{N,0}=17.6874$ for Si-like S III, see Badnell et al. (2015).
+--------------------------------------------------------------------------------
+Li  3  1.963 20.300 -0.9710  0.8545  0.13550  0.02401
+Be  4  5.789 34.080  1.5170 -1.2120  0.77560 -0.00410
+N   7 11.370 36.220  7.0840 -5.1680  2.45100 -0.16960
+Na 11  2.248 22.280 -1.1230  0.9027 -0.03860  0.01468
+Mg 12  2.745 19.190 -0.5432  0.7868 -0.04249  0.01357
+P  15  1.428  3.908  0.7312 -1.9140  1.05100 -0.08992

@@ -42,6 +42,7 @@ dependencies = [
   "astropy>=5.2",
   "fortranformat>=2",
   "h5py>=3.9",
+  "mendeleev>=1",
   "numpy>=1.25,<2.3.0",
   "plasmapy>=2024.10.0",
 ]
@@ -113,6 +114,8 @@ filterwarnings =[
   "ignore::asdf.exceptions.AsdfWarning",
   # Python 3.14 issue with extracting tarball
   "ignore:.*filter extracted tar archives and reject files or modify their metadata.*:DeprecationWarning",
+  # Python 3.13 issue with sqlalchemy and pytest. See, for example, https://github.com/pallets-eco/flask-sqlalchemy/issues/1379
+  "ignore::pytest.PytestUnraisableExceptionWarning",
 ]
 
 [tool.coverage.run]
