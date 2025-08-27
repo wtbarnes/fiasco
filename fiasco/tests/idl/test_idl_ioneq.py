@@ -135,7 +135,7 @@ def test_dielectronic_recombination_suppression_factor_from_idl(ion_name, idl_en
     temperature = 10**4.5 * u.K
     ion = fiasco.Ion(ion_name, temperature, hdf5_dbase_root=hdf5_dbase_root)
     density = np.logspace(0,15,30)*u.cm**(-3)
-    suppression = np.array([ion._dielectronic_recombination_suppression(d) for d in density]).squeeze()
+    suppression = ion._dielectronic_recombination_suppression(density, couple_density_to_temperature=False)
     idl_result = run_idl_script(idl_env,
                                 script,
                                 {'temperature': temperature, 'density': density, 'ion_name': ion._ion_name},
@@ -144,4 +144,4 @@ def test_dielectronic_recombination_suppression_factor_from_idl(ion_name, idl_en
                                 dbase_version,
                                 chianti_idl_version,
                                 write_file=False)
-    u.allclose(idl_result['suppression'], suppression, rtol=0.01)
+    u.allclose(idl_result['suppression'], suppression.squeeze(), rtol=0.01)
