@@ -572,8 +572,9 @@ def oxygen(hdf5_dbase_root):
 def test_dielectronic_recombination_suppression_different_sequences(oxygen):
     density = np.logspace(0, 15, 30) * u.cm**(-3)
     for ion in oxygen[1:-1]:
-        suppression = ion._dielectronic_recombination_suppression(density)
-        assert suppression.shape == density.shape
+        suppression = ion._dielectronic_recombination_suppression(density,
+                                                                  couple_density_to_temperature=False)
+        assert suppression.shape == density.shape + oxygen.temperature.shape
 
 
 @pytest.mark.parametrize(('density', 'coupling', 'shape'),[
