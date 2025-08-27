@@ -1455,7 +1455,7 @@ Using Datasets:
             raise ValueError(f"Unrecognized fit type {self._drparams['fit_type']}")
 
     @u.quantity_input
-    def _dielectronic_recombination_suppression(self, density:u.Unit('cm-3')):
+    def _dielectronic_recombination_suppression(self, density:u.Unit('cm-3'), couple_density_to_temperature=True):
         """
         Density-dependent suppression factor for dielectronic recombination.
 
@@ -1470,6 +1470,11 @@ Using Datasets:
         """
         if self.isoelectronic_sequence is None:
             return 1
+        density = np.atleast_1d(density)
+        if couple_density_to_temperature:
+            if density.shape != (1,) and density.shape != self.temperature.shape:
+                raise ValueError('Temperature and density must be of equal length if density is '
+                                 'coupled to the temperature axis.')
         # "A" factor
         A_N = self._nikolic_a_factor()
         q_0 = (1 - np.sqrt(2/3/self.charge_state))*A_N/np.sqrt(self.charge_state)
@@ -1480,6 +1485,8 @@ Using Datasets:
         # Suppression factor (Eq. 2 of Nikolic et al. 2018)
         width = 5.64586
         x = np.log10(density.to_value('cm-3'))
+        if not couple_density_to_temperature:
+            x = np.tile(x[:,np.newaxis], self.temperature.shape)
         suppression = np.exp(-((x-x_a)/width*np.sqrt(np.log(2)))**2)
         suppression = np.where(x<=x_a, 1, suppression)
         # Low-temperature correction (Eq. 14 of Nikolic et al. 2018)
@@ -1492,10 +1499,13 @@ Using Datasets:
             row = {f'p_{i}':0*u.eV for i in range(6)}
         # NOTE: Per the footnote to Table 5 of Nikolic et al. (2018), there are two special cases for
         # the p_0 coefficient for H-,He-,and Ne-like ions and for Si-like S III
-        if self._ion_name == 's_3':
+        if self.ion_name == 'S III':
             row['p_0'] = 17.6874 * u.eV
         if self.isoelectronic_sequence in ['H', 'He', 'Ne']:
             row['p_0'] = 20*scipy.special.erfc(2*(x-x_a0)) * u.eV
+            # NOTE: This loop allows for broadcasting later on
+            for i in range(1,6):
+                row[f'p_{i}'] = row[f'p_{i}']*np.ones(row['p_0'].shape)
         eps_energies = u.Quantity([row[f'p_{i}']*(self.charge_state/10)**i for i in range(6)]).sum(axis=0)
         exp_factor = np.exp(-eps_energies/10/self.thermal_energy)
         return 1 - (1 - suppression)*exp_factor
@@ -1527,7 +1537,7 @@ Using Datasets:
         filename = pathlib.Path(get_pkg_data_path('data', package='fiasco')) / 'nikolic_table_2.dat'
         coefficient_table = astropy.table.QTable.read(filename, format='ascii.mrt')
         if Z_iso not in coefficient_table['N']:
-            return A_N
+            return A_N*np.ones(self.temperature.shape)
         # Calculate pis/gammas. Relabel as c_i as the formula is the same
         c_i = []
         for i in range(1,7):
