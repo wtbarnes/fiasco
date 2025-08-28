@@ -142,6 +142,5 @@ def test_dielectronic_recombination_suppression_factor_from_idl(ion_name, idl_en
                                 ['suppression'],
                                 f'dielectronic_recombination_suppression_factor_{ion.atomic_number}_{ion.ionization_stage}',
                                 dbase_version,
-                                chianti_idl_version,
-                                write_file=False)
+                                chianti_idl_version)
     u.allclose(idl_result['suppression'], suppression.squeeze(), rtol=0.01)
