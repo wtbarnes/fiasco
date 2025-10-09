@@ -1786,7 +1786,7 @@ Using Datasets:
             xs_exp_ip_ratio[:,cross_section==0.0*u.cm**2] = 0.0 * u.cm**2
             sum_factor += omega * xs_exp_ip_ratio
 
-        term_1 = (prefactor
+        emission = (prefactor
                   * np.outer(self.thermal_energy**(-3/2), E_photon**5)
                   * exp_energy_ratio
                   / omega_0)
@@ -1795,7 +1795,7 @@ Using Datasets:
         # will not sufficiently deal with these as 0*infinity=infinity.
         with warnings.catch_warnings(action='ignore', category=RuntimeWarning):
             emission = np.where(
-                np.logical_and(term_1==0, np.isinf(sum_factor)), 0, term_1*sum_factor
+                np.logical_and(emission==0, np.isinf(sum_factor)), 0, emission*sum_factor
             )
         return emission
 
