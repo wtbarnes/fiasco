@@ -9,6 +9,7 @@ import numpy as np
 import pathlib
 import plasmapy.particles
 import scipy.special
+import warnings
 
 from astropy.utils.data import get_pkg_data_path
 from functools import cached_property
@@ -1785,10 +1786,18 @@ Using Datasets:
             xs_exp_ip_ratio[:,cross_section==0.0*u.cm**2] = 0.0 * u.cm**2
             sum_factor += omega * xs_exp_ip_ratio
 
-        return (prefactor
-                * np.outer(self.thermal_energy**(-3/2), E_photon**5)
-                * exp_energy_ratio
-                * sum_factor / omega_0)
+        emission = (prefactor
+                  * np.outer(self.thermal_energy**(-3/2), E_photon**5)
+                  * exp_energy_ratio
+                  / omega_0)
+        # NOTE: Necessary because ratio of ionization energy to thermal energy can blow
+        # up to infinity at low temperatures for some ionization potentials. Simple multiplication
+        # will not sufficiently deal with these as 0*infinity=infinity.
+        with warnings.catch_warnings(action='ignore', category=RuntimeWarning):
+            emission = np.where(
+                np.logical_and(emission==0, np.isinf(sum_factor)), 0, emission*sum_factor
+            )
+        return emission
 
     @u.quantity_input
     def free_bound_radiative_loss(self) -> u.erg * u.cm**3 / u.s:
