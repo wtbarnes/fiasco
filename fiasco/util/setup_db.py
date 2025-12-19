@@ -31,6 +31,9 @@ SUPPORTED_VERSIONS = [
     '10.0.1',
     '10.0.2',
     '10.1',
+    '11.0',
+    '11.0.1',
+    '11.0.2',
 ]
 LATEST_VERSION = SUPPORTED_VERSIONS[-1]
 
