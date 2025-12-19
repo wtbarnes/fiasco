@@ -122,6 +122,25 @@ jobs:
       envs: |
         - linux: py312
 
+  test_database_v10:
+    if: |
+      (
+        github.event_name != 'pull_request' && (
+          github.ref_name != 'main' ||
+          github.event_name == 'workflow_dispatch'
+        )
+      ) || (
+        github.event_name == 'pull_request' &&
+        contains(github.event.pull_request.labels.*.name, 'Run v10 tests')
+      )
+    needs: [tests]
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v2
+    with:
+      posargs: '--ascii-dbase-root ~/.chianti --ascii-dbase-url https://download.chiantidatabase.org/CHIANTI_10.1_database.tar.gz'
+      toxdeps: tox-pypi-filter
+      envs: |
+        - linux: py312
+
   docs:
     needs: [tests]
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v2
