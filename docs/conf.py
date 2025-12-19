@@ -110,7 +110,7 @@ html_theme_options = {
             "icon": "fa-solid fa-wine-glass",
         }
     ],
-    "announcement": "fiasco currently supports versions 8, 9, and 10 of the CHIANTI database.",
+    "announcement": "fiasco currently supports versions 8--11 of the CHIANTI database.",
 }
 html_context = {
     "github_user": "wtbarnes",
