@@ -7,7 +7,7 @@ import pytest
 
 import fiasco
 
-from fiasco.tests.idl.helpers import run_idl_script
+from fiasco.tests.idl.helpers import run_idl_script, version_check
 from fiasco.util import parse_ion_name
 
 
@@ -118,8 +118,8 @@ def test_recombination_rate_from_idl(ion_name, temperature, idl_env, dbase_versi
     'O IV',
     'O V',
     'O VI',
-    pytest.param('O VII', marks=pytest.mark.xfail()),
-    pytest.param('O VIII', marks=pytest.mark.xfail()),
+    'O VII',
+    'O VIII',
 ])
 def test_dielectronic_recombination_suppression_factor_from_idl(ion_name, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root):
     script = """
@@ -134,6 +134,8 @@ def test_dielectronic_recombination_suppression_factor_from_idl(ion_name, idl_en
     # Derived from the example suppression factor calculation shown in Fig. 2 of Nikolic et al. (2018)
     temperature = 10**4.5 * u.K
     ion = fiasco.Ion(ion_name, temperature, hdf5_dbase_root=hdf5_dbase_root)
+    # There is a bug in the calculation of the suppression factors for H- and He-like ions that was
+    # fixed in version 11.0.2 of the CHIANTI software
     density = np.logspace(0,15,30)*u.cm**(-3)
     suppression = ion._dielectronic_recombination_suppression(density, couple_density_to_temperature=False)
     idl_result = run_idl_script(idl_env,
@@ -143,4 +145,7 @@ def test_dielectronic_recombination_suppression_factor_from_idl(ion_name, idl_en
                                 f'dielectronic_recombination_suppression_factor_{ion.atomic_number}_{ion.ionization_stage}',
                                 dbase_version,
                                 chianti_idl_version)
+    if (ion.isoelectronic_sequence in ('H', 'He')) and version_check(idl_result['chianti_idl_version'], '<', '11.0.2'):
+        pytest.skip('Skipping dielectronic recombination suppression test for H- and He-like ions due '
+                    'to a bug in the IDL software in versions prior to v11.0.2.')
     u.allclose(idl_result['suppression'], suppression.squeeze(), rtol=0.01)
