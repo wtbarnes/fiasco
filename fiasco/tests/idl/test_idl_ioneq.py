@@ -145,8 +145,7 @@ def test_dielectronic_recombination_suppression_factor_from_idl(ion_name, idl_en
                                 f'dielectronic_recombination_suppression_factor_{ion.atomic_number}_{ion.ionization_stage}',
                                 dbase_version,
                                 chianti_idl_version)
-    if (ion.isoelectronic_sequence in ('H', 'He')) and version_check(idl_result['chianti_idl_version'], '<', '11.0.2'):
-        # pragma: no cover
+    if (ion.isoelectronic_sequence in ('H', 'He')) and version_check(idl_result['chianti_idl_version'], '<', '11.0.2'): # pragma: no cover
         pytest.skip('Skipping dielectronic recombination suppression test for H- and He-like ions due '
                     'to a bug in the IDL software in versions prior to v11.0.2.')
     u.allclose(idl_result['suppression'], suppression.squeeze(), rtol=0.01)
