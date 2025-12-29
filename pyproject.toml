@@ -91,7 +91,7 @@ packages = ["fiasco"]
 write_to = "fiasco/version.py"
 
 [tool.pytest.ini_options]
-testpasths = [
+testpaths = [
   "fiasco",
   "docs"
 ]
