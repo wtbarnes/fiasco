@@ -4,7 +4,6 @@ Ion object. Holds all methods and properties of a CHIANTI ion.
 import astropy.constants as const
 import astropy.table
 import astropy.units as u
-import mendeleev
 import numpy as np
 import pathlib
 import plasmapy.particles
@@ -23,6 +22,7 @@ from fiasco.levels import Levels, Transitions
 from fiasco.util import (
     burgess_tully_descale,
     needs_dataset,
+    periodic_table_period,
     vectorize_where,
     vectorize_where_sum,
 )
@@ -1529,7 +1529,7 @@ Using Datasets:
             # NOTE: This lookup table comes from Eq. 7 of Nikolic et al. (2018). This is dependent
             # on the "period" (or row on the periodic table) of the isolectronic sequence to which
             # the given ion belongs.
-            period_iso = mendeleev.element(self.isoelectronic_sequence).period
+            period_iso = periodic_table_period(self.isoelectronic_sequence)
             N_1, N_2 = {
                 2: (3,10), 3: (11,18), 4: (19,36), 5: (37,54), 6: (55,86), 7: (87,118)
             }[period_iso]

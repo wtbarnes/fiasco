@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from fiasco.util import burgess_tully_descale, vectorize_where
+from fiasco.util import burgess_tully_descale, periodic_table_period, vectorize_where
 
 
 @pytest.mark.parametrize(('a', 'b', 'c'), [
@@ -50,3 +50,23 @@ def test_burgess_tully_different_scaling_types():
     scaling_type = np.arange(1, 7)
     ups = burgess_tully_descale(x, y, energy_ratio, c, scaling_type)
     assert ups.shape == energy_ratio.shape
+
+
+@pytest.mark.parametrize(('element', 'period'), [
+    ('H', 1),
+    ('lithium', 2),
+    (17, 3),
+    ('Fe', 4),
+    # None of the elements below are included in CHIANTI but this function
+    # still works for them
+    ('Ru', 5),
+    ('Hg', 6),
+    ('Pu', 7),
+])
+def test_periodic_table_period(element, period):
+    assert periodic_table_period(element) == period
+
+
+def test_periodic_table_period_invalid():
+    with pytest.raises(ValueError, match='No period available for element=200'):
+        periodic_table_period(200)

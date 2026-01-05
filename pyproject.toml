@@ -42,7 +42,6 @@ dependencies = [
   "astropy>=5.2",
   "fortranformat>=2",
   "h5py>=3.9",
-  "mendeleev>=1",
   "numpy>=1.25,<2.3.0",
   "plasmapy>=2024.10.0",
 ]
