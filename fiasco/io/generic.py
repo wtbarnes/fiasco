@@ -59,7 +59,7 @@ class GenericParser:
         # NOTE: put this here and not in __init__ as __init__ may be overwritten in a subclass
         if not self.full_path.is_file():
             raise MissingASCIIFileError(f'Could not find file {self.full_path}')
-        with self.full_path.open() as f:
+        with self.full_path.open(encoding='UTF-8') as f:
             lines = f.readlines()
         table = []
         for i, line in enumerate(lines):
