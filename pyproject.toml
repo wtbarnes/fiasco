@@ -71,7 +71,7 @@ test_idl = [
 ]
 docs =[
   "fiasco[all]",
-  "aiapy<0.11,!=0.10.2",
+  "aiapy==0.10.0",
   "asdf-astropy>=0.5",
   "asdf>=3.1",
   "hissw>=2.3",
