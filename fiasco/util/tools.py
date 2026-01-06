@@ -3,11 +3,17 @@ Numerical tools
 """
 import astropy.units as u
 import numpy as np
+import plasmapy.particles
 
 from functools import partial
 from scipy.interpolate import splev, splrep
 
-__all__ = ['vectorize_where', 'vectorize_where_sum', 'burgess_tully_descale']
+__all__ = [
+    'vectorize_where',
+    'vectorize_where_sum',
+    'burgess_tully_descale',
+    'periodic_table_period',
+]
 
 
 def vectorize_where(x_1, x_2):
@@ -203,3 +209,27 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
 
     # This ensures that the result does not have an object dtype
     return out.astype(energy_ratio.dtype)
+
+
+def periodic_table_period(element):
+    """
+    Return the period (row in the periodic table) of the given element.
+
+    Parameters
+    ----------
+    element: `str` or `int`
+        Name, atomic symbol, or atomic symbol of the element.
+    """
+    # NOTE: This was originally done using the mendeleev package
+    # (https://github.com/lmmentel/mendeleev), but the development pace of this
+    # package is quite slow and adding a whole dependency for only a single, simple
+    # function proved unnecessary. This operation is also significantly faster than
+    # the database lookup used by that package.
+    if isinstance(element, str):
+        element = plasmapy.particles.atomic_number(element.capitalize())
+    # See https://en.wikipedia.org/wiki/Period_(periodic_table)
+    rows = [2, 10, 18, 36, 54, 86, 118]
+    for i, r in enumerate(rows):
+        if element <= r:
+            return i+1
+    raise ValueError(f'No period available for {element=}.')

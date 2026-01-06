@@ -14,7 +14,7 @@ import fiasco
 from fiasco.io.datalayer import DataIndexer
 from fiasco.io.factory import all_subclasses
 from fiasco.io.generic import GenericIonParser
-from fiasco.util import check_database, parse_ion_name
+from fiasco.util import check_database, parse_ion_name, periodic_table_period
 from fiasco.util.exceptions import MissingIonError
 
 __all__ = ['IonBase']
@@ -108,6 +108,11 @@ class IonBase:
     def mass(self) -> u.g:
         "Atomic mass of the ion."
         return plasmapy.particles.Particle(self.ion_name_roman).mass
+
+    @property
+    def period(self):
+        "Row of the periodic table to which the element belongs"
+        return periodic_table_period(self.atomic_number)
 
     @property
     def _ion_name(self):

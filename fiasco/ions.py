@@ -4,7 +4,6 @@ Ion object. Holds all methods and properties of a CHIANTI ion.
 import astropy.constants as const
 import astropy.table
 import astropy.units as u
-import mendeleev
 import numpy as np
 import pathlib
 import plasmapy.particles
@@ -23,6 +22,7 @@ from fiasco.levels import Levels, Transitions
 from fiasco.util import (
     burgess_tully_descale,
     needs_dataset,
+    periodic_table_period,
     vectorize_where,
     vectorize_where_sum,
 )
@@ -685,7 +685,9 @@ Using Datasets:
     def _rate_matrix_radiative_decay(self) -> u.Unit('s-1'):
         rate_matrix = u.Quantity(np.zeros((self.n_levels, self.n_levels)), 's-1')
         # Radiative decay into current level from upper levels
-        rate_matrix[self.transitions.lower_level-1, self.transitions.upper_level-1] += self.transitions.A
+        lower_index = self.transitions.lower_level-1
+        upper_index = self.transitions.upper_level-1
+        rate_matrix[lower_index, upper_index] += self.transitions.A
         return rate_matrix
 
     @cached_property
@@ -693,12 +695,12 @@ Using Datasets:
     @u.quantity_input
     def _rate_matrix_collisional_electron(self) -> u.Unit('cm3 s-1'):
         rate_matrix = u.Quantity(np.zeros(self.temperature.shape + (self.n_levels, self.n_levels,)), 'cm3 s-1')
-        lower_level = self._scups['lower_level']
-        upper_level = self._scups['upper_level']
+        lower_index = self._scups['lower_level'] - 1
+        upper_index = self._scups['upper_level'] - 1
         # De-excitation from upper states
-        rate_matrix[:, lower_level-1, upper_level-1] += self.electron_collision_deexcitation_rate
+        rate_matrix[:, lower_index, upper_index] += self.electron_collision_deexcitation_rate
         # Excitation from lower states
-        rate_matrix[:, upper_level-1, lower_level-1] += self.electron_collision_excitation_rate
+        rate_matrix[:, upper_index, lower_index] += self.electron_collision_excitation_rate
         return rate_matrix
 
     @cached_property
@@ -706,10 +708,10 @@ Using Datasets:
     @u.quantity_input
     def _rate_matrix_collisional_proton(self) -> u.Unit('cm3 s-1'):
         rate_matrix = u.Quantity(np.zeros(self.temperature.shape + (self.n_levels, self.n_levels,)), 'cm3 s-1')
-        lower_level_p = self._psplups['lower_level']
-        upper_level_p = self._psplups['upper_level']
-        rate_matrix[:, lower_level_p-1, upper_level_p-1] += self.proton_collision_deexcitation_rate
-        rate_matrix[:, upper_level_p-1, lower_level_p-1] += self.proton_collision_excitation_rate
+        lower_index = self._psplups['lower_level'] - 1
+        upper_index = self._psplups['upper_level'] - 1
+        rate_matrix[:, lower_index, upper_index] += self.proton_collision_deexcitation_rate
+        rate_matrix[:, upper_index, lower_index] += self.proton_collision_excitation_rate
         return rate_matrix
 
     def _empty_rate_matrix(self, temperature_dependent=True, unit='cm3 s-1'):
@@ -771,9 +773,9 @@ Using Datasets:
         # NOTE: Only include those transitions with an upper level below or equal to that of the highest
         # energy level of the recombined ion
         idx = np.where(self._auto['upper_level']<=self.n_levels)
-        level_lower = self._auto['lower_level'][idx]
-        level_upper = self._auto['upper_level'][idx]
-        rate_matrix[level_lower+self.n_levels-1, level_upper-1] += self._auto['autoionization_rate'][idx]
+        lower_index = self._auto['lower_level'][idx] + self.n_levels - 1
+        upper_index = self._auto['upper_level'][idx] - 1
+        rate_matrix[lower_index, upper_index] += self._auto['autoionization_rate'][idx]
         return rate_matrix
 
     def _dielectronic_capture_rate(self, level_lower, level_upper, A_auto):
@@ -806,7 +808,9 @@ Using Datasets:
         level_upper = self._auto['upper_level'][idx]
         A_auto = self._auto['autoionization_rate'][idx]
         dc_rate = self._dielectronic_capture_rate(level_lower, level_upper, A_auto)
-        rate_matrix[:, level_upper-1, level_lower+self.n_levels-1] += dc_rate
+        upper_index = level_upper - 1
+        lower_index = level_lower + self.n_levels - 1
+        rate_matrix[:, upper_index, lower_index] += dc_rate
         return rate_matrix
 
     @cached_property
@@ -1009,13 +1013,15 @@ Using Datasets:
         try:
             upper_level_ionization, ionization_rate = self._level_resolved_ionization_rate
             ionization_fraction_previous = self.previous_ion().ionization_fraction.value[:, np.newaxis]
-            numerator[:, upper_level_ionization-1] += (ionization_rate * ionization_fraction_previous).to_value('cm3 s-1')
+            upper_index_ionization = upper_level_ionization-1
+            numerator[:, upper_index_ionization] += (ionization_rate * ionization_fraction_previous).to_value('cm3 s-1')
         except MissingDatasetException:
             pass
         try:
             upper_level_recombination, recombination_rate = self._level_resolved_recombination_rate
             ionization_fraction_next = self.next_ion().ionization_fraction.value[:, np.newaxis]
-            numerator[:, upper_level_recombination-1] += (recombination_rate * ionization_fraction_next).to_value('cm3 s-1')
+            upper_index_recombination = upper_level_recombination-1
+            numerator[:, upper_index_recombination] += (recombination_rate * ionization_fraction_next).to_value('cm3 s-1')
         except MissingDatasetException:
             pass
         numerator *= density.to_value('cm-3')[:,np.newaxis]
@@ -1529,7 +1535,7 @@ Using Datasets:
             # NOTE: This lookup table comes from Eq. 7 of Nikolic et al. (2018). This is dependent
             # on the "period" (or row on the periodic table) of the isolectronic sequence to which
             # the given ion belongs.
-            period_iso = mendeleev.element(self.isoelectronic_sequence).period
+            period_iso = periodic_table_period(self.isoelectronic_sequence)
             N_1, N_2 = {
                 2: (3,10), 3: (11,18), 4: (19,36), 5: (37,54), 6: (55,86), 7: (87,118)
             }[period_iso]

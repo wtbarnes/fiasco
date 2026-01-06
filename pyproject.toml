@@ -21,9 +21,9 @@ classifiers = [
   "License :: OSI Approved :: BSD License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: Implementation :: CPython",
   "Topic :: Scientific/Engineering :: Physics",
   "Topic :: Scientific/Engineering :: Astronomy",
@@ -37,12 +37,11 @@ keywords = [
   "atomic data",
   "atomic physics",
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
   "astropy>=5.2",
   "fortranformat>=2",
   "h5py>=3.9",
-  "mendeleev>=1",
   "numpy>=1.25,<2.3.0",
   "plasmapy>=2024.10.0",
 ]
@@ -71,7 +70,7 @@ test_idl = [
 ]
 docs =[
   "fiasco[all]",
-  "aiapy<0.11,!=0.10.2",
+  "aiapy>=0.11",
   "asdf-astropy>=0.5",
   "asdf>=3.1",
   "hissw>=2.3",
