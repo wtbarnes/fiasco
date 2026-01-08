@@ -162,7 +162,23 @@ Using Datasets:
         Number of energy levels in the CHIANTI model
         """
         try:
-            return len(self.levels)
+            n_levels_elvlc= len(self.levels)
+
+            # some ions don't have .wgfa
+            try:
+                n_levels_wgfa = self._wgfa['upper_level'].max()
+            except KeyError:
+                return 0
+
+            n_levels_scups = self._scups['upper_level'].max()
+
+            if n_levels_elvlc > n_levels_wgfa or n_levels_elvlc > n_levels_scups:
+                levels_list = [n_levels_elvlc, n_levels_wgfa, n_levels_scups]
+                n_levels = np.max([n_levels_scups, n_levels_wgfa])
+            else:
+                n_levels = n_levels_elvlc
+
+            return n_levels
         except MissingDatasetException:
             return 0
 
