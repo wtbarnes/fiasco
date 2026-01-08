@@ -50,6 +50,12 @@ def c5(hdf5_dbase_root):
 def c6(hdf5_dbase_root):
     return fiasco.Ion('C VI', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
+@pytest.fixture
+def n4(hdf5_dbase_root):
+    # NOTE: This ion was added because there are more levels listed in elvlc than in wgfa.
+    # It is used in test_n_levels.
+    return fiasco.Ion('N 4', temperature, hdf5_dbase_root=hdf5_dbase_root)
+
 
 @pytest.fixture
 def fe20(hdf5_dbase_root):
@@ -93,6 +99,11 @@ def test_level(ion):
     assert level.orbital_angular_momentum == 2
     assert level.is_observed
 
+# @pytest.mark.requires_dbase_version('>= 10')
+def test_n_levels(n4):
+    n_levels = n4.n_levels
+    assert n_levels != len(n4.levels)
+    assert n_levels == np.max([n4.transitions.upper_level.max(), n4._scups['upper_level'].max()])
 
 def test_level_energy_parsing(fe10):
     # Test falling back to theoretical energies if energies are not observed
