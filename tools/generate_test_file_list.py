@@ -17,7 +17,7 @@ __all__ = ['write_test_file_list']
 def write_test_file_list(files):
     """
     Write a unique, sorted list of files to use in the test database.
-    These are written to fiasco/util/data/test_files.json
+    These are written to fiasco/tests/data/test_files.json
     """
     current_files = get_test_file_list()  # Read current files
     current_files += files
