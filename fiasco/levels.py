@@ -65,7 +65,7 @@ Energy: {self.energy}"""
     @property
     def configuration(self):
         "Label denoting the electronic configuration."
-        return self._elvlc['config'][self._index]
+        return np.char.replace(self._elvlc['config'][self._index], ".", " ")
 
     @property
     def multiplicity(self):
@@ -193,9 +193,28 @@ class Transitions:
         return self._wgfa['upper_level']
 
     @property
+    def upper_configuration(self):
+        "Label of the upper level of the transition."
+        idx = vectorize_where(self._levels.level, self.upper_level)
+        configuration = self._levels.configuration[idx]
+        return configuration
+
+    @property
     def lower_level(self):
         "Index of the lower level of the transition."
         return self._wgfa['lower_level']
+
+    @property
+    def lower_configuration(self):
+        "Label of the lower level of the transition."
+        idx = vectorize_where(self._levels.level, self.lower_level)
+        configuration = self._levels.configuration[idx]
+        return configuration
+
+    @property
+    def configuration(self):
+        "Each configuration of the transition."
+        return self.lower_configuration + ' - ' + self.upper_configuration
 
     @property
     @u.quantity_input
