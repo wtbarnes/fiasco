@@ -103,6 +103,15 @@ def test_level_energy_parsing(fe10):
             assert fe10._elvlc['E_obs'][i].to_value('cm-1') == -1
             assert u.allclose(level.energy, fe10._elvlc['E_th'][i].to('erg', equivalencies=u.spectral()))
 
+def test_transition_configuration(ion):
+    transition_index = np.arange(ion.n_transitions)
+    upper_index = ion.transitions.upper_level[transition_index]
+    lower_index = ion.transitions.lower_level[transition_index]
+    upper_config_from_dbase = ion._elvlc['config'][upper_index-1]
+    lower_config_from_dbase = ion._elvlc['config'][lower_index-1]
+    assert np.all(upper_config_from_dbase == ion.transitions.upper_configuration[transition_index])
+    assert np.all(lower_config_from_dbase == ion.transitions.lower_configuration[transition_index])
+    assert np.all(ion.transitions.configuration == (lower_config_from_dbase + ' - ' + upper_config_from_dbase))
 
 def test_repr(ion):
     assert 'Fe 5' in ion.__repr__()
