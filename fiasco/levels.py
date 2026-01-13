@@ -84,6 +84,13 @@ Energy: {self.energy}"""
         return self._elvlc['J'][self._index]
 
     @property
+    def label(self):
+        "Label denoting level configuration, multiplicity, angular momentum label, and total angular momentum."
+        return np.array(
+            [f"{i} {j}{k}{l}" for i,j,k,l in zip(self.configuration, self.multiplicity, self.orbital_angular_momentum_label, self.total_angular_momentum)]
+        )
+
+    @property
     def weight(self):
         "Statistical weight, :math:`2J + 1`."
         return 2*self.total_angular_momentum + 1
@@ -194,10 +201,16 @@ class Transitions:
 
     @property
     def upper_configuration(self):
-        "Label of the upper level of the transition."
+        "Configuration of the upper level of the transition."
         idx = vectorize_where(self._levels.level, self.upper_level)
         configuration = self._levels.configuration[idx]
         return configuration
+
+    @property
+    def upper_label(self):
+        "Label of the upper level of the transition."
+        idx = vectorize_where(self._levels.level, self.upper_level)
+        return  self._levels.label[idx]
 
     @property
     def lower_level(self):
@@ -206,15 +219,21 @@ class Transitions:
 
     @property
     def lower_configuration(self):
-        "Label of the lower level of the transition."
+        "Configuration of the lower level of the transition."
         idx = vectorize_where(self._levels.level, self.lower_level)
         configuration = self._levels.configuration[idx]
         return configuration
 
     @property
-    def configuration(self):
-        "Each configuration of the transition."
-        return self.lower_configuration + ' - ' + self.upper_configuration
+    def lower_label(self):
+        "Label of the lower level of the transition."
+        idx = vectorize_where(self._levels.level, self.lower_level)
+        return self._levels.label[idx]
+
+    @property
+    def label(self):
+        "Labels of upper and lower energy levels for each transition."
+        return self.upper_label + ' -- ' + self.lower_label
 
     @property
     @u.quantity_input
