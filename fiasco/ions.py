@@ -160,25 +160,15 @@ Using Datasets:
     def n_levels(self):
         """
         Number of energy levels in the CHIANTI model.  It is possible this number
-        will not match the number of levels in the elvlc file.
+        will not match the number of levels in the energy level file.
         """
         try:
             n_levels_elvlc= len(self.levels)
 
-            if self._has_dataset('wgfa'):
-                n_levels_wgfa = self.transitions.upper_level.max()
-            else:
-                n_levels_wgfa = 0
+            n_levels_wgfa = self.transitions.upper_level.max() if self._has_dataset('wgfa') else 0
+            n_levels_scups = self._scups['upper_level'].max() if self._has_dataset('scups') else 0
 
-            if self._has_dataset('scups'):
-                n_levels_scups = self._scups['upper_level'].max()
-            else:
-                n_levels_scups = 0
-
-            if n_levels_elvlc > n_levels_wgfa or n_levels_elvlc > n_levels_scups:
-                n_levels = np.max([n_levels_scups, n_levels_wgfa])
-            else:
-                n_levels = n_levels_elvlc
+            n_levels = min(n_levels_elvlc,  np.max([n_levels_scups, n_levels_wgfa]))
 
             return n_levels
         except MissingDatasetException:

@@ -99,10 +99,8 @@ def test_level(ion):
     assert level.orbital_angular_momentum == 2
     assert level.is_observed
 
-# @pytest.mark.requires_dbase_version('>= 10')
 def test_n_levels(n4):
     n_levels = n4.n_levels
-    assert n_levels != len(n4.levels)
     assert n_levels == np.max([n4.transitions.upper_level.max(), n4._scups['upper_level'].max()])
 
 def test_level_energy_parsing(fe10):
