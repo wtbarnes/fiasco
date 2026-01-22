@@ -3,6 +3,7 @@ Energy level and transitions classes
 """
 import astropy.units as u
 import numpy as np
+from fractions import Fraction
 
 from fiasco.util import vectorize_where
 
@@ -86,9 +87,8 @@ Energy: {self.energy}"""
     @property
     def label(self):
         "Label denoting level configuration, multiplicity, angular momentum label, and total angular momentum."
-        return np.array(
-            [f"{i} {j}{k}{l}" for i,j,k,l in zip(self.configuration, self.multiplicity, self.orbital_angular_momentum_label, self.total_angular_momentum)]
-        )
+        zipped = zip(self.configuration, self.multiplicity, self.orbital_angular_momentum_label, self.total_angular_momentum)
+        return np.array([f"{i} {j}{k}{str(Fraction(l.value))}" for i,j,k,l in zipped])
 
     @property
     def weight(self):
