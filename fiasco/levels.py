@@ -3,6 +3,7 @@ Energy level and transitions classes
 """
 import astropy.units as u
 import numpy as np
+from fractions import Fraction
 
 from fiasco.util import vectorize_where
 
@@ -65,7 +66,7 @@ Energy: {self.energy}"""
     @property
     def configuration(self):
         "Label denoting the electronic configuration."
-        return self._elvlc['config'][self._index]
+        return np.char.replace(self._elvlc['config'][self._index], ".", " ")
 
     @property
     def multiplicity(self):
@@ -82,6 +83,12 @@ Energy: {self.energy}"""
     def total_angular_momentum(self):
         "Total angular momentum number :math:`J`."
         return self._elvlc['J'][self._index]
+
+    @property
+    def label(self):
+        "Label denoting level configuration, multiplicity, angular momentum label, and total angular momentum."
+        zipped = zip(self.configuration, self.multiplicity, self.orbital_angular_momentum_label, self.total_angular_momentum)
+        return np.array([f"{i} {j}{k}{str(Fraction(l.value))}" for i,j,k,l in zipped])
 
     @property
     def weight(self):
@@ -193,9 +200,40 @@ class Transitions:
         return self._wgfa['upper_level']
 
     @property
+    def upper_configuration(self):
+        "Configuration of the upper level of the transition."
+        idx = vectorize_where(self._levels.level, self.upper_level)
+        configuration = self._levels.configuration[idx]
+        return configuration
+
+    @property
+    def upper_label(self):
+        "Label of the upper level of the transition."
+        idx = vectorize_where(self._levels.level, self.upper_level)
+        return  self._levels.label[idx]
+
+    @property
     def lower_level(self):
         "Index of the lower level of the transition."
         return self._wgfa['lower_level']
+
+    @property
+    def lower_configuration(self):
+        "Configuration of the lower level of the transition."
+        idx = vectorize_where(self._levels.level, self.lower_level)
+        configuration = self._levels.configuration[idx]
+        return configuration
+
+    @property
+    def lower_label(self):
+        "Label of the lower level of the transition."
+        idx = vectorize_where(self._levels.level, self.lower_level)
+        return self._levels.label[idx]
+
+    @property
+    def label(self):
+        "Labels of upper and lower energy levels for each transition."
+        return self.upper_label + ' -- ' + self.lower_label
 
     @property
     @u.quantity_input
