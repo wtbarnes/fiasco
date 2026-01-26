@@ -99,9 +99,23 @@ def test_level(ion):
     assert level.orbital_angular_momentum == 2
     assert level.is_observed
 
-def test_n_levels(n4):
-    n_levels = n4.n_levels
-    assert n_levels == np.max([n4.transitions.upper_level.max(), n4._scups['upper_level'].max()])
+
+@pytest.mark.parametrize(('ion_name', 'n_levels'), [
+    # NOTE: The expected number of levels may change depending on the database version
+    # When they do, use a marker per parameterization to mark which ones apply to which
+    # version.
+    # NOTE: These ions are chosen because they cover the different cases of how to choose
+    # the number of atomic levels in a model based upon the available atomic data.
+    ('Fe V', 34),
+    ('N IV', 136),
+    ('Ar XVIII', 24),
+    ('Ti XXII', 0),
+    ('C IV', 923),
+])
+def test_n_levels(ion_name, n_levels, hdf5_dbase_root):
+    test_ion = fiasco.Ion(ion_name, temperature, hdf5_dbase_root=hdf5_dbase_root)
+    test_ion.n_levels == n_levels
+
 
 def test_level_energy_parsing(fe10):
     # Test falling back to theoretical energies if energies are not observed

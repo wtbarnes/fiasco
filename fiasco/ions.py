@@ -159,20 +159,26 @@ Using Datasets:
     @property
     def n_levels(self):
         """
-        Number of energy levels in the CHIANTI model.  It is possible this number
-        will not match the number of levels in the energy level file.
+        Number of energy levels in the atomic model.
+
+        .. note:: It is possible this number will not match the number of levels
+                  in the energy level file.
         """
-        try:
-            n_levels_elvlc= len(self.levels)
-
-            n_levels_wgfa = self.transitions.upper_level.max() if self._has_dataset('wgfa') else 0
-            n_levels_scups = self._scups['upper_level'].max() if self._has_dataset('scups') else 0
-
-            n_levels = min(n_levels_elvlc,  np.max([n_levels_scups, n_levels_wgfa]))
-
-            return n_levels
-        except MissingDatasetException:
+        # There is no atomic model if there are no energies, collisions, and decays
+        # NOTE: This logic is here rather than using a decorator so that it returns
+        # zero rather than throwing an exception.
+        if not all([self._has_dataset('elvlc'),
+                    self._has_dataset('wgfa'),
+                    self._has_dataset('scups')]):
             return 0
+        n_elvlc = len(self.levels)
+        n_wgfa = max(self.transitions.lower_level.max(), self.transitions.upper_level.max())
+        n_scups = max(self._scups['upper_level'].max(), self._scups['lower_level'].max())
+        # If there is autoionization data associated with this ion, ensure that the model
+        # has enough levels to include these rates.
+        if self._has_dataset('auto'):
+            n_scups = max(n_scups, self._auto['upper_level'].max())
+        return np.min([n_elvlc, n_wgfa, n_scups])
 
     @property
     def n_transitions(self):
