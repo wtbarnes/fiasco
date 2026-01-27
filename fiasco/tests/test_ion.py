@@ -51,6 +51,12 @@ def c5(hdf5_dbase_root):
 def c6(hdf5_dbase_root):
     return fiasco.Ion('C VI', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
+@pytest.fixture
+def n4(hdf5_dbase_root):
+    # NOTE: This ion was added because there are more levels listed in elvlc than in wgfa.
+    # It is used in test_n_levels.
+    return fiasco.Ion('N 4', temperature, hdf5_dbase_root=hdf5_dbase_root)
+
 
 @pytest.fixture
 def fe20(hdf5_dbase_root):
@@ -93,6 +99,23 @@ def test_level(ion):
     assert level.orbital_angular_momentum_label == 'D'
     assert level.orbital_angular_momentum == 2
     assert level.is_observed
+
+
+@pytest.mark.parametrize(('ion_name', 'n_levels'), [
+    # NOTE: The expected number of levels may change depending on the database version
+    # When they do, use a marker per parameterization to mark which ones apply to which
+    # version.
+    # NOTE: These ions are chosen because they cover the different cases of how to choose
+    # the number of atomic levels in a model based upon the available atomic data.
+    ('Fe V', 34),
+    ('N IV', 136),
+    ('Ar XVIII', 24),
+    ('Ti XXII', 0),
+    ('C IV', 923),
+])
+def test_n_levels(ion_name, n_levels, hdf5_dbase_root):
+    test_ion = fiasco.Ion(ion_name, temperature, hdf5_dbase_root=hdf5_dbase_root)
+    test_ion.n_levels == n_levels
 
 
 def test_level_energy_parsing(fe10):
