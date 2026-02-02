@@ -4,6 +4,7 @@ Test ion functionality
 import astropy.units as u
 import numpy as np
 import pytest
+from fractions import Fraction
 
 import fiasco
 
@@ -126,6 +127,30 @@ def test_level_energy_parsing(fe10):
             assert fe10._elvlc['E_obs'][i].to_value('cm-1') == -1
             assert u.allclose(level.energy, fe10._elvlc['E_th'][i].to('erg', equivalencies=u.spectral()))
 
+def test_transition_label(ion):
+    transition_index = np.arange(ion.n_transitions)
+    upper_index = ion.transitions.upper_level[transition_index]
+    lower_index = ion.transitions.lower_level[transition_index]
+    upper_config_dbase = ion._elvlc['config'][upper_index-1]
+    lower_config_dbase = ion._elvlc['config'][lower_index-1]
+    upper_multiplicity_dbase = ion._elvlc['multiplicity'][upper_index-1]
+    lower_multiplicity_dbase = ion._elvlc['multiplicity'][lower_index-1]
+    upper_J_dbase = ion._elvlc['J'][upper_index-1]
+    lower_J_dbase = ion._elvlc['J'][lower_index-1]
+    upper_L_label_dbase = ion._elvlc['L_label'][upper_index - 1]
+    lower_L_label_dbase = ion._elvlc['L_label'][lower_index - 1]
+
+    zipped = zip(
+        upper_config_dbase, upper_multiplicity_dbase, upper_L_label_dbase, upper_J_dbase,
+        lower_config_dbase, lower_multiplicity_dbase, lower_L_label_dbase, lower_J_dbase,
+    )
+
+    assert np.all(
+        ion.transitions.label ==
+        np.array([f"{a} {b}{c}{str(Fraction(d.value))} -- {i} {j}{k}{str(Fraction(l.value))}" for a,b,c,d,i,j,k,l in zipped])
+    )
+    assert np.all(ion.transitions.upper_configuration == upper_config_dbase)
+    assert np.all(ion.transitions.lower_configuration == lower_config_dbase)
 
 def test_repr(ion):
     assert 'Fe 5' in ion.__repr__()
