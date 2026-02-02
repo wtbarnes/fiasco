@@ -25,7 +25,7 @@ quantity_support()
 #
 # We will create `~fiasco.IonCollection` containing both O VI
 # and Fe XVIII
-temperature = np.geomspace(1e4,1e8,100) * u.K
+temperature = np.geomspace(10**5, 10**7.5, 30) * u.K
 fe18 = fiasco.Ion('Fe XVIII', temperature)
 o6 = fiasco.Ion('O VI', temperature)
 col = fiasco.IonCollection(fe18, o6)

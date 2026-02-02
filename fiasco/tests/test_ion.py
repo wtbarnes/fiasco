@@ -51,6 +51,12 @@ def c5(hdf5_dbase_root):
 def c6(hdf5_dbase_root):
     return fiasco.Ion('C VI', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
+@pytest.fixture
+def n4(hdf5_dbase_root):
+    # NOTE: This ion was added because there are more levels listed in elvlc than in wgfa.
+    # It is used in test_n_levels.
+    return fiasco.Ion('N 4', temperature, hdf5_dbase_root=hdf5_dbase_root)
+
 
 @pytest.fixture
 def fe20(hdf5_dbase_root):
@@ -93,6 +99,23 @@ def test_level(ion):
     assert level.orbital_angular_momentum_label == 'D'
     assert level.orbital_angular_momentum == 2
     assert level.is_observed
+
+
+@pytest.mark.parametrize(('ion_name', 'n_levels'), [
+    # NOTE: The expected number of levels may change depending on the database version
+    # When they do, use a marker per parameterization to mark which ones apply to which
+    # version.
+    # NOTE: These ions are chosen because they cover the different cases of how to choose
+    # the number of atomic levels in a model based upon the available atomic data.
+    ('Fe V', 34),
+    ('N IV', 136),
+    ('Ar XVIII', 24),
+    ('Ti XXII', 0),
+    ('C IV', 923),
+])
+def test_n_levels(ion_name, n_levels, hdf5_dbase_root):
+    test_ion = fiasco.Ion(ion_name, temperature, hdf5_dbase_root=hdf5_dbase_root)
+    test_ion.n_levels == n_levels
 
 
 def test_level_energy_parsing(fe10):
@@ -243,7 +266,8 @@ def test_level_populations_proton_data_toggle(ion):
 @pytest.mark.requires_dbase_version('>= 8')
 def test_contribution_function(ion):
     cont_func = ion.contribution_function(1e7 * u.cm**-3)
-    assert cont_func.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape
+    wvl_bb = ion.transitions.wavelength[ion.transitions.is_bound_bound]
+    assert cont_func.shape == ion.temperature.shape + (1, ) + wvl_bb.shape
     # This value has not been tested for correctness
     assert u.allclose(cont_func[0, 0, 0], 2.51408088e-30 * u.cm**3 * u.erg / u.s)
 
@@ -328,7 +352,8 @@ def test_two_ion_model_couple_density_temperature(fe20):
 @pytest.mark.requires_dbase_version('>= 8')
 def test_emissivity(ion):
     emm = ion.emissivity(1e7 * u.cm**-3)
-    assert emm.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape
+    wvl_bb = ion.transitions.wavelength[ion.transitions.is_bound_bound]
+    assert emm.shape == ion.temperature.shape + (1, ) + wvl_bb.shape
     # This value has not been tested for correctness
     assert u.allclose(emm[0, 0, 0], 2.18000422e-16 * u.erg / u.cm**3 / u.s)
 
@@ -340,7 +365,7 @@ def test_emissivity(ion):
     1e29 * np.ones(temperature.shape) * u.cm**-5,
 ])
 def test_intensity(ion, em):
-    wave_shape = ion._wgfa['wavelength'].shape
+    wave_shape = ion.transitions.wavelength[ion.transitions.is_bound_bound].shape
     intens = ion.intensity(1e7 * u.cm**-3, em)
     assert intens.shape == ion.temperature.shape + (1, ) + wave_shape
     # Test density varying along independent axis

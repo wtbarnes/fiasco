@@ -19,7 +19,7 @@ quantity_support()
 # Specify the plasma properties; note that an `~fiasco.Ion` has to be created with a
 # range of temperatures, but the density is only used later in the contribution
 # function calculation.
-Te = np.geomspace(0.1, 100, 51) * u.MK
+Te = np.geomspace(0.1, 10, 26) * u.MK
 ne = 1e8 * u.cm**-3
 
 ###############################################################################

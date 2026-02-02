@@ -42,7 +42,7 @@ plt.show()
 ############################################################
 # Next, we construct for the `~fiasco.Ion` object for Fe 18. Note
 # that by default we use the coronal abundances of :cite:t:`feldman_potential_1992`.
-temperature = 10.**(np.arange(4.5, 8, 0.05)) * u.K
+temperature = 10.**(np.arange(4.5, 8, 0.1)) * u.K
 fe18 = fiasco.Ion('Fe 18', temperature)
 
 ############################################################
