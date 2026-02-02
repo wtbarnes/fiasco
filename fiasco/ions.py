@@ -108,6 +108,12 @@ Using Datasets:
     @cached_property
     @needs_dataset('elvlc')
     def levels(self):
+        """
+        Information for each energy level of the ion.
+
+        .. note:: For some ions, there may be more levels listed here than
+                  given by `~fiasco.Ion.n_levels`.
+        """
         return Levels(self._elvlc)
 
     def __getitem__(self, key):
@@ -582,7 +588,9 @@ Using Datasets:
         `~astropy.units.Quantity`
             A ``(l, m, n)`` shaped quantity, where ``l`` is the number of
             temperatures, ``m`` is the number of densities, and ``n`` is the number of energy
-            levels. If ``couple_density_to_temperature=True``, then ``m=1`` and ``l``
+            levels in the ion model. Note that ``n`` will always be the same as the `~fiasco.Ion.n_levels`,
+            but may be different than the number of levels returned by `~fiasco.Levels`.
+            If ``couple_density_to_temperature=True``, then ``m=1`` and ``l``
             represents the number of temperatures and densities.
         """
         if use_two_ion_model:
@@ -1134,8 +1142,13 @@ Using Datasets:
         upper_level = self.transitions.upper_level[self.transitions.is_bound_bound]
         wavelength = self.transitions.wavelength[self.transitions.is_bound_bound]
         A = self.transitions.A[self.transitions.is_bound_bound]
-        energy = const.h * const.c / wavelength
-        i_upper = vectorize_where(self._elvlc['level'], upper_level)
+        energy = wavelength.to('erg', equivalencies=u.equivalencies.spectral())
+        # NOTE: The first array below provides the correspondence between the last
+        # dimension of the level populations array and the energy level index of
+        # the model. The upper level of the transition is used to make this selection
+        # because the contribution function is proportional to the population of the
+        # level from which the transition is happening.
+        i_upper = vectorize_where(np.arange(1, self.n_levels+1), upper_level)
         g = term * populations[:, :, i_upper] * (A * energy)
         return g
 
