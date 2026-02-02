@@ -241,7 +241,8 @@ def test_level_populations_proton_data_toggle(ion):
 @pytest.mark.requires_dbase_version('>= 8')
 def test_contribution_function(ion):
     cont_func = ion.contribution_function(1e7 * u.cm**-3)
-    assert cont_func.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape
+    wvl_bb = ion.transitions.wavelength[ion.transitions.is_bound_bound]
+    assert cont_func.shape == ion.temperature.shape + (1, ) + wvl_bb.shape
     # This value has not been tested for correctness
     assert u.allclose(cont_func[0, 0, 0], 2.51408088e-30 * u.cm**3 * u.erg / u.s)
 
@@ -326,7 +327,8 @@ def test_two_ion_model_couple_density_temperature(fe20):
 @pytest.mark.requires_dbase_version('>= 8')
 def test_emissivity(ion):
     emm = ion.emissivity(1e7 * u.cm**-3)
-    assert emm.shape == ion.temperature.shape + (1, ) + ion._wgfa['wavelength'].shape
+    wvl_bb = ion.transitions.wavelength[ion.transitions.is_bound_bound]
+    assert emm.shape == ion.temperature.shape + (1, ) + wvl_bb.shape
     # This value has not been tested for correctness
     assert u.allclose(emm[0, 0, 0], 2.18000422e-16 * u.erg / u.cm**3 / u.s)
 
@@ -338,7 +340,7 @@ def test_emissivity(ion):
     1e29 * np.ones(temperature.shape) * u.cm**-5,
 ])
 def test_intensity(ion, em):
-    wave_shape = ion._wgfa['wavelength'].shape
+    wave_shape = ion.transitions.wavelength[ion.transitions.is_bound_bound].shape
     intens = ion.intensity(1e7 * u.cm**-3, em)
     assert intens.shape == ion.temperature.shape + (1, ) + wave_shape
     # Test density varying along independent axis
