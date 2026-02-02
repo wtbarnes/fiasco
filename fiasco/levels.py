@@ -133,13 +133,26 @@ class Transitions:
         Data structure holding information about all of the energy levels
         for a given ion in the CHIANTI database.
     wgfa: `~fiasco.io.datalayer.DataIndexer`
-        Pointer to the transition information for a given ion in
+        Table of transition information for a given ion in
         the CHIANTI database.
+    n_levels: `int`, optional
+        Maximum number of levels in the CHIANTI atomic model. This is used to
+        appropriately limit the transition information to the size of the atomic
+        model. Typically, this is calculated by `fiasco.Ion.n_levels`.
     """
 
-    def __init__(self, levels, wgfa):
+    def __init__(self, levels, wgfa, n_levels=None):
         self._levels = levels
         self._wgfa = wgfa
+        if n_levels is None:
+            self._idx = np.s_[:]
+        else:
+            # NOTE: For some ions, there may be more rate data available than
+            # there are levels in the model.
+            self._idx = np.where(np.logical_and(
+                self._wgfa['lower_level']<=n_levels,
+                self._wgfa['upper_level']<=n_levels,
+            ))
 
     def __len__(self):
         return self.wavelength.shape[0]
@@ -149,8 +162,7 @@ class Transitions:
         """
         True if the transition is a two-photon decay
         """
-        return np.logical_and(self.wavelength == 0,
-                              self.upper_level<=10)
+        return np.logical_and(self.wavelength == 0, self.upper_level<=10)
 
     @property
     def is_autoionization(self):
@@ -164,14 +176,14 @@ class Transitions:
         """
         True for bound-bound transitions.
         """
-        return self._wgfa['wavelength'] != 0
+        return self._wgfa['wavelength'][self._idx] != 0
 
     @property
     def is_observed(self):
         """
         True for transitions that connect two observed energy levels
         """
-        return self._wgfa['wavelength'] > 0
+        return self._wgfa['wavelength'][self._idx] > 0
 
     @property
     @u.quantity_input
@@ -179,23 +191,23 @@ class Transitions:
         """
         Spontaneous transition probability due to radiative decay
         """
-        return self._wgfa['A']
+        return self._wgfa['A'][self._idx]
 
     @property
     @u.quantity_input
     def wavelength(self) -> u.angstrom:
         "Wavelength of each transition."
-        return np.fabs(self._wgfa['wavelength'])
+        return np.fabs(self._wgfa['wavelength'][self._idx])
 
     @property
     def upper_level(self):
         "Index of the upper level of the transition."
-        return self._wgfa['upper_level']
+        return self._wgfa['upper_level'][self._idx]
 
     @property
     def lower_level(self):
         "Index of the lower level of the transition."
-        return self._wgfa['lower_level']
+        return self._wgfa['lower_level'][self._idx]
 
     @property
     @u.quantity_input

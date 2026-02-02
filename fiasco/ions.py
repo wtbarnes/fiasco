@@ -172,7 +172,7 @@ Using Datasets:
                     self._has_dataset('scups')]):
             return 0
         n_elvlc = len(self.levels)
-        n_wgfa = max(self.transitions.lower_level.max(), self.transitions.upper_level.max())
+        n_wgfa = max(self._wgfa['lower_level'].max(), self._wgfa['upper_level'].max())
         n_scups = max(self._scups['upper_level'].max(), self._scups['lower_level'].max())
         # If there is autoionization data associated with this ion, ensure that the model
         # has enough levels to include these rates.
@@ -229,7 +229,7 @@ Using Datasets:
     @needs_dataset('elvlc', 'wgfa')
     def transitions(self):
         "A `~fiasco.Transitions` object holding the information about transitions for this ion."
-        return Transitions(self.levels, self._wgfa)
+        return Transitions(self.levels, self._wgfa, n_levels=self.n_levels)
 
     @property
     @u.quantity_input
@@ -709,12 +709,16 @@ Using Datasets:
     @u.quantity_input
     def _rate_matrix_collisional_electron(self) -> u.Unit('cm3 s-1'):
         rate_matrix = u.Quantity(np.zeros(self.temperature.shape + (self.n_levels, self.n_levels,)), 'cm3 s-1')
-        lower_index = self._scups['lower_level'] - 1
-        upper_index = self._scups['upper_level'] - 1
+        # NOTE: For some ions, there may be more rate data available than
+        # there are levels in the model.
+        idx = np.where(np.logical_and(self._scups['lower_level']<=self.n_levels,
+                                      self._scups['upper_level']<=self.n_levels))
+        lower_index = self._scups['lower_level'][idx] - 1
+        upper_index = self._scups['upper_level'][idx] - 1
         # De-excitation from upper states
-        rate_matrix[:, lower_index, upper_index] += self.electron_collision_deexcitation_rate
+        rate_matrix[:, lower_index, upper_index] += self.electron_collision_deexcitation_rate[..., *idx]
         # Excitation from lower states
-        rate_matrix[:, upper_index, lower_index] += self.electron_collision_excitation_rate
+        rate_matrix[:, upper_index, lower_index] += self.electron_collision_excitation_rate[..., *idx]
         return rate_matrix
 
     @cached_property
@@ -722,10 +726,14 @@ Using Datasets:
     @u.quantity_input
     def _rate_matrix_collisional_proton(self) -> u.Unit('cm3 s-1'):
         rate_matrix = u.Quantity(np.zeros(self.temperature.shape + (self.n_levels, self.n_levels,)), 'cm3 s-1')
-        lower_index = self._psplups['lower_level'] - 1
-        upper_index = self._psplups['upper_level'] - 1
-        rate_matrix[:, lower_index, upper_index] += self.proton_collision_deexcitation_rate
-        rate_matrix[:, upper_index, lower_index] += self.proton_collision_excitation_rate
+        # NOTE: For some ions, there may be more rate data available than
+        # there are levels in the model.
+        idx = np.where(np.logical_and(self._psplups['lower_level']<=self.n_levels,
+                                      self._psplups['upper_level']<=self.n_levels))
+        lower_index = self._psplups['lower_level'][idx] - 1
+        upper_index = self._psplups['upper_level'][idx] - 1
+        rate_matrix[:, lower_index, upper_index] += self.proton_collision_deexcitation_rate[..., *idx]
+        rate_matrix[:, upper_index, lower_index] += self.proton_collision_excitation_rate[..., *idx]
         return rate_matrix
 
     def _empty_rate_matrix(self, temperature_dependent=True, unit='cm3 s-1'):
@@ -849,10 +857,10 @@ Using Datasets:
                                              self._auto['upper_level'][idx_ground],
                                              self._auto['autoionization_rate'])
             # Sum radiative decay rates between upper levels and lower bound levels
-            idx_bound = self._wgfa['lower_level'] < self._auto['upper_level'].min()
-            A_rad_sum = vectorize_where_sum(self._wgfa['upper_level'][idx_bound],
+            idx_bound = self.transitions.lower_level < self._auto['upper_level'].min()
+            A_rad_sum = vectorize_where_sum(self.transitions.upper_level[idx_bound],
                                             self._auto['upper_level'][idx_ground],
-                                            self._wgfa['A'][idx_bound],)
+                                            self.transitions.A[idx_bound],)
             branching_ratio = A_rad_sum / (A_rad_sum + A_auto_sum)
             # Get needed levels for recombined and recombining ions
             dc_rate = self._dielectronic_capture_rate(self._auto['lower_level'][idx_ground],
