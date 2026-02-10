@@ -49,7 +49,7 @@ class Levels:
     def __getitem__(self, index):
         # NOTE: This throws an IndexError to stop iteration
         _ = self.level[index]
-        return type(self)(self._elvlc, n_levels=self.level.max(), index=index)
+        return type(self)(self._elvlc, index=index)
 
     def __repr__(self):
         return f"""Level: {self.level}
