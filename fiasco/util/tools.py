@@ -29,6 +29,8 @@ def vectorize_where(x_1, x_2):
     """
     x_1 = np.atleast_1d(x_1)
     x_2 = np.atleast_1d(x_2)
+    if not np.isin(x_2, x_1).all():
+        raise ValueError('All elements of second input array must be found in first input array.')
     return np.array([np.where(x_1==x)[0] for x in x_2]).squeeze()
 
 

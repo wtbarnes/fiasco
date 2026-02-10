@@ -3,6 +3,7 @@ Energy level and transitions classes
 """
 import astropy.units as u
 import numpy as np
+
 from fractions import Fraction
 
 from fiasco.util import vectorize_where
@@ -37,7 +38,7 @@ class Levels:
 
     def __init__(self, elvlc, index=None):
         self._elvlc = elvlc
-        self._index = np.s_[:] if index is None else index
+        self._idx = np.s_[:] if index is None else index
 
     def __len__(self):
         try:
@@ -61,17 +62,26 @@ Energy: {self.energy}"""
     @property
     def level(self):
         "Index of each level."
-        return self._elvlc['level'][self._index]
+        return self._elvlc['level'][self._idx]
 
     @property
     def configuration(self):
         "Label denoting the electronic configuration."
-        return np.char.replace(self._elvlc['config'][self._index], ".", " ")
+        configuration = self._elvlc['config'][self._idx]
+        # NOTE: This conditional is necessary because np.char.replace does not
+        # handle empty arrays.
+        if configuration.size == 0:
+            return configuration
+        return np.char.replace(
+            configuration,
+            ".",
+            " "
+        )
 
     @property
     def multiplicity(self):
         "Multiplicity, :math:`2S+1`"
-        return self._elvlc['multiplicity'][self._index]
+        return self._elvlc['multiplicity'][self._idx]
 
     @property
     @u.quantity_input
@@ -82,13 +92,19 @@ Energy: {self.energy}"""
     @property
     def total_angular_momentum(self):
         "Total angular momentum number :math:`J`."
-        return self._elvlc['J'][self._index]
+        return self._elvlc['J'][self._idx]
 
     @property
     def label(self):
-        "Label denoting level configuration, multiplicity, angular momentum label, and total angular momentum."
-        zipped = zip(self.configuration, self.multiplicity, self.orbital_angular_momentum_label, self.total_angular_momentum)
-        return np.array([f"{i} {j}{k}{str(Fraction(l.value))}" for i,j,k,l in zipped])
+        """
+        Label denoting level configuration, multiplicity, angular momentum label,
+        and total angular momentum.
+        """
+        zipped = zip(self.configuration,
+                     self.multiplicity,
+                     self.orbital_angular_momentum_label,
+                     self.total_angular_momentum)
+        return np.array([f"{i} {j}{k}{Fraction(l.value)}" for i,j,k,l in zipped])
 
     @property
     def weight(self):
@@ -98,7 +114,7 @@ Energy: {self.energy}"""
     @property
     def orbital_angular_momentum_label(self):
         "Orbital angular momentum label."
-        return self._elvlc['L_label'][self._index]
+        return self._elvlc['L_label'][self._idx]
 
     @property
     @u.quantity_input
@@ -112,7 +128,7 @@ Energy: {self.energy}"""
     @property
     def is_observed(self):
         "True if the energy of the level is from laboratory measurements."
-        return self._elvlc['E_obs'][self._index].to_value('cm-1') != -1
+        return self._elvlc['E_obs'][self._idx].to_value('cm-1') != -1
 
     @property
     @u.quantity_input
@@ -122,8 +138,8 @@ Energy: {self.energy}"""
         theoretical energy if no measured energy is available.
         """
         energy = np.where(self.is_observed,
-                          self._elvlc['E_obs'][self._index],
-                          self._elvlc['E_th'][self._index])
+                          self._elvlc['E_obs'][self._idx],
+                          self._elvlc['E_th'][self._idx])
         return energy.to('eV', equivalencies=u.equivalencies.spectral())
 
 
@@ -140,13 +156,26 @@ class Transitions:
         Data structure holding information about all of the energy levels
         for a given ion in the CHIANTI database.
     wgfa: `~fiasco.io.datalayer.DataIndexer`
-        Pointer to the transition information for a given ion in
+        Table of transition information for a given ion in
         the CHIANTI database.
+    n_levels: `int`, optional
+        Maximum number of levels in the CHIANTI atomic model. This is used to
+        appropriately limit the transition information to the size of the atomic
+        model. Typically, this is calculated by `fiasco.Ion.n_levels`.
     """
 
-    def __init__(self, levels, wgfa):
+    def __init__(self, levels, wgfa, n_levels=None):
         self._levels = levels
         self._wgfa = wgfa
+        if n_levels is None:
+            self._idx = np.s_[:]
+        else:
+            # NOTE: For some ions, there may be more rate data available than
+            # there are levels in the model.
+            self._idx = np.where(np.logical_and(
+                self._wgfa['lower_level']<=n_levels,
+                self._wgfa['upper_level']<=n_levels,
+            ))
 
     def __len__(self):
         return self.wavelength.shape[0]
@@ -156,8 +185,7 @@ class Transitions:
         """
         True if the transition is a two-photon decay
         """
-        return np.logical_and(self.wavelength == 0,
-                              self.upper_level<=10)
+        return np.logical_and(self.wavelength == 0, self.upper_level<=10)
 
     @property
     def is_autoionization(self):
@@ -171,14 +199,14 @@ class Transitions:
         """
         True for bound-bound transitions.
         """
-        return self._wgfa['wavelength'] != 0
+        return self._wgfa['wavelength'][self._idx] != 0
 
     @property
     def is_observed(self):
         """
         True for transitions that connect two observed energy levels
         """
-        return self._wgfa['wavelength'] > 0
+        return self._wgfa['wavelength'][self._idx] > 0
 
     @property
     @u.quantity_input
@@ -186,18 +214,18 @@ class Transitions:
         """
         Spontaneous transition probability due to radiative decay
         """
-        return self._wgfa['A']
+        return self._wgfa['A'][self._idx]
 
     @property
     @u.quantity_input
     def wavelength(self) -> u.angstrom:
         "Wavelength of each transition."
-        return np.fabs(self._wgfa['wavelength'])
+        return np.fabs(self._wgfa['wavelength'][self._idx])
 
     @property
     def upper_level(self):
         "Index of the upper level of the transition."
-        return self._wgfa['upper_level']
+        return self._wgfa['upper_level'][self._idx]
 
     @property
     def upper_configuration(self):
@@ -215,7 +243,7 @@ class Transitions:
     @property
     def lower_level(self):
         "Index of the lower level of the transition."
-        return self._wgfa['lower_level']
+        return self._wgfa['lower_level'][self._idx]
 
     @property
     def lower_configuration(self):
