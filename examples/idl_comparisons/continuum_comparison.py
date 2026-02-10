@@ -104,7 +104,9 @@ ion_kwargs = {'abundance': idl_result_twophoton['abundance'],
               'ionization_fraction': idl_result_twophoton['ionization_fraction']}
 all_ions = [fiasco.Ion(ion_name, idl_result_twophoton['temperature'], **ion_kwargs) for ion_name in fiasco.list_ions()]
 all_ions = fiasco.IonCollection(*all_ions)
-two_photon = all_ions.two_photon(idl_result_twophoton['wavelength'], idl_result_twophoton['density']).squeeze()
+two_photon = all_ions.two_photon(idl_result_twophoton['wavelength'],
+                                 idl_result_twophoton['density'],
+                                 use_two_ion_model=False).squeeze()
 plot_idl_comparison(idl_result_twophoton['wavelength'],
                     idl_result_twophoton['temperature'],
                     two_photon,
