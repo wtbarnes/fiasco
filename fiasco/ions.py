@@ -110,9 +110,6 @@ Using Datasets:
     def levels(self):
         """
         Information for each energy level of the ion.
-
-        .. note:: For some ions, there may be more levels listed here than
-                  given by `~fiasco.Ion.n_levels`.
         """
         return Levels(self._elvlc)
 
@@ -168,7 +165,9 @@ Using Datasets:
         Number of energy levels in the atomic model.
 
         .. note:: It is possible this number will not match the number of levels
-                  in the energy level file.
+                  in `~fiasco.Ion.levels`. The number of levels in a model is
+                  determined by the number of energy levels as well as the level
+                  information available for radiative decays and collisions.
         """
         # There is no atomic model if there are no energies, collisions, and decays
         # NOTE: This logic is here rather than using a decorator so that it returns
@@ -177,7 +176,7 @@ Using Datasets:
                     self._has_dataset('wgfa'),
                     self._has_dataset('scups')]):
             return 0
-        n_elvlc = len(self.levels)
+        n_elvlc = self._elvlc['level'].max()
         n_wgfa = max(self._wgfa['lower_level'].max(), self._wgfa['upper_level'].max())
         n_scups = max(self._scups['upper_level'].max(), self._scups['lower_level'].max())
         # If there is autoionization data associated with this ion, ensure that the model
@@ -429,7 +428,7 @@ Using Datasets:
         return upsilon.T
 
     @cached_property
-    @needs_dataset('elvlc', 'scups')
+    @needs_dataset('scups')
     @u.quantity_input
     def electron_collision_deexcitation_rate(self) -> u.cm**3 / u.s:
         r"""
@@ -454,11 +453,12 @@ Using Datasets:
         """
         c = const.h**2 / (2. * np.pi * const.m_e)**(1.5)
         upsilon = self.effective_collision_strength
-        omega_upper = 2. * self._elvlc['J'][self._scups['upper_level'] - 1] + 1.
+        idx = vectorize_where(self.levels.level, self._scups['upper_level'])
+        omega_upper = 2. * self.levels.total_angular_momentum[idx] + 1.
         return c * upsilon / np.sqrt(self.thermal_energy[:, np.newaxis]) / omega_upper
 
     @cached_property
-    @needs_dataset('elvlc', 'scups')
+    @needs_dataset('scups')
     @u.quantity_input
     def electron_collision_excitation_rate(self) -> u.cm**3 / u.s:
         r"""
@@ -483,8 +483,9 @@ Using Datasets:
         --------
         electron_collision_deexcitation_rate : De-excitation rate due to collisions
         """
-        omega_upper = 2. * self._elvlc['J'][self._scups['upper_level'] - 1] + 1.
-        omega_lower = 2. * self._elvlc['J'][self._scups['lower_level'] - 1] + 1.
+        J = self.levels.total_angular_momentum
+        omega_upper = 2. * J[vectorize_where(self.levels.level, self._scups['upper_level'])] + 1.
+        omega_lower = 2. * J[vectorize_where(self.levels.level, self._scups['lower_level'])] + 1.
         kBTE = np.outer(1./self.thermal_energy, self._scups['delta_energy'])
         return omega_upper / omega_lower * self.electron_collision_deexcitation_rate * np.exp(-kBTE)
 
@@ -517,7 +518,7 @@ Using Datasets:
             return u.Quantity(np.where(ex_rate > 0., ex_rate, 0.), u.cm**3/u.s).T
 
     @cached_property
-    @needs_dataset('elvlc', 'psplups')
+    @needs_dataset('psplups')
     @u.quantity_input
     def proton_collision_deexcitation_rate(self) -> u.cm**3 / u.s:
         r"""
@@ -541,8 +542,9 @@ Using Datasets:
         proton_collision_excitation_rate : Excitation rate due to collisions with protons
         """
         kBTE = np.outer(self.thermal_energy, 1.0 / self._psplups['delta_energy'])
-        omega_upper = 2. * self._elvlc['J'][self._psplups['upper_level'] - 1] + 1.
-        omega_lower = 2. * self._elvlc['J'][self._psplups['lower_level'] - 1] + 1.
+        J = self.levels.total_angular_momentum
+        omega_upper = 2. * J[vectorize_where(self.levels.level, self._psplups['upper_level'])] + 1.
+        omega_lower = 2. * J[vectorize_where(self.levels.level, self._psplups['lower_level'])] + 1.
         dex_rate = (omega_lower / omega_upper) * self.proton_collision_excitation_rate * np.exp(1. / kBTE)
 
         return dex_rate
@@ -1969,7 +1971,6 @@ Using Datasets:
         cross_section[np.where(photon_energy < ionization_energy)] = 0.*cross_section.unit
         return cross_section
 
-    @needs_dataset('elvlc')
     @u.quantity_input
     def two_photon(self,
                    wavelength: u.angstrom,
@@ -2008,22 +2009,16 @@ Using Datasets:
             A_ji = self._hseq['A']
             psi_norm = self._hseq['psi_norm']
             x_interp, y_interp = self._hseq['y'], self._hseq['psi']
-            config = '2s'  # Get the index of the 2S1/2 state for H-like
-            J = 0.5
+            label = '2s 2S1/2'
         elif self.helium_like:
             A_ji = self._heseq['A']
             psi_norm = 1.0 * u.dimensionless_unscaled
             x_interp, y_interp = self._heseq['y'], self._heseq['psi']
-            config = '1s.2s'  # Get the index of the 1s2s 1S0 state for He-like:
-            J = 0
+            label = '1s 2s 1S0'
         else:
             return u.Quantity(np.zeros(final_shape),  'erg cm^3 s^-1 Angstrom^-1')
-        level_index = np.where((self._elvlc['config'] == config) & (np.isclose(self._elvlc['J'], J)) )[0][0]
-
-        E_obs = self._elvlc['E_obs'][level_index]
-        E_th = self._elvlc['E_th'][level_index]
-        E_2p = E_obs if E_obs > 0.0 else E_th
-        rest_wavelength = 1 / E_2p
+        level_index = np.where(self.levels.label==label)
+        rest_wavelength = self.levels.energy[level_index].to('AA', equivalencies=u.equivalencies.spectral())
 
         # NOTE: Explicitly setting the boundary condition type here to match the behavior of the
         # IDL spline interpolation functions. See https://github.com/wtbarnes/fiasco/pull/297 for
@@ -2039,7 +2034,7 @@ Using Datasets:
         # for more details.
         kwargs.setdefault('include_protons', False)
         level_population = self.level_populations(electron_density, **kwargs)
-        level_population = level_population[..., level_index]
+        level_population = level_population[..., self.levels[level_index].level-1]
 
         if couple_density_to_temperature:
             electron_density = electron_density[:, np.newaxis]

@@ -3,6 +3,7 @@ Energy level and transitions classes
 """
 import astropy.units as u
 import numpy as np
+
 from fractions import Fraction
 
 from fiasco.util import vectorize_where
@@ -37,7 +38,7 @@ class Levels:
 
     def __init__(self, elvlc, index=None):
         self._elvlc = elvlc
-        self._index = np.s_[:] if index is None else index
+        self._idx = np.s_[:] if index is None else index
 
     def __len__(self):
         try:
@@ -48,7 +49,7 @@ class Levels:
     def __getitem__(self, index):
         # NOTE: This throws an IndexError to stop iteration
         _ = self.level[index]
-        return type(self)(self._elvlc, index=index)
+        return type(self)(self._elvlc, n_levels=self.level.max(), index=index)
 
     def __repr__(self):
         return f"""Level: {self.level}
@@ -61,17 +62,26 @@ Energy: {self.energy}"""
     @property
     def level(self):
         "Index of each level."
-        return self._elvlc['level'][self._index]
+        return self._elvlc['level'][self._idx]
 
     @property
     def configuration(self):
         "Label denoting the electronic configuration."
-        return np.char.replace(self._elvlc['config'][self._index], ".", " ")
+        configuration = self._elvlc['config'][self._idx]
+        # NOTE: This conditional is necessary because np.char.replace does not
+        # handle empty arrays.
+        if configuration.size == 0:
+            return configuration
+        return np.char.replace(
+            configuration,
+            ".",
+            " "
+        )
 
     @property
     def multiplicity(self):
         "Multiplicity, :math:`2S+1`"
-        return self._elvlc['multiplicity'][self._index]
+        return self._elvlc['multiplicity'][self._idx]
 
     @property
     @u.quantity_input
@@ -82,13 +92,19 @@ Energy: {self.energy}"""
     @property
     def total_angular_momentum(self):
         "Total angular momentum number :math:`J`."
-        return self._elvlc['J'][self._index]
+        return self._elvlc['J'][self._idx]
 
     @property
     def label(self):
-        "Label denoting level configuration, multiplicity, angular momentum label, and total angular momentum."
-        zipped = zip(self.configuration, self.multiplicity, self.orbital_angular_momentum_label, self.total_angular_momentum)
-        return np.array([f"{i} {j}{k}{str(Fraction(l.value))}" for i,j,k,l in zipped])
+        """
+        Label denoting level configuration, multiplicity, angular momentum label,
+        and total angular momentum.
+        """
+        zipped = zip(self.configuration,
+                     self.multiplicity,
+                     self.orbital_angular_momentum_label,
+                     self.total_angular_momentum)
+        return np.array([f"{i} {j}{k}{Fraction(l.value)}" for i,j,k,l in zipped])
 
     @property
     def weight(self):
@@ -98,7 +114,7 @@ Energy: {self.energy}"""
     @property
     def orbital_angular_momentum_label(self):
         "Orbital angular momentum label."
-        return self._elvlc['L_label'][self._index]
+        return self._elvlc['L_label'][self._idx]
 
     @property
     @u.quantity_input
@@ -112,7 +128,7 @@ Energy: {self.energy}"""
     @property
     def is_observed(self):
         "True if the energy of the level is from laboratory measurements."
-        return self._elvlc['E_obs'][self._index].to_value('cm-1') != -1
+        return self._elvlc['E_obs'][self._idx].to_value('cm-1') != -1
 
     @property
     @u.quantity_input
@@ -122,8 +138,8 @@ Energy: {self.energy}"""
         theoretical energy if no measured energy is available.
         """
         energy = np.where(self.is_observed,
-                          self._elvlc['E_obs'][self._index],
-                          self._elvlc['E_th'][self._index])
+                          self._elvlc['E_obs'][self._idx],
+                          self._elvlc['E_th'][self._idx])
         return energy.to('eV', equivalencies=u.equivalencies.spectral())
 
 
