@@ -13,7 +13,7 @@ The citation for the most current version on Zenodo is,
 
 .. code:: bibtex
 
-   @software{Barnes2025,
+   @software{Barnes2026,
       author       = {Will Barnes and
                       David Stansby and
                       Nick Murphy and
@@ -21,13 +21,13 @@ The citation for the most current version on Zenodo is,
                       Laura Hayes and
                       Stuart Mumford and
                       Nabil Freij},
-      title        = {wtbarnes/fiasco: v0.4.0},
-      month        = jan,
-      year         = 2025,
+      title        = {wtbarnes/fiasco: v0.8.0},
+      month        = feb,
+      year         = 2026,
       publisher    = {Zenodo},
-      version      = {v0.4.0},
-      doi          = {10.5281/zenodo.14757042},
-      url          = {https://doi.org/10.5281/zenodo.14757042}
+      version      = {v0.8.0},
+      doi          = {10.5281/zenodo. 18615537},
+      url          = {https://doi.org/10.5281/zenodo.18615537}
    }
 
 You can also obtain this information with ``fiasco.__citation__``.
