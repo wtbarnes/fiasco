@@ -6,5 +6,6 @@ Works Citing
 The following works have used and cited the fiasco package.
 
 .. bibliography:: works_citing.bib
-   :style: unsrt
+   :style: plain
+   :sorting: year_reverse
    :all:

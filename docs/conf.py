@@ -120,7 +120,7 @@ html_context = {
 }
 html_logo = '_static/fiasco-logo.png'
 # Set path for BibTeX file for all of our references
-bibtex_bibfiles = ['references.bib']
+bibtex_bibfiles = ['references.bib', 'works_citing.bib']
 # Sidebar removal
 html_sidebars = {
     "quick_start*": [],
