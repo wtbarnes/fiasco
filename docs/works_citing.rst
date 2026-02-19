@@ -14,4 +14,5 @@ The following works have used and cited the fiasco package.
    benavitz_spatiotemporal_2025
    varesano_FIP_2025
    rivera_differentiating_2025
+   hart_understanding_2024
    rivera_3DMHD_2023
