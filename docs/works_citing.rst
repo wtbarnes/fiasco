@@ -7,7 +7,7 @@ The following works have used and cited the fiasco package.
 
 .. bibliography:: works_citing.bib
    :filter: keywords % "citing"
-
+   :style: plain
    kerr_spatial_2026
    garcia_tracing_2025
    ryan_solar_2025
