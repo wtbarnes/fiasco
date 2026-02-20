@@ -41,3 +41,4 @@ Bibliography
 ------------
 
 .. bibliography::
+   :filter: keywords % "cited"

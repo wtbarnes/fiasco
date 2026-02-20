@@ -4,6 +4,7 @@ Test ion functionality
 import astropy.units as u
 import numpy as np
 import pytest
+
 from fractions import Fraction
 
 import fiasco
