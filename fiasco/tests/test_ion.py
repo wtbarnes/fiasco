@@ -99,6 +99,8 @@ def test_level(ion):
     assert level.orbital_angular_momentum_label == 'D'
     assert level.orbital_angular_momentum == 2
     assert level.is_observed
+    assert len(level.label) == 1
+    assert level.label[0] == '3d4 5D0'
 
 
 @pytest.mark.parametrize(('ion_name', 'n_levels'), [

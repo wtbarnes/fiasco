@@ -100,10 +100,11 @@ Energy: {self.energy}"""
         Label denoting level configuration, multiplicity, angular momentum label,
         and total angular momentum.
         """
-        zipped = zip(self.configuration,
-                     self.multiplicity,
-                     self.orbital_angular_momentum_label,
-                     self.total_angular_momentum)
+        zipped = zip(np.atleast_1d(self.configuration),
+                     np.atleast_1d(self.multiplicity),
+                     np.atleast_1d(self.orbital_angular_momentum_label),
+                     np.atleast_1d(self.total_angular_momentum),
+                     )
         return np.array([f"{i} {j}{k}{Fraction(l.value)}" for i,j,k,l in zipped])
 
     @property
