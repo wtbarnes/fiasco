@@ -11,6 +11,7 @@ import tarfile
 from astropy.config import set_temp_cache
 from astropy.utils.console import ProgressBar
 from astropy.utils.data import download_file, get_pkg_data_path
+from contextlib import nullcontext
 from packaging.version import Version
 
 import fiasco.io
@@ -97,7 +98,11 @@ def check_database(hdf5_dbase_root, **kwargs):
         _check_database_version(ascii_dbase_root)
     # If we made it this far, build the HDF5 database
     files = kwargs.get('files')
-    build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=files, check_hash=kwargs.get('check_hash', False))
+    build_hdf5_dbase(ascii_dbase_root,
+                     hdf5_dbase_root,
+                     files=files,
+                     check_hash=kwargs.get('check_hash', False),
+                     show_progress=kwargs.get('show_progress', True))
 
 
 def _get_chianti_dbase_url(version=None):
@@ -125,7 +130,7 @@ def download_dbase(ascii_dbase_url, ascii_dbase_root):
             tar.extractall(path=ascii_dbase_root)
 
 
-def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=False, overwrite=False):
+def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=False, overwrite=False, show_progress=True):
     """
     Assemble HDF5 file from raw ASCII CHIANTI database.
 
@@ -144,6 +149,9 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=F
     overwrite: `bool`, optional
         If True, overwrite existing database file. By default, this is false such
         that an exception will be thrown if the database already exists.
+    show_progress: `bool`, optional
+        Do not show progress bar. This is useful when using this function in a thread other than
+        the main interpreter thread.
     """
     # Import the logger here to avoid circular imports
     from fiasco import log
@@ -160,7 +168,8 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=F
         log.debug(f'Checking hashes for version {version}')
     log.debug(f'Building HDF5 database in {hdf5_dbase_root}')
     mode = 'w' if overwrite else 'x'
-    with ProgressBar(len(files)) as progress:
+    progress_ctx = ProgressBar(len(files)) if show_progress else nullcontext()
+    with progress_ctx as progress:
         with h5py.File(hdf5_dbase_root, mode=mode) as hf:
             for f in files:
                 parser = fiasco.io.Parser(f, ascii_dbase_root=ascii_dbase_root)
@@ -175,7 +184,8 @@ def build_hdf5_dbase(ascii_dbase_root, hdf5_dbase_root, files=None, check_hash=F
                     if check_hash:
                         _check_hash(parser, hash_table)
                     parser.to_hdf5(hf, df)
-                progress.update()
+                if show_progress:
+                    progress.update()
             # Build an index for quick lookup of all ions in database
             from fiasco import list_ions  # import here to avoid circular imports
 
