@@ -6,6 +6,8 @@ import numpy as np
 import pytest
 
 from fractions import Fraction
+from pathlib import Path
+from scipy.io import readsav
 
 import fiasco
 
@@ -273,6 +275,67 @@ def test_contribution_function(ion):
     assert cont_func.shape == ion.temperature.shape + (1, ) + wvl_bb.shape
     # This value has not been tested for correctness
     assert u.allclose(cont_func[0, 0, 0], 2.51408088e-30 * u.cm**3 * u.erg / u.s)
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_line_ratio(ion):
+    density = [1e9, 1e10] * u.cm**(-3)
+    wavelengths = ion.transitions.wavelength[ion.transitions.is_bound_bound]
+    ratio = ion.line_ratio(wavelengths[0], wavelengths[1], density)
+    assert ratio.shape == ion.temperature.shape + density.shape
+
+    grouped_ratio = ion.line_ratio(wavelengths[:2], wavelengths[2], density)
+    cont_func = ion.contribution_function(density)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        expected_grouped_ratio = cont_func[..., [0, 1]].sum(axis=-1) / cont_func[..., [2]].sum(axis=-1)
+    assert np.allclose(grouped_ratio.value, expected_grouped_ratio.to_value(grouped_ratio.unit), equal_nan=True)
+
+    density_coupled = 1e15 * u.K * u.cm**(-3) / ion.temperature
+    ratio_coupled = ion.line_ratio(wavelengths[0], wavelengths[1], density_coupled, couple_density_to_temperature=True)
+    assert ratio_coupled.shape == ion.temperature.shape + (1,)
+
+    ratio_formation = ion.line_ratio(
+        wavelengths[:2],
+        wavelengths[2],
+        density,
+        temperature=ion.formation_temperature,
+    )
+    ion_formation = ion._new_instance(temperature=ion.formation_temperature)
+    cont_func_formation = ion_formation.contribution_function(density)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        expected_ratio_formation = cont_func_formation[..., [0, 1]].sum(axis=-1) / cont_func_formation[..., [2]].sum(axis=-1)
+    assert ratio_formation.shape == (1,) + density.shape
+    assert u.allclose(ratio_formation, expected_ratio_formation)
+    assert np.all(np.isfinite(ratio_formation))
+
+
+@pytest.mark.requires_dbase_version('>= 10.1')
+def test_eis_fe_xiii_density_ratio_from_idl(hdf5_dbase_root):
+    sav_path = Path(__file__).resolve().parents[1] / 'tests/data/eis_fe_xiii.sav'
+    idl_ratio = readsav(sav_path)['eis_fe_xiii']
+
+    log_density = np.asarray(idl_ratio['DENS'][0], dtype=float)
+    density = (10.0**log_density) * u.cm**(-3)
+    expected_ratio = np.asarray(idl_ratio['RATIO'][0], dtype=float)
+    temperature = (10.0**float(idl_ratio['TEMP'][0])) * u.K
+
+    numerator = np.array([
+        float(wavelength)
+        for wavelength in idl_ratio['NUM_WVL'][0].decode().split('+')
+    ]) * u.angstrom
+    denominator = float(idl_ratio['DEN_WVL'][0].decode()) * u.angstrom
+    ion_name = idl_ratio['ION'][0].decode()
+
+    ion = fiasco.Ion(ion_name, np.array([temperature.to_value('K')]) * u.K, hdf5_dbase_root=hdf5_dbase_root)
+    ratio = ion.line_ratio(
+        numerator,
+        denominator,
+        density,
+        temperature=temperature,
+        use_two_ion_model=False,
+    )
+
+    assert np.allclose(ratio.value.squeeze(), expected_ratio, rtol=2e-3)
 
 
 @pytest.mark.requires_dbase_version('>= 8')

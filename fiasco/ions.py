@@ -236,6 +236,28 @@ Using Datasets:
         "A `~fiasco.Transitions` object holding the information about transitions for this ion."
         return Transitions(self.levels, self._wgfa, n_levels=self.n_levels)
 
+    def _transition_indices(self, transitions):
+        """
+        Resolve one or more transition wavelengths to indices in the bound-bound transition array.
+
+        Parameters
+        ----------
+        transitions : `~astropy.units.Quantity`
+            One or more bound-bound transition wavelengths.
+
+        Returns
+        -------
+        `numpy.ndarray`
+            Array of integer indices into
+            ``self.transitions.wavelength[self.transitions.is_bound_bound]``.
+        """
+        bound_mask = self.transitions.is_bound_bound
+        wavelengths = self.transitions.wavelength[bound_mask]
+        transitions = np.atleast_1d(transitions.to(wavelengths.unit))
+        if transitions.size == 0:
+            raise ValueError('At least one transition must be provided.')
+        return np.array([np.argmin(np.abs(wavelengths - transition)) for transition in transitions], dtype=int)
+
     @property
     @u.quantity_input
     def ionization_fraction(self) -> u.dimensionless_unscaled:
@@ -1153,6 +1175,53 @@ Using Datasets:
         i_upper = vectorize_where(np.arange(1, self.n_levels+1), upper_level)
         g = term * populations[:, :, i_upper] * (A * energy)
         return g
+
+    @u.quantity_input
+    @u.quantity_input
+    def line_ratio(self,
+                   numerator: u.angstrom,
+                   denominator: u.angstrom,
+                   density: u.cm**(-3),
+                   temperature: u.K = None,
+                   **kwargs):
+        r"""
+        Theoretical line ratio for one or more bound-bound transitions as a function of density.
+
+        Parameters
+        ----------
+        numerator, denominator : `~astropy.units.Quantity`
+            Transition wavelength(s) for the numerator and denominator. If multiple
+            transitions are provided, their contribution functions are summed before
+            taking the ratio.
+        density : `~astropy.units.Quantity`
+            Electron number density.
+        temperature : `~astropy.units.Quantity` or `None`, optional
+            Temperature grid on which to evaluate the ratio. If `None`, the
+            temperature grid of the current ion instance is used.
+        **kwargs
+            Passed to :meth:`~fiasco.Ion.contribution_function`.
+
+        Returns
+        -------
+        `~astropy.units.Quantity`
+            The line ratio with shape ``(n_temperature, n_density)`` for independent
+            density arrays or ``(n_temperature, 1)`` for ``couple_density_to_temperature=True``.
+            Points where the denominator vanishes are returned as `~numpy.nan`.
+        """
+        ion = self if temperature is None else self._new_instance(temperature=temperature)
+        numerator_idx = ion._transition_indices(numerator)
+        denominator_idx = ion._transition_indices(denominator)
+        contribution = ion.contribution_function(density, **kwargs)
+        numerator_term = contribution[..., numerator_idx].sum(axis=-1)
+        denominator_term = contribution[..., denominator_idx].sum(axis=-1)
+        ratio = np.full(numerator_term.shape, np.nan)
+        np.divide(
+            numerator_term.value,
+            denominator_term.value,
+            out=ratio,
+            where=denominator_term.value != 0.0,
+        )
+        return u.Quantity(ratio, numerator_term.unit / denominator_term.unit)
 
     @u.quantity_input
     def emissivity(self, density: u.cm**(-3), **kwargs) -> u.erg * u.cm**(-3) / u.s:
