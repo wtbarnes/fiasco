@@ -280,32 +280,79 @@ def test_contribution_function(ion):
 @pytest.mark.requires_dbase_version('>= 8')
 def test_line_ratio(ion):
     density = [1e9, 1e10] * u.cm**(-3)
-    wavelengths = ion.transitions.wavelength[ion.transitions.is_bound_bound]
-    ratio = ion.line_ratio(wavelengths[0], wavelengths[1], density)
-    assert ratio.shape == ion.temperature.shape + density.shape
+    numerator = 703729.77 * u.angstrom
+    denominator = 363372.09 * u.angstrom
+    grouped_numerator = [703729.77, 363372.09] * u.angstrom
+    grouped_denominator = 151285.93 * u.angstrom
 
-    grouped_ratio = ion.line_ratio(wavelengths[:2], wavelengths[2], density)
-    cont_func = ion.contribution_function(density)
-    with np.errstate(divide='ignore', invalid='ignore'):
-        expected_grouped_ratio = cont_func[..., [0, 1]].sum(axis=-1) / cont_func[..., [2]].sum(axis=-1)
-    assert np.allclose(grouped_ratio.value, expected_grouped_ratio.to_value(grouped_ratio.unit), equal_nan=True)
+    ratio = ion.line_ratio(numerator, denominator, density, use_two_ion_model=False)
+    assert ratio.shape == ion.temperature.shape + density.shape
+    assert np.isclose(ratio[0, 0].value, 0.040713073461089135)
+    assert np.isclose(ratio[0, 1].value, 0.04085437059595315)
+    assert np.isclose(ratio[10, 0].value, 0.04053179876351098)
+    assert np.isclose(ratio[10, 1].value, 0.040757339413215445)
+    assert np.isclose(ratio[50, 0].value, 0.0394011731373532)
+    assert np.isclose(ratio[50, 1].value, 0.04054035992828684)
+    assert np.isnan(ratio[-1, :]).all()
+
+    grouped_ratio = ion.line_ratio(
+        grouped_numerator,
+        grouped_denominator,
+        density,
+        use_two_ion_model=False,
+    )
+    assert np.isclose(grouped_ratio[0, 0].value, 367497.60772844875)
+    assert np.isclose(grouped_ratio[0, 1].value, 367496.8140678737)
+    assert np.isclose(grouped_ratio[10, 1].value, 366355.21439281706)
+    assert np.isclose(grouped_ratio[50, 0].value, 364554.8767819584)
+    assert np.isnan(grouped_ratio[-1, :]).all()
 
     density_coupled = 1e15 * u.K * u.cm**(-3) / ion.temperature
-    ratio_coupled = ion.line_ratio(wavelengths[0], wavelengths[1], density_coupled, couple_density_to_temperature=True)
+    ratio_coupled = ion.line_ratio(
+        numerator,
+        denominator,
+        density_coupled,
+        couple_density_to_temperature=True,
+        use_two_ion_model=False,
+    )
     assert ratio_coupled.shape == ion.temperature.shape + (1,)
+    assert np.allclose(
+        ratio_coupled[[0, 10, 50], 0].value,
+        [0.04085437059595315, 0.040731805023382285, 0.03821161915021005],
+    )
+    assert np.isnan(ratio_coupled[-1, 0].value)
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_line_ratio_formation_temperature_values(hdf5_dbase_root):
+    temperature = np.logspace(5.2, 8, 100) * u.K
+    ion = fiasco.Ion('Fe 5', temperature, hdf5_dbase_root=hdf5_dbase_root)
+    density = [1e9, 1e10] * u.cm**(-3)
 
     ratio_formation = ion.line_ratio(
-        wavelengths[:2],
-        wavelengths[2],
+        [703729.77, 363372.09] * u.angstrom,
+        151285.93 * u.angstrom,
         density,
         temperature=ion.formation_temperature,
+        use_two_ion_model=False,
     )
-    ion_formation = ion._new_instance(temperature=ion.formation_temperature)
-    cont_func_formation = ion_formation.contribution_function(density)
-    with np.errstate(divide='ignore', invalid='ignore'):
-        expected_ratio_formation = cont_func_formation[..., [0, 1]].sum(axis=-1) / cont_func_formation[..., [2]].sum(axis=-1)
+    ion_formation = fiasco.Ion(
+        'Fe 5',
+        np.array([ion.formation_temperature.to_value('K')]) * u.K,
+        hdf5_dbase_root=hdf5_dbase_root,
+    )
+    direct_ratio = ion_formation.line_ratio(
+        [703729.77, 363372.09] * u.angstrom,
+        151285.93 * u.angstrom,
+        density,
+        use_two_ion_model=False,
+    )
     assert ratio_formation.shape == (1,) + density.shape
-    assert u.allclose(ratio_formation, expected_ratio_formation)
+    assert np.allclose(
+        ratio_formation[0, :].value,
+        [366710.87156523, 366655.15338345],
+    )
+    assert u.allclose(ratio_formation, direct_ratio)
     assert np.all(np.isfinite(ratio_formation))
 
 

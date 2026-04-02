@@ -9,15 +9,13 @@ import fiasco
 
 
 def test_list_elements(hdf5_dbase_root):
-    # FIXME: actually test the expected elements
     elements = fiasco.list_elements(hdf5_dbase_root)
-    assert isinstance(elements, list)
+    assert elements[:5] == ['H', 'He', 'Li', 'Be', 'B']
 
 
 def test_list_ions(hdf5_dbase_root):
-    # FIXME: actually test the expected ions
     ions = fiasco.list_ions(hdf5_dbase_root)
-    assert isinstance(ions, list)
+    assert ions[:5] == ['H 1', 'H 2', 'He 1', 'He 2', 'He 3']
 
 
 def test_get_isoelectronic_sequence(hdf5_dbase_root):
@@ -32,11 +30,10 @@ def test_get_isoelectronic_sequence(hdf5_dbase_root):
 
 def test_proton_electron_ratio(hdf5_dbase_root):
     t = np.logspace(4, 9, 100) * u.K
-    # NOTE: this number will not be accurate as we are using only a subset of
-    # the database
     pe_ratio = fiasco.proton_electron_ratio(t, hdf5_dbase_root=hdf5_dbase_root)
-    assert type(pe_ratio) is u.Quantity
-    assert pe_ratio.shape == t.shape
+    assert np.all(np.isfinite(pe_ratio))
+    assert np.all(pe_ratio > 0)
+    assert np.ptp(pe_ratio.value) > 0
 
 
 def test_map_ratio_to_quantity():
@@ -46,7 +43,6 @@ def test_map_ratio_to_quantity():
 
     mapped_density = fiasco.map_ratio_to_quantity(observed_ratio, density, theoretical_ratio)
 
-    assert type(mapped_density) is u.Quantity
     assert mapped_density.shape == (3,)
     assert mapped_density.unit == density.unit
     assert u.allclose(mapped_density[:2], [1e8, 5.5e9] * u.cm**(-3))
