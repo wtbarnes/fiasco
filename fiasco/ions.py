@@ -1177,7 +1177,6 @@ Using Datasets:
         return g
 
     @u.quantity_input
-    @u.quantity_input
     def line_ratio(self,
                    numerator: u.angstrom,
                    denominator: u.angstrom,
