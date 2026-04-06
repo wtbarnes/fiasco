@@ -5,9 +5,9 @@ from fiasco.collections import IonCollection
 from fiasco.elements import Element
 from fiasco.fiasco import (
     get_isoelectronic_sequence,
+    line_ratio,
     list_elements,
     list_ions,
-    map_ratio_to_quantity,
     proton_electron_ratio,
 )
 from fiasco.gaunt import GauntFactor
@@ -55,7 +55,7 @@ __all__ = [
     "list_elements",
     "list_ions",
     "get_isoelectronic_sequence",
-    "map_ratio_to_quantity",
+    "line_ratio",
     "proton_electron_ratio",
     "Ion",
     "Levels",

@@ -23,6 +23,35 @@ __all__ = [
 ]
 
 
+def get_hissw_defaults():
+    """
+    Read default hissw configuration, if available.
+    """
+    try:
+        import hissw
+    except ImportError:
+        return {}
+    return hissw.defaults
+
+
+def find_chianti_idl_root(idl_codebase_root=None):
+    """
+    Locate the CHIANTI IDL code root.
+    """
+    if idl_codebase_root is not None:
+        idl_codebase_root = pathlib.Path(idl_codebase_root)
+        if idl_codebase_root.name != 'idl' and (idl_codebase_root / 'idl').is_dir():
+            idl_codebase_root = idl_codebase_root / 'idl'
+        return idl_codebase_root
+
+    ssw_home = get_hissw_defaults().get('ssw_home')
+    if ssw_home is None:
+        return None
+
+    chianti_idl_root = pathlib.Path(ssw_home) / 'packages' / 'chianti' / 'idl'
+    return chianti_idl_root if chianti_idl_root.is_dir() else None
+
+
 def get_idl_test_output_filepath(name, version):
     if not isinstance(version, Version):
         version = Version(version)
@@ -79,7 +108,12 @@ def setup_idl_environment(ascii_dbase_root,
         import hissw
     except ImportError:
         return None
-    extra_paths = [d for d, _, _ in os.walk(idl_codebase_root)]
+
+    hissw_defaults = get_hissw_defaults()
+    chianti_root = find_chianti_idl_root(idl_codebase_root)
+    extra_paths = []
+    if chianti_root is not None:
+        extra_paths.extend(d for d, _, _ in os.walk(chianti_root))
     header = f'''
     defsysv,'!xuvtop','{ascii_dbase_root}'
     defsysv,'!abund_file',''
@@ -89,16 +123,19 @@ def setup_idl_environment(ascii_dbase_root,
         extra_paths += [get_pkg_data_path('ssw_gen_functions', package='fiasco.tests.idl')]
     else:
         extra_paths += [d for d, _, _ in os.walk(ssw_gen_root)]
+    idl_only = chianti_root is not None
     env = hissw.Environment(
-        idl_only=True,
-        idl_home=idl_executable,
+        ssw_packages=[] if idl_only else ['chianti'],
+        ssw_home=hissw_defaults.get('ssw_home'),
+        idl_home=idl_executable or hissw_defaults.get('idl_home'),
+        idl_only=idl_only,
         header=header,
         extra_paths=extra_paths,
         filters={'version_check': version_check},
     )
     try:
         _ = env.run('print,!xuvtop', verbose=False)
-    except (hissw.util.SSWIDLError, hissw.util.IDLLicenseError):
+    except (ValueError, hissw.util.SSWIDLError, hissw.util.IDLLicenseError):
         return None
     else:
         return env
@@ -151,10 +188,11 @@ def run_idl_script(idl_env,
             # Import here so that this can be used without a hard pytest dependency
             import pytest
             pytest.skip("""To run the IDL comparison tests, you must:
-                            1. Specify a path to a working IDL executable,
-                            2. Specify a path to the CHIANTI IDL code,
-                            3. Install the hissw package (pip install hissw)
-                           Without the following, you will not be able to generate new IDL comparison test results.""")
+                            1. Install the hissw package (pip install hissw),
+                            2. Configure hissw defaults in ~/.hissw/hisswrc or pass
+                               --idl-executable/--idl-codebase-root explicitly,
+                            3. Have a working IDL and CHIANTI IDL setup.
+                           Without that, you will not be able to generate new IDL comparison test results.""")
         # Add versions so they are accessible from within the script if needed
         input_args = {
             **input_args,
@@ -182,7 +220,7 @@ def run_idl_script(idl_env,
     return read_idl_test_output(file_name, dbase_version)
 
 
-def get_chianti_idl_version(idl_codebase_root):
+def get_chianti_idl_version(idl_codebase_root=None):
     """
     Get the version of the CHIANTI IDL code being used.
 
@@ -193,6 +231,11 @@ def get_chianti_idl_version(idl_codebase_root):
     read it from the ``VERSION`` file. If that fails, raise a
     warning and return None.
     """
+    idl_codebase_root = find_chianti_idl_root(idl_codebase_root)
+    if idl_codebase_root is None:
+        fiasco.log.warning('Cannot determine CHIANTI IDL version because no CHIANTI IDL root was found.')
+        return None
+
     # First try to get the version from the current git tag
     try:
         import git

@@ -64,11 +64,11 @@ temperature_grid = np.array([temperature.value]) * temperature.unit
 density = np.logspace(8, 12, 80) * u.cm**-3
 
 fe12 = fiasco.Ion('Fe XII', temperature_grid)
-ratio_curve = fe12.line_ratio(
+ratio_curve = fiasco.line_ratio(
+    fe12,
     [186.854, 186.887] * u.angstrom,
     [195.119, 195.179] * u.angstrom,
     density,
-    temperature=temperature,
     use_two_ion_model=False,
 ).squeeze()
 
@@ -80,15 +80,19 @@ observed_ratio = np.divide(
     intensity_195,
     out=np.full_like(intensity_186, np.nan),
     where=intensity_195 > 0,
-)
-ratio_min = np.nanmin(ratio_curve.value)
-ratio_max = np.nanmax(ratio_curve.value)
-observed_ratio = np.where(
-    (observed_ratio >= ratio_min) & (observed_ratio <= ratio_max),
-    observed_ratio,
-    np.nan,
 ) * u.dimensionless_unscaled
-density_map = fiasco.map_ratio_to_quantity(observed_ratio, density, ratio_curve)
+is_finite = np.isfinite(ratio_curve.value)
+sort_index = np.argsort(ratio_curve.value[is_finite])
+density_map = u.Quantity(
+    np.interp(
+        observed_ratio.to_value(u.dimensionless_unscaled),
+        ratio_curve.value[is_finite][sort_index],
+        density.to_value('cm-3')[is_finite][sort_index],
+        left=np.nan,
+        right=np.nan,
+    ),
+    'cm-3',
+)
 
 ###############################################################################
 # Plot the theoretical ratio curve, the observed Fe XII map, and the derived

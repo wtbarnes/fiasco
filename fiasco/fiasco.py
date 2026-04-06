@@ -18,7 +18,7 @@ __all__ = [
     'list_ions',
     'proton_electron_ratio',
     'get_isoelectronic_sequence',
-    'map_ratio_to_quantity',
+    'line_ratio',
 ]
 
 
@@ -168,84 +168,74 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
     return u.Quantity(f_interp(temperature.value))
 
 
-def map_ratio_to_quantity(observed_ratio,
-                          quantity,
-                          theoretical_ratio,
-                          *,
-                          bounds_error=False,
-                          fill_value=np.nan):
+@u.quantity_input(density=u.cm**(-3))
+def line_ratio(ion,
+               numerator,
+               denominator,
+               density: u.cm**(-3),
+               **kwargs):
     """
-    Map an observed line ratio to the associated physical quantity using a theoretical curve.
+    Theoretical line ratio for one or more bound-bound transitions as a function of density.
 
     Parameters
     ----------
-    observed_ratio : array-like or `~astropy.units.Quantity`
-        Observed line ratio values. Must be dimensionless.
-    quantity : `~astropy.units.Quantity`
-        Quantity grid associated with ``theoretical_ratio``, e.g. an electron density grid.
-    theoretical_ratio : array-like or `~astropy.units.Quantity`
-        Theoretical line ratio sampled on ``quantity``. Must be dimensionless and monotonic.
-    bounds_error : `bool`, optional
-        If True, raise an exception when ``observed_ratio`` falls outside of the
-        theoretical ratio range. By default, points outside the range are set by
-        ``fill_value``.
-    fill_value : scalar, tuple, or `~astropy.units.Quantity`, optional
-        Value used outside of the interpolation interval. If a quantity is given,
-        it must be convertible to the units of ``quantity``.
+    ion : `~fiasco.Ion`
+        Ion used to compute the contribution function.
+    numerator, denominator : `~astropy.units.Quantity` or array-like of `str`
+        Bound-bound transition wavelengths or transition labels for the numerator
+        and denominator. If multiple transitions are provided, their contribution
+        functions are summed before taking the ratio. Transition labels must match
+        entries in ``ion.transitions.label[ion.transitions.is_bound_bound]``.
+    density : `~astropy.units.Quantity`
+        Electron number density.
+    **kwargs
+        Passed to :meth:`~fiasco.Ion.contribution_function`.
 
     Returns
     -------
     `~astropy.units.Quantity`
-        Interpolated quantity with the same shape as ``observed_ratio``.
+        The line ratio with shape ``(n_temperature, n_density)`` for independent
+        density arrays or ``(n_temperature, 1)`` for ``couple_density_to_temperature=True``.
+        Points where the denominator vanishes are returned as `~numpy.nan`.
     """
-    observed_ratio = u.Quantity(observed_ratio, u.dimensionless_unscaled)
-    if not isinstance(quantity, u.Quantity):
-        raise TypeError('quantity must be an astropy Quantity.')
-    quantity = np.ravel(quantity)
-    theoretical_ratio = np.ravel(
-        u.Quantity(theoretical_ratio, u.dimensionless_unscaled).value
+    bound_mask = ion.transitions.is_bound_bound
+    bound_wavelength = ion.transitions.wavelength[bound_mask]
+    bound_label = ion.transitions.label[bound_mask]
+
+    def transition_indices(transitions):
+        if isinstance(transitions, u.Quantity):
+            transitions = np.atleast_1d(transitions.to(bound_wavelength.unit))
+            if transitions.size == 0:
+                raise ValueError('At least one transition must be provided.')
+            return np.array(
+                [np.argmin(np.abs(bound_wavelength - transition)) for transition in transitions],
+                dtype=int,
+            )
+
+        transitions = np.atleast_1d(transitions)
+        if transitions.size == 0:
+            raise ValueError('At least one transition must be provided.')
+        if not all(isinstance(transition, str) for transition in transitions):
+            raise TypeError('Transitions must be provided as wavelengths or transition labels.')
+
+        indices = []
+        for transition in transitions:
+            index = np.flatnonzero(bound_label == transition)
+            if index.size == 0:
+                raise ValueError(f'No bound-bound transition found for label "{transition}".')
+            indices.append(index[0])
+        return np.array(indices, dtype=int)
+
+    numerator_idx = transition_indices(numerator)
+    denominator_idx = transition_indices(denominator)
+    contribution = ion.contribution_function(density, **kwargs)
+    numerator_term = contribution[..., numerator_idx].sum(axis=-1)
+    denominator_term = contribution[..., denominator_idx].sum(axis=-1)
+    ratio = np.full(numerator_term.shape, np.nan)
+    np.divide(
+        numerator_term.value,
+        denominator_term.value,
+        out=ratio,
+        where=denominator_term.value != 0.0,
     )
-
-    if quantity.shape != theoretical_ratio.shape:
-        raise ValueError('quantity and theoretical_ratio must have the same shape.')
-
-    is_finite = np.isfinite(quantity.value) & np.isfinite(theoretical_ratio)
-    quantity = quantity[is_finite]
-    theoretical_ratio = theoretical_ratio[is_finite]
-
-    if quantity.size < 2:
-        raise ValueError('At least two finite samples are required to interpolate a ratio curve.')
-
-    diff = np.diff(theoretical_ratio)
-    nonzero = diff != 0.0
-    if not np.any(nonzero):
-        raise ValueError('theoretical_ratio must vary over the provided quantity grid.')
-    if np.all(diff[nonzero] < 0.0):
-        quantity = quantity[::-1]
-        theoretical_ratio = theoretical_ratio[::-1]
-    elif not np.all(diff[nonzero] > 0.0):
-        raise ValueError(
-            'theoretical_ratio must be monotonic to map ratios back to a quantity. '
-            'Restrict the grid to a monotonic interval first.'
-        )
-
-    theoretical_ratio, unique_index = np.unique(theoretical_ratio, return_index=True)
-    quantity = quantity[unique_index]
-    if quantity.size < 2:
-        raise ValueError('Theoretical ratio must contain at least two unique samples.')
-
-    if isinstance(fill_value, tuple):
-        fill_value = tuple(
-            value.to_value(quantity.unit) if isinstance(value, u.Quantity) else value
-            for value in fill_value
-        )
-    elif isinstance(fill_value, u.Quantity):
-        fill_value = fill_value.to_value(quantity.unit)
-
-    interp = interp1d(
-        theoretical_ratio,
-        quantity.value,
-        bounds_error=bounds_error,
-        fill_value=fill_value,
-    )
-    return u.Quantity(interp(observed_ratio.to_value(u.dimensionless_unscaled)), quantity.unit)
+    return u.Quantity(ratio, numerator_term.unit / denominator_term.unit)

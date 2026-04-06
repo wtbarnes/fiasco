@@ -1,3 +1,4 @@
+import contextlib
 import numpy as np
 import pathlib
 import pytest
@@ -8,12 +9,12 @@ from fiasco.tests import get_test_file_list
 from fiasco.util import check_database, read_chianti_version
 
 # Force MPL to use non-gui backends for testing.
-try:
-    import matplotlib
-except ImportError:
-    pass
-else:
-    matplotlib.use('Agg')
+with contextlib.suppress(ImportError):
+    import matplotlib as mpl
+
+    # Force MPL to use non-gui backends for testing.
+    mpl.use("Agg")
+
 
 @pytest.fixture(scope='session')
 def ascii_dbase_tree(tmpdir_factory, request):
@@ -110,6 +111,6 @@ def requires_dbase_version(request, dbase_version):
 
 
 def pytest_configure(config):
-  config.addinivalue_line(
+    config.addinivalue_line(
         "markers", "requires_dbase_version(dbase_version): Skip tests based on CHIANTI database version requirements.",
-  )
+    )

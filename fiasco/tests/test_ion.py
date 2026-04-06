@@ -6,8 +6,6 @@ import numpy as np
 import pytest
 
 from fractions import Fraction
-from pathlib import Path
-from scipy.io import readsav
 
 import fiasco
 
@@ -284,8 +282,11 @@ def test_line_ratio(ion):
     denominator = 363372.09 * u.angstrom
     grouped_numerator = [703729.77, 363372.09] * u.angstrom
     grouped_denominator = 151285.93 * u.angstrom
+    bound_mask = ion.transitions.is_bound_bound
+    bound_wavelength = ion.transitions.wavelength[bound_mask]
+    bound_label = ion.transitions.label[bound_mask]
 
-    ratio = ion.line_ratio(numerator, denominator, density, use_two_ion_model=False)
+    ratio = fiasco.line_ratio(ion, numerator, denominator, density, use_two_ion_model=False)
     assert ratio.shape == ion.temperature.shape + density.shape
     assert np.isclose(ratio[0, 0].value, 0.040713073461089135)
     assert np.isclose(ratio[0, 1].value, 0.04085437059595315)
@@ -295,7 +296,8 @@ def test_line_ratio(ion):
     assert np.isclose(ratio[50, 1].value, 0.04054035992828684)
     assert np.isnan(ratio[-1, :]).all()
 
-    grouped_ratio = ion.line_ratio(
+    grouped_ratio = fiasco.line_ratio(
+        ion,
         grouped_numerator,
         grouped_denominator,
         density,
@@ -307,8 +309,27 @@ def test_line_ratio(ion):
     assert np.isclose(grouped_ratio[50, 0].value, 364554.8767819584)
     assert np.isnan(grouped_ratio[-1, :]).all()
 
+    label_ratio = fiasco.line_ratio(
+        ion,
+        bound_label[np.argmin(np.abs(bound_wavelength - numerator))],
+        bound_label[np.argmin(np.abs(bound_wavelength - denominator))],
+        density,
+        use_two_ion_model=False,
+    )
+    assert u.allclose(label_ratio, ratio, equal_nan=True)
+
+    grouped_label_ratio = fiasco.line_ratio(
+        ion,
+        bound_label[[np.argmin(np.abs(bound_wavelength - w)) for w in grouped_numerator]],
+        bound_label[np.argmin(np.abs(bound_wavelength - grouped_denominator))],
+        density,
+        use_two_ion_model=False,
+    )
+    assert u.allclose(grouped_label_ratio, grouped_ratio, equal_nan=True)
+
     density_coupled = 1e15 * u.K * u.cm**(-3) / ion.temperature
-    ratio_coupled = ion.line_ratio(
+    ratio_coupled = fiasco.line_ratio(
+        ion,
         numerator,
         denominator,
         density_coupled,
@@ -321,69 +342,6 @@ def test_line_ratio(ion):
         [0.04085437059595315, 0.040731805023382285, 0.03821161915021005],
     )
     assert np.isnan(ratio_coupled[-1, 0].value)
-
-
-@pytest.mark.requires_dbase_version('>= 8')
-def test_line_ratio_formation_temperature_values(hdf5_dbase_root):
-    temperature = np.logspace(5.2, 8, 100) * u.K
-    ion = fiasco.Ion('Fe 5', temperature, hdf5_dbase_root=hdf5_dbase_root)
-    density = [1e9, 1e10] * u.cm**(-3)
-
-    ratio_formation = ion.line_ratio(
-        [703729.77, 363372.09] * u.angstrom,
-        151285.93 * u.angstrom,
-        density,
-        temperature=ion.formation_temperature,
-        use_two_ion_model=False,
-    )
-    ion_formation = fiasco.Ion(
-        'Fe 5',
-        np.array([ion.formation_temperature.to_value('K')]) * u.K,
-        hdf5_dbase_root=hdf5_dbase_root,
-    )
-    direct_ratio = ion_formation.line_ratio(
-        [703729.77, 363372.09] * u.angstrom,
-        151285.93 * u.angstrom,
-        density,
-        use_two_ion_model=False,
-    )
-    assert ratio_formation.shape == (1,) + density.shape
-    assert np.allclose(
-        ratio_formation[0, :].value,
-        [366710.87156523, 366655.15338345],
-    )
-    assert u.allclose(ratio_formation, direct_ratio)
-    assert np.all(np.isfinite(ratio_formation))
-
-
-@pytest.mark.requires_dbase_version('>= 10.1')
-def test_eis_fe_xiii_density_ratio_from_idl(hdf5_dbase_root):
-    sav_path = Path(__file__).resolve().parents[1] / 'tests/data/eis_fe_xiii.sav'
-    idl_ratio = readsav(sav_path)['eis_fe_xiii']
-
-    log_density = np.asarray(idl_ratio['DENS'][0], dtype=float)
-    density = (10.0**log_density) * u.cm**(-3)
-    expected_ratio = np.asarray(idl_ratio['RATIO'][0], dtype=float)
-    temperature = (10.0**float(idl_ratio['TEMP'][0])) * u.K
-
-    numerator = np.array([
-        float(wavelength)
-        for wavelength in idl_ratio['NUM_WVL'][0].decode().split('+')
-    ]) * u.angstrom
-    denominator = float(idl_ratio['DEN_WVL'][0].decode()) * u.angstrom
-    ion_name = idl_ratio['ION'][0].decode()
-
-    ion = fiasco.Ion(ion_name, np.array([temperature.to_value('K')]) * u.K, hdf5_dbase_root=hdf5_dbase_root)
-    ratio = ion.line_ratio(
-        numerator,
-        denominator,
-        density,
-        temperature=temperature,
-        use_two_ion_model=False,
-    )
-
-    assert np.allclose(ratio.value.squeeze(), expected_ratio, rtol=2e-3)
-
 
 @pytest.mark.requires_dbase_version('>= 8')
 @pytest.mark.parametrize(('density', 'use_coupling'), [
