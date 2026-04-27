@@ -276,7 +276,7 @@ def test_contribution_function(ion):
 
 
 @pytest.mark.requires_dbase_version('>= 8')
-def test_line_ratio(ion):
+def test_line_ratio_density(ion):
     density = [1e9, 1e10] * u.cm**(-3)
     numerator = 703729.77 * u.angstrom
     denominator = 363372.09 * u.angstrom
@@ -286,7 +286,7 @@ def test_line_ratio(ion):
     bound_wavelength = ion.transitions.wavelength[bound_mask]
     bound_label = ion.transitions.label[bound_mask]
 
-    ratio = fiasco.line_ratio(ion, numerator, denominator, density, use_two_ion_model=False)
+    ratio = fiasco.line_ratio_density(ion, numerator, denominator, density, use_two_ion_model=False)
     assert ratio.shape == ion.temperature.shape + density.shape
     assert np.isclose(ratio[0, 0].value, 0.040713073461089135)
     assert np.isclose(ratio[0, 1].value, 0.04085437059595315)
@@ -296,7 +296,7 @@ def test_line_ratio(ion):
     assert np.isclose(ratio[50, 1].value, 0.04054035992828684)
     assert np.isnan(ratio[-1, :]).all()
 
-    grouped_ratio = fiasco.line_ratio(
+    grouped_ratio = fiasco.line_ratio_density(
         ion,
         grouped_numerator,
         grouped_denominator,
@@ -309,7 +309,7 @@ def test_line_ratio(ion):
     assert np.isclose(grouped_ratio[50, 0].value, 364554.8767819584)
     assert np.isnan(grouped_ratio[-1, :]).all()
 
-    label_ratio = fiasco.line_ratio(
+    label_ratio = fiasco.line_ratio_density(
         ion,
         bound_label[np.argmin(np.abs(bound_wavelength - numerator))],
         bound_label[np.argmin(np.abs(bound_wavelength - denominator))],
@@ -318,7 +318,7 @@ def test_line_ratio(ion):
     )
     assert u.allclose(label_ratio, ratio, equal_nan=True)
 
-    grouped_label_ratio = fiasco.line_ratio(
+    grouped_label_ratio = fiasco.line_ratio_density(
         ion,
         bound_label[[np.argmin(np.abs(bound_wavelength - w)) for w in grouped_numerator]],
         bound_label[np.argmin(np.abs(bound_wavelength - grouped_denominator))],
@@ -328,7 +328,7 @@ def test_line_ratio(ion):
     assert u.allclose(grouped_label_ratio, grouped_ratio, equal_nan=True)
 
     density_coupled = 1e15 * u.K * u.cm**(-3) / ion.temperature
-    ratio_coupled = fiasco.line_ratio(
+    ratio_coupled = fiasco.line_ratio_density(
         ion,
         numerator,
         denominator,

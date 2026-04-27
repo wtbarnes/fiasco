@@ -64,7 +64,7 @@ temperature_grid = np.array([temperature.value]) * temperature.unit
 density = np.logspace(8, 12, 80) * u.cm**-3
 
 fe12 = fiasco.Ion('Fe XII', temperature_grid)
-ratio_curve = fiasco.line_ratio(
+ratio_curve = fiasco.line_ratio_density(
     fe12,
     [186.854, 186.887] * u.angstrom,
     [195.119, 195.179] * u.angstrom,

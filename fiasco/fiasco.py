@@ -18,7 +18,7 @@ __all__ = [
     'list_ions',
     'proton_electron_ratio',
     'get_isoelectronic_sequence',
-    'line_ratio',
+    'line_ratio_density',
 ]
 
 
@@ -169,7 +169,7 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
 
 
 @u.quantity_input(density=u.cm**(-3))
-def line_ratio(ion,
+def line_ratio_density(ion,
                numerator,
                denominator,
                density: u.cm**(-3),

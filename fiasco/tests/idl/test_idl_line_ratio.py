@@ -57,7 +57,7 @@ def test_eis_fe_xiii_density_ratio_from_idl(idl_env, dbase_version, chianti_idl_
         np.atleast_1d(idl_result['temperature']),
         hdf5_dbase_root=hdf5_dbase_root,
     )
-    ratio = fiasco.line_ratio(
+    ratio = fiasco.line_ratio_density(
         ion,
         idl_result['numerator'],
         idl_result['denominator'],
