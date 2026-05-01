@@ -55,7 +55,7 @@ __all__ = [
     "list_elements",
     "list_ions",
     "get_isoelectronic_sequence",
-    "line_ratio_density",
+    "line_ratio",
     "proton_electron_ratio",
     "Ion",
     "Levels",
