@@ -2,7 +2,6 @@
 IDL comparison tests for line ratio calculations.
 """
 import astropy.units as u
-import numpy as np
 import pytest
 
 import fiasco
@@ -37,7 +36,6 @@ def test_eis_fe_xiii_density_ratio_from_idl(idl_env, dbase_version, chianti_idl_
     """
     formatters = {
         'density': lambda x: (10.0**x) * u.cm**(-3),
-        'ratio': lambda x: x * u.dimensionless_unscaled,
         'temperature': lambda x: (10.0**x) * u.K,
         'numerator': lambda x: x * u.angstrom,
         'denominator': lambda x: x * u.angstrom,
@@ -52,17 +50,12 @@ def test_eis_fe_xiii_density_ratio_from_idl(idl_env, dbase_version, chianti_idl_
         chianti_idl_version,
         format_func=formatters,
     )
-    ion = fiasco.Ion(
-        'Fe XIII',
-        np.atleast_1d(idl_result['temperature']),
-        hdf5_dbase_root=hdf5_dbase_root,
-    )
-    ratio = fiasco.line_ratio_density(
+    ion = fiasco.Ion('Fe XIII', idl_result['temperature'], hdf5_dbase_root=hdf5_dbase_root)
+    ratio = fiasco.line_ratio(
         ion,
         idl_result['numerator'],
         idl_result['denominator'],
         idl_result['density'],
         use_two_ion_model=False,
     )
-
-    assert np.allclose(ratio.value.squeeze(), idl_result['ratio'].value, rtol=2e-3)
+    assert u.allclose(ratio.squeeze(), idl_result['ratio'], rtol=2e-3)
