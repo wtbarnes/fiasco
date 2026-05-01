@@ -5,7 +5,7 @@ from fiasco.collections import IonCollection
 from fiasco.elements import Element
 from fiasco.fiasco import (
     get_isoelectronic_sequence,
-    line_ratio_density,
+    line_ratio,
     list_elements,
     list_ions,
     proton_electron_ratio,
