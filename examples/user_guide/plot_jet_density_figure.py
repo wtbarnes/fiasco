@@ -26,7 +26,7 @@ quantity_support()
 # in a separate data repository so that this example does not need to run the
 # EIS fitting step with [eispac](https://eispac.readthedocs.io/en/latest/)_.
 # The intensity maps include the wavelength-integrated Fe XII 195 Å intensity and the fitted Fe XII 186 Å and 195 Å peak intensity.
-data_base_url = 'https://media.githubusercontent.com/media/nabobalis/data/main/fiasco'
+data_base_url = 'https://media.githubusercontent.com/media/sunpy/data/main/fiasco'
 with fits.open(f'{data_base_url}/jet_footpoint_fe12_observed.fits') as observed_hdul:
     integrated_195 = observed_hdul['OBSERVED_195'].data
 with fits.open(f'{data_base_url}/jet_footpoint_fe12_intensities.fits') as intensity_hdul:
