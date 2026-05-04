@@ -24,7 +24,7 @@ quantity_support()
 ###############################################################################
 # First download and read in the precomputed EIS products. These two FITS files are hosted
 # in a separate data repository so that this example does not need to run the
-# EIS fitting step with [eispac](https://eispac.readthedocs.io/en/latest/)_.
+# EIS fitting step with `eispac <https://eispac.readthedocs.io/en/latest/>`__.
 # The intensity maps include the wavelength-integrated Fe XII 195 Å intensity and the fitted Fe XII 186 Å and 195 Å peak intensity.
 data_base_url = 'https://media.githubusercontent.com/media/sunpy/data/main/fiasco'
 with fits.open(f'{data_base_url}/jet_footpoint_fe12_observed.fits') as observed_hdul:
