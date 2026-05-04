@@ -18,6 +18,7 @@ __all__ = [
     'list_ions',
     'proton_electron_ratio',
     'get_isoelectronic_sequence',
+    'line_ratio',
 ]
 
 
@@ -165,3 +166,63 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
                         fill_value=(ratio[0], ratio[-1]))
 
     return u.Quantity(f_interp(temperature.value))
+
+
+@u.quantity_input(density=u.cm**(-3))
+def line_ratio(ion, numerator, denominator, density: u.cm**(-3), **kwargs):
+    """
+    Theoretical line ratio for one or more bound-bound transitions as a function of temperature and density.
+
+    Parameters
+    ----------
+    ion : `~fiasco.Ion`
+        Ion used to compute the contribution function.
+    numerator, denominator : array-like of `~astropy.units.Quantity`, `str` or mix of both
+        Bound-bound transition wavelengths or transition labels for the numerator
+        and denominator. If multiple transitions are provided, their contribution
+        functions are summed before taking the ratio. Transition labels must exactly match
+        entries in ``ion.transitions.label[ion.transitions.is_bound_bound]``.
+    density : `~astropy.units.Quantity`
+        Electron number density.
+    **kwargs
+        Passed to :meth:`~fiasco.Ion.contribution_function`.
+
+    Returns
+    -------
+    `~astropy.units.Quantity`
+        The line ratio with shape ``(n_temperature, n_density)`` for independent
+        density arrays or ``(n_temperature, 1)`` for ``couple_density_to_temperature=True``.
+        Points where the denominator vanishes are returned as `~numpy.nan`.
+    """
+    numerator_idx = _transition_indices(ion, numerator)
+    denominator_idx = _transition_indices(ion, denominator)
+    contribution = ion.contribution_function(density, **kwargs)
+    numerator_term = contribution[..., numerator_idx].sum(axis=-1)
+    denominator_term = contribution[..., denominator_idx].sum(axis=-1)
+    ratio = np.full(numerator_term.shape, np.nan)
+    np.divide(
+        numerator_term.value,
+        denominator_term.value,
+        out=ratio,
+        where=denominator_term.value!=0.0,
+    )
+    return u.Quantity(ratio, numerator_term.unit / denominator_term.unit)
+
+
+def _transition_indices(ion, transitions):
+    # NOTE: This conditional avoids implicit type conversion of Quantity arrays to strings
+    if not isinstance(transitions, list):
+        transitions = np.atleast_1d(transitions)
+    wavelengths = ion.transitions.wavelength[ion.transitions.is_bound_bound]
+    labels = ion.transitions.label[ion.transitions.is_bound_bound]
+    indices = []
+    for transition in transitions:
+        if isinstance(transition, u.Quantity):
+            index = np.argmin(np.abs((wavelengths - transition).to('Angstrom')))
+        elif isinstance(transition, str):
+            index = np.flatnonzero(labels==transition)
+            if index.size == 0:
+                raise ValueError(f'No bound-bound transition found for label "{transition}".')
+            index = index[0]
+        indices.append(index)
+    return np.array(indices, dtype=int)
