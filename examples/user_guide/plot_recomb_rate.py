@@ -32,13 +32,13 @@ ion = Ion('Fe XVI', np.logspace(4, 8, 100) * u.K)
 # We can plot the recombination and ionization rates, including all
 # components, as a function of temperature.
 fig, ax = plt.subplots(tight_layout=True)
-ax.plot(ion.temperature, ion.recombination_rate,
+ax.plot(ion.temperature, ion.recombination_rate(),
         label='Recombination', color='C0',)
 ax.plot(ion.temperature, ion.dielectronic_recombination_rate,
         label='Dielectronic', color='C0', ls='--')
 ax.plot(ion.temperature, ion.radiative_recombination_rate,
         label='Radiative', color='C0', ls=':')
-ax.plot(ion.temperature, ion.ionization_rate,
+ax.plot(ion.temperature, ion.ionization_rate(),
         label='Ionization', color='C1')
 ax.plot(ion.temperature, ion.direct_ionization_rate,
         label='Direct', color='C1', ls='--')
