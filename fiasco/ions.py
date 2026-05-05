@@ -11,7 +11,7 @@ import scipy.special
 import warnings
 
 from astropy.utils.data import get_pkg_data_path
-from functools import cached_property
+from functools import cache, cached_property
 from scipy.interpolate import CubicSpline, interp1d, PchipInterpolator
 
 from fiasco import proton_electron_ratio
@@ -758,7 +758,7 @@ Using Datasets:
     def _rate_matrix_ionization(self) -> u.Unit('cm3 s-1'):
         rate_matrix = self._empty_rate_matrix()
         # Ionization from ground state of recombined to ground state of recombining
-        rate_matrix[:, self.n_levels, 0] = self.ionization_rate
+        rate_matrix[:, self.n_levels, 0] = self.ionization_rate()
         return rate_matrix
 
     @cached_property
@@ -1369,7 +1369,7 @@ Using Datasets:
 
         return rate.sum(axis=0)
 
-    @cached_property
+    @cache
     @u.quantity_input
     def ionization_rate(self) -> u.cm**3 / u.s:
         r"""
@@ -1454,10 +1454,9 @@ Using Datasets:
         else:
             raise ValueError(f"Unrecognized fit type {self._rrparams['fit_type']}")
 
-    @cached_property
-    @needs_dataset('drparams')
+    @cache
     @u.quantity_input
-    def dielectronic_recombination_rate(self) -> u.cm**3 / u.s:
+    def dielectronic_recombination_rate(self, level_resolved=False) -> u.cm**3 / u.s:
         r"""
         Dielectronic recombination rate as a function of temperature.
 
@@ -1483,20 +1482,46 @@ Using Datasets:
             \alpha_{DR} = A T^{-3/2}e^{-T_0/T}(1 + B e^{-T_1/T})
 
         where :math:`A,B,T_0,T_1` are fitting coefficients stored in the CHIANTI database.
+
+        Parameters
+        ----------
+        level_resolved: `bool`, optional
+            If True, return the level-resolved dielectronic recombination rates. These are
+            typically calculated using the first method as described above.
+
+        Returns
+        -------
+        : `~astropy.units.Quantity`
+            Dielectronic recombination rate as a function of temperature. If ``level_resolved``
+            is True, this will have shape ``(l,n)`` where ``l`` is the number temperatures and
+            ``n`` is the number of levels and the rates correspond to the recombination rate out
+            of the ground state and ``n-1`` metastable states. Otherwise, the result will have shape
+            ``(l,)`` and corresponds to recombination out of the ground state.
         """
-        if self._drparams['fit_type'][0] == 1:
-            E_over_T = np.outer(self._drparams['E_fit'], 1./self.temperature)
+        if level_resolved and self._has_dataset('drcoeffs'):
+            return u.Quantity([
+                self._calculate_dielectronic_recombination_rate(ft, {'E_fit': Ef, 'c_fit': cf})
+                for ft, Ef, cf in zip(*[self._drcoeffs[k] for k in ['fit_type', 'E_fit', 'C_fit']])
+            ])
+        elif self._has_dataset('drparams'):
+            return self._calculate_dielectronic_recombination_rate(self._drparams['fit_type'][0], self._drparams)
+        else:
+            raise MissingDatasetException(f'drparams and drcoeffs missing for {self.ion_name}')
+
+    def _calculate_dielectronic_recombination_rate(self, fit_type, params):
+        if fit_type == 1:
+            E_over_T = np.outer(params['E_fit'], 1./self.temperature)
             return self.temperature**(-1.5)*(
-                    self._drparams['c_fit'][:, np.newaxis]*np.exp(-E_over_T)).sum(axis=0)
-        elif self._drparams['fit_type'][0] == 2:
-            A = self._drparams['A_fit']
-            B = self._drparams['B_fit']
-            T0 = self._drparams['T0_fit']
-            T1 = self._drparams['T1_fit']
+                    params['c_fit'][:, np.newaxis]*np.exp(-E_over_T)).sum(axis=0)
+        elif fit_type == 2:
+            A = params['A_fit']
+            B = params['B_fit']
+            T0 = params['T0_fit']
+            T1 = params['T1_fit']
             return A * self.temperature**(-1.5) * np.exp(-T0/self.temperature) * (
                     1. + B * np.exp(-T1/self.temperature))
         else:
-            raise ValueError(f"Unrecognized fit type {self._drparams['fit_type']}")
+            raise ValueError(f"Unrecognized fit type {fit_type}")
 
     @u.quantity_input
     def _dielectronic_recombination_suppression(self, density:u.Unit('cm-3'), couple_density_to_temperature=True):
@@ -1608,7 +1633,7 @@ Using Datasets:
         rate_interp = 10**f_interp(np.log10(self.temperature.to_value('K')))
         return u.Quantity(rate_interp, 'cm3 s-1')
 
-    @cached_property
+    @cache
     @u.quantity_input
     def recombination_rate(self) -> u.cm**3 / u.s:
         r"""

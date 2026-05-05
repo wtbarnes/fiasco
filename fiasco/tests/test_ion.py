@@ -400,7 +400,7 @@ def test_total_recombination_rate_priority(ion):
     # files is available that it is prioritized over the sum of the DR and RR rates.
     # This is the case for this ion because Fe V has total recombination rate data
     # available.
-    recomb_rate = ion.recombination_rate
+    recomb_rate = ion.recombination_rate()
     tot_recomb_rate = ion._total_recombination_rate
     assert np.all(recomb_rate == tot_recomb_rate)
 
