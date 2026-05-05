@@ -75,7 +75,7 @@ def test_ionization_rate_from_idl(ion_name, temperature, idl_env, dbase_version,
                                 dbase_version,
                                 chianti_idl_version,
                                 format_func={'rate': lambda x: x*u.Unit('cm3 s-1')})
-    assert u.allclose(idl_result['rate'], ion.ionization_rate, rtol=0.05)
+    assert u.allclose(idl_result['rate'], ion.ionization_rate(), rtol=0.05)
 
 
 @pytest.mark.parametrize('ion_name', [
@@ -101,7 +101,30 @@ def test_recombination_rate_from_idl(ion_name, temperature, idl_env, dbase_versi
                                 dbase_version,
                                 chianti_idl_version,
                                 format_func={'rate': lambda x: x*u.Unit('cm3 s-1')})
-    assert u.allclose(idl_result['rate'], ion.recombination_rate, rtol=0.02)
+    assert u.allclose(idl_result['rate'], ion.recombination_rate(), rtol=0.02)
+
+
+@pytest.mark.parametrize('ion_name', ['C II',])
+def test_lr_diel_recombination_rate_from_idl(ion_name, temperature, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root):
+    # Test level-resolved dielectronic recombination
+    script = """
+    temperature = {{ temperature | to_unit('K') | force_double_precision }}
+    rate = ch_diel_recomb('{{ ion_name }}', temperature, /level, /quiet)
+    """
+    ion = fiasco.Ion(ion_name, temperature, hdf5_dbase_root=hdf5_dbase_root)
+    idl_result = run_idl_script(
+        idl_env,
+        script,
+        {'temperature': temperature, 'ion_name': ion._ion_name},
+        ['rate'],
+        f'level_resolved_dielectronic_recombination_rate_{ion.atomic_number}_{ion.ionization_stage}',
+        dbase_version,
+        chianti_idl_version,
+        format_func={'rate': lambda x: x*u.Unit('cm3 s-1')}
+    )
+    assert u.allclose(idl_result['rate'],
+                      ion.dielectronic_recombination_rate(level_resolved=True),
+                      rtol=1e-6)
 
 
 # NOTE: The list of ions here is motivated by the need to test the different cases for different
