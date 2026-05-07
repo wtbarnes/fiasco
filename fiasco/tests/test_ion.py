@@ -390,9 +390,22 @@ def test_intensity(ion, em):
     ('radiative_recombination_rate', 1.6221634159408823e-12*u.cm**3 / u.s),
 ])
 def test_rates(ion, rate_name, answer):
-    rate = getattr(ion, rate_name)
+    rate = getattr(ion, rate_name)()
     assert rate.shape == ion.temperature.shape
     assert u.allclose(rate[0], answer, rtol=1e-6)
+
+
+@pytest.mark.parametrize(('density', 'answer'), [
+    # NOTE: The expected values have not been tested for correctness though
+    # both the recombination rates and the suppression factor calculation
+    # are already tested against the IDL result.
+    (None, 1.60593802e-11 * u.cm**3 / u.s),
+    (1e9*u.cm**(-3), 3.6077091e-12* u.cm**3 / u.s),
+    (1e15*u.K*u.cm**(-3)/temperature, 2.4619068e-12 * u.cm**3 / u.s),
+])
+def test_suppressed_dielectronic_recombination_rate(ion, density, answer):
+    dr_rate = ion.dielectronic_recombination_rate(density=density)
+    assert u.allclose(dr_rate[0], answer)
 
 
 def test_total_recombination_rate_priority(ion):
@@ -400,7 +413,7 @@ def test_total_recombination_rate_priority(ion):
     # files is available that it is prioritized over the sum of the DR and RR rates.
     # This is the case for this ion because Fe V has total recombination rate data
     # available.
-    recomb_rate = ion.recombination_rate
+    recomb_rate = ion.recombination_rate()
     tot_recomb_rate = ion._total_recombination_rate
     assert np.all(recomb_rate == tot_recomb_rate)
 
