@@ -1369,9 +1369,8 @@ Using Datasets:
 
         return rate.sum(axis=0)
 
-    @cache
-    @u.quantity_input
-    def ionization_rate(self) -> u.cm**3 / u.s:
+    @u.quantity_input(density=u.cm**(-3))
+    def ionization_rate(self, density=None) -> u.cm**3 / u.s:
         r"""
         Total ionization rate as a function of temperature.
 
@@ -1388,11 +1387,11 @@ Using Datasets:
         excitation_autoionization_rate
         """
         try:
-            di_rate = self.direct_ionization_rate
+            di_rate = self.direct_ionization_rate()
         except MissingDatasetException:
             di_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         try:
-            ea_rate = self.excitation_autoionization_rate
+            ea_rate = self.excitation_autoionization_rate()
         except MissingDatasetException:
             ea_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         return di_rate + ea_rate
@@ -1660,12 +1659,10 @@ Using Datasets:
     def _total_recombination_rate(self) -> u.cm**3 / u.s:
         temperature_data = self._trparams['temperature'].to_value('K')
         rate_data = self._trparams['recombination_rate'].to_value('cm3 s-1')
-        f_interp = interp1d(temperature_data, rate_data, fill_value='extrapolate', kind='cubic')
         f_interp = PchipInterpolator(np.log10(temperature_data), np.log10(rate_data), extrapolate=True)
         rate_interp = 10**f_interp(np.log10(self.temperature.to_value('K')))
         return u.Quantity(rate_interp, 'cm3 s-1')
 
-    @cache
     @u.quantity_input(density=u.cm**(-3))
     def recombination_rate(self, density=None) -> u.cm**3 / u.s:
         r"""
@@ -1685,8 +1682,20 @@ Using Datasets:
             However, for some ions, total recombination rate data is available in the
             so-called ``.trparams`` files. For these ions, the output of this method
             will *not* be equal to the sum of the `dielectronic_recombination_rate` and
-            `radiative_recombination_rate` method. As such, when computing the total
-            recombination rate, this method should always be used.
+            `radiative_recombination_rate` method.
+
+        .. important::
+
+            If the aforementioned ``.trparams`` data are available, they will be
+            unaffected by any input density as these data represent the *total* rate
+            and as such any density-dependent suppression cannot be applied to only the
+            dielectronic component. If you need to compute the density-dependent rate even
+            when these data are present, compute the sum of `radiative_recombination_rate` and
+            `dielectronic_recombination_rate`, using the input density for the latter.
+
+        Parameters
+        ----------
+        density: `~astropy.units.Quantity`, optional
 
         See Also
         --------
@@ -1705,6 +1714,11 @@ Using Datasets:
         except MissingDatasetException:
             self.log.debug(f'No total recombination data available for {self.ion_name}.')
         else:
+            if density is not None:
+                self.log.warning(
+                    'Total recombination rate data are only temperature dependent. '
+                    f'Ignoring density input for {self.ion_name} recombination rate.'
+                )
             return tr_rate
         try:
             rr_rate = self.radiative_recombination_rate()
