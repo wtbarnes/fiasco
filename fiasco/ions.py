@@ -851,7 +851,7 @@ Using Datasets:
         rate_matrix = self._empty_rate_matrix()
         # Compute ground-ground dielectronic recombination rate
         try:
-            dr_rate_ground = self.next_ion().dielectronic_recombination_rate
+            dr_rate_ground = self.next_ion().dielectronic_recombination_rate()
         except MissingDatasetException:
             dr_rate_ground = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         # NOTE: Explicitly not using a decorator here in order to return an empty matrix
@@ -1284,10 +1284,10 @@ Using Datasets:
         """
         return IonCollection(self).spectrum(*args, **kwargs)
 
-    @cached_property
+    @cache
     @needs_dataset('diparams')
     @u.quantity_input
-    def direct_ionization_rate(self) -> u.cm**3 / u.s:
+    def direct_ionization_rate(self, level_resolved=False) -> u.cm**3 / u.s:
         r"""
         Ionization rate due to collisions as a function of temperature.
 
@@ -1325,10 +1325,10 @@ Using Datasets:
 
         return u.Quantity(cross_section_all)
 
-    @cached_property
+    @cache
     @needs_dataset('easplups', 'diparams')
     @u.quantity_input
-    def excitation_autoionization_rate(self) -> u.cm**3 / u.s:
+    def excitation_autoionization_rate(self, level_resolved=False) -> u.cm**3 / u.s:
         r"""
         Ionization rate due to excitation autoionization.
 
@@ -1397,10 +1397,9 @@ Using Datasets:
             ea_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         return di_rate + ea_rate
 
-    @cached_property
-    @needs_dataset('rrparams')
+    @cache
     @u.quantity_input
-    def radiative_recombination_rate(self) -> u.cm**3 / u.s:
+    def radiative_recombination_rate(self, level_resolved=False) -> u.cm**3 / u.s:
         r"""
         Radiative recombination rate as a function of temperature.
 
@@ -1437,26 +1436,52 @@ Using Datasets:
 
         where :math:`A` and :math:`\eta` are fitting parameters provided in the
         CHIANTI atomic database and :math:`T_0=10^4` K.
-        """
-        if self._rrparams['fit_type'][0] == 1 or self._rrparams['fit_type'][0] == 2:
-            A = self._rrparams['A_fit']
-            B = self._rrparams['B_fit']
-            if self._rrparams['fit_type'] == 2:
-                B = B + self._rrparams['C_fit']*np.exp(-self._rrparams['T2_fit']/self.temperature)
-            T0 = self._rrparams['T0_fit']
-            T1 = self._rrparams['T1_fit']
 
+        Parameters
+        ----------
+        level_resolved: `bool`, optional
+            If True, return the level-resolved radiative recombination rates. These are
+            typically calculated using the first method as described above. See
+            Section 1.2.2 of :cite:t:`chianti_dufresne_2024-1` for more information.
+
+        Returns
+        -------
+        : `~astropy.units.Quantity`
+            Radiative recombination rate as a function of temperature. If ``level_resolved``
+            is True, this will have shape ``(l,n)`` where ``l`` is the number temperatures and
+            ``n`` is the number of levels and the rates correspond to the recombination rate out
+            of the ground state and ``n-1`` metastable states. Otherwise, the result will have shape
+            ``(l,)`` and corresponds to recombination out of the ground state.
+        """
+        if level_resolved and self._has_dataset('rrcoeffs'):
+            params = self._rrcoeffs
+        elif self._has_dataset('rrparams'):
+            params = self._rrparams
+        else:
+            raise MissingDatasetException(f'rrparams and rrcoeffs missing for {self.ion_name}')
+        return u.Quantity([
+            self._calculate_radiative_recombination_rate({k: params[k][i] for k in params.fields})
+            for i in range(params['fit_type'].shape[0])
+        ]).squeeze().T
+
+    def _calculate_radiative_recombination_rate(self, params):
+        if params['fit_type'] == 1 or params['fit_type'] == 2:
+            A = params['A_fit']
+            B = params['B_fit']
+            if params['fit_type'] == 2:
+                B = B + params['C_fit']*np.exp(-params['T2_fit']/self.temperature)
+            T0 = params['T0_fit']
+            T1 = params['T1_fit']
             return A/(np.sqrt(self.temperature/T0) * (1 + np.sqrt(self.temperature/T0))**(1. - B)
                       * (1. + np.sqrt(self.temperature/T1))**(1. + B))
-        elif self._rrparams['fit_type'][0] == 3:
-            return self._rrparams['A_fit'] * (
-                    (self.temperature/(1e4*u.K))**(-self._rrparams['eta_fit']))
+        elif params['fit_type'] == 3:
+            return params['A_fit'] * (
+                    (self.temperature/(1e4*u.K))**(-params['eta_fit']))
         else:
-            raise ValueError(f"Unrecognized fit type {self._rrparams['fit_type']}")
+            raise ValueError(f"Unrecognized fit type {params['fit_type']}")
 
-    @cache
-    @u.quantity_input
-    def dielectronic_recombination_rate(self, level_resolved=False) -> u.cm**3 / u.s:
+    @u.quantity_input(density=u.cm**(-3))
+    def dielectronic_recombination_rate(self, density=None, level_resolved=False) -> u.cm**3 / u.s:
         r"""
         Dielectronic recombination rate as a function of temperature.
 
@@ -1485,9 +1510,11 @@ Using Datasets:
 
         Parameters
         ----------
+        density: `~astropy.units.Quantity`, optional
         level_resolved: `bool`, optional
             If True, return the level-resolved dielectronic recombination rates. These are
-            typically calculated using the first method as described above.
+            typically calculated using the first method as described above. See Section 1.2.2
+            of :cite:t:`chianti_dufresne_2024-1` for more information.
 
         Returns
         -------
@@ -1499,14 +1526,19 @@ Using Datasets:
             ``(l,)`` and corresponds to recombination out of the ground state.
         """
         if level_resolved and self._has_dataset('drcoeffs'):
-            return u.Quantity([
+            rate = u.Quantity([
                 self._calculate_dielectronic_recombination_rate(ft, {'E_fit': Ef, 'c_fit': cf})
                 for ft, Ef, cf in zip(*[self._drcoeffs[k] for k in ['fit_type', 'E_fit', 'C_fit']])
             ])
         elif self._has_dataset('drparams'):
-            return self._calculate_dielectronic_recombination_rate(self._drparams['fit_type'][0], self._drparams)
+            rate = self._calculate_dielectronic_recombination_rate(self._drparams['fit_type'][0], self._drparams)
         else:
             raise MissingDatasetException(f'drparams and drcoeffs missing for {self.ion_name}')
+        if density is not None:
+            # TODO: Allow for density to vary along an independent axis such that the DR rate could be a
+            # function of both density and temperature.
+            rate *= self._dielectronic_recombination_suppression(density, couple_density_to_temperature=True)
+        return rate.T
 
     def _calculate_dielectronic_recombination_rate(self, fit_type, params):
         if fit_type == 1:
@@ -1634,8 +1666,8 @@ Using Datasets:
         return u.Quantity(rate_interp, 'cm3 s-1')
 
     @cache
-    @u.quantity_input
-    def recombination_rate(self) -> u.cm**3 / u.s:
+    @u.quantity_input(density=u.cm**(-3))
+    def recombination_rate(self, density=None) -> u.cm**3 / u.s:
         r"""
         Total recombination rate as a function of temperature.
 
@@ -1675,12 +1707,12 @@ Using Datasets:
         else:
             return tr_rate
         try:
-            rr_rate = self.radiative_recombination_rate
+            rr_rate = self.radiative_recombination_rate()
         except MissingDatasetException:
             self.log.debug(f'No radiative recombination data available for {self.ion_name}.')
             rr_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         try:
-            dr_rate = self.dielectronic_recombination_rate
+            dr_rate = self.dielectronic_recombination_rate(density=density)
         except MissingDatasetException:
             self.log.debug(f'No dielectronic recombination data available for {self.ion_name}.')
             dr_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
