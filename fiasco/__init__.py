@@ -4,6 +4,7 @@ fiasco: A Python interface to the CHIANTI atomic database
 from fiasco.collections import IonCollection
 from fiasco.elements import Element
 from fiasco.fiasco import (
+    get_dem_model,
     get_isoelectronic_sequence,
     line_ratio,
     list_elements,
@@ -55,6 +56,7 @@ __all__ = [
     "list_elements",
     "list_ions",
     "get_isoelectronic_sequence",
+    "get_dem_model",
     "line_ratio",
     "proton_electron_ratio",
     "Ion",
