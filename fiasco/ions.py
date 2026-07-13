@@ -771,11 +771,13 @@ Using Datasets:
         except MissingDatasetException:
             rr_rate_ground = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         if self._has_dataset('rrlvl'):
-            rr_rate_interp = self._level_resolved_rates_interpolation(self._rrlvl['temperature'],
-                                                                      self._rrlvl['rate'],
-                                                                      interpolator=interp1d,
-                                                                      interpolator_kwargs={'fill_value': np.nan},
-                                                                      log_space=True)
+            rr_rate_interp = self._level_resolved_rates_interpolation(
+                self._rrlvl['temperature'],
+                self._rrlvl['rate'],
+                interpolator=interp1d,
+                interpolator_kwargs={'fill_value': np.nan, 'bounds_error': False},
+                log_space=True,
+            )
             level_final = self._rrlvl['final_level']
             level_initial = self._rrlvl['initial_level']
             # TODO: understand whether we need to sum over repeated level combinations
