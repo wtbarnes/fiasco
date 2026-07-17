@@ -393,7 +393,7 @@ Using Datasets:
         Temperature at which `~fiasco.Ion.ionization_fraction` is maximum. This is a useful proxy for
         the temperature at which lines for this ion are formed.
         """
-        return self.temperature[np.argmax(self.ionization_fraction)]
+        return self.temperature[np.nanargmax(self.ionization_fraction)]
 
     @cached_property
     @needs_dataset('scups')
