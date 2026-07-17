@@ -147,5 +147,10 @@ descriptive title and some details about your changes.  Then select
 "Create pull request".  Other contributors will then have a chance to
 review the code and offer contructive suggestions.  You can continue
 to edit the pull request by changing the corresponding branch on your
-fiasco fork on GitHub.  After a pull request is merged into the code,
-you may delete the branch you created for that pull request.
+fiasco fork on GitHub.
+
+If this is your first contribution to the package, we ask that you additionally
+edit the file `.zenodo.json` to add your name and affiliation.  This will ensure
+that you are properly credited for your efforts.
+
+After a pull request is merged into the code, you may delete the branch you created for that pull request.
