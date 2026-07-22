@@ -634,9 +634,15 @@ Using Datasets:
                 c_matrix = self._build_coefficient_matrix(d, include_protons=include_protons)
             # Invert matrix
             c_matrix[:, -1, :] = 1.*c_matrix.unit
-            b = np.zeros(c_matrix.shape[2:])
-            b[-1] = 1.0
-            pop = np.linalg.solve(c_matrix.value, b)
+            # NOTE: c_matrix is a stack of matrices, one per temperature, with shape
+            # (n_temperature, n_levels, n_levels). Give the right-hand side an explicit
+            # trailing axis, shape (n_temperature, n_levels, 1), so that np.linalg.solve
+            # dispatches on the same (m,m),(m,n)->(m,n) signature under both numpy<2 and
+            # numpy>=2. A 1D right-hand side is only broadcast over the stack by numpy>=2,
+            # and raises on numpy<2 (see gh#447).
+            b = np.zeros(c_matrix.shape[:-1] + (1,))
+            b[..., -1, 0] = 1.0
+            pop = np.linalg.solve(c_matrix.value, b)[..., 0]
             pop[pop<0] = 0.0
             np.divide(pop, pop.sum(axis=1)[:, np.newaxis], out=pop)
             # Apply ionization/recombination correction
