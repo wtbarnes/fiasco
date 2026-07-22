@@ -1,1 +1,0 @@
-Fix a ``ValueError`` in `fiasco.Ion.level_populations` (and therefore `fiasco.Ion.contribution_function`) when running with ``numpy < 2``, caused by the shape of the right-hand side passed to `numpy.linalg.solve`.
