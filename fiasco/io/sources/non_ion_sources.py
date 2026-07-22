@@ -159,10 +159,10 @@ class DemParser(GenericParser):
         df['temperature_bin_center'] = 10**logT_center * T_unit
         df['dem'] = 10**df['dem'].value * df['dem'].unit
         df['em'] = df['dem']*np.gradient(df['temperature_bin_center'], edge_order=2)
+        df = super().postprocessor(df)
         df.meta['descriptions'].update({
             'em': 'Emission measure; Derived from the DEM and temperature bin centers as DEM(T)*grad(T)',
         })
-        df = super().postprocessor(df)
         return df
 
     def to_hdf5(self, hf, df):
