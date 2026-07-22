@@ -158,30 +158,11 @@ class DemParser(GenericParser):
         T_unit = df['temperature_bin_center'].unit
         df['temperature_bin_center'] = 10**logT_center * T_unit
         df['dem'] = 10**df['dem'].value * df['dem'].unit
+        df['em'] = df['dem']*np.gradient(df['temperature_bin_center'], edge_order=2)
+        df.meta['descriptions'].update({
+            'em': 'Emission measure; Derived from the DEM and temperature bin centers as DEM(T)*grad(T)',
+        })
         df = super().postprocessor(df)
-        # NOTE: there are several DEM models which clearly do not have equal bin widths
-        # so this conversion to EM and calculation of the edges is not valid
-        # These are the 'flare_ext' and 'AU_mic' models.
-        # For these models, the below steps are not valid so they are skipped.
-        bins_equal = np.allclose(np.diff(logT_center), np.diff(logT_center)[0], atol=1e-15, rtol=0)
-        if bins_equal:
-            delta_logT = np.diff(logT_center)[0]
-            logT_left = logT_center - delta_logT/2
-            logT_right = logT_center + delta_logT/2
-            df['temperature_bin_edge_left'] = 10**logT_left*T_unit
-            df['temperature_bin_edge_right'] = 10**logT_right*T_unit
-            df['temperature_bin_width'] = df['temperature_bin_edge_right'] - df['temperature_bin_edge_left']
-            df['em'] = df['dem'] * df['temperature_bin_width']
-            df.meta['descriptions'].update({
-                'temperature_bin_edge_left': 'Left edge of the temperature bin',
-                'temperature_bin_edge_right': 'Right edge of the temperature bin',
-                'temperature_bin_width': 'Width of the temperature bin. Should be uniform in log10 space',
-                'em': 'Emission measure; DEM integrated over each temperature bin',
-            })
-        else:
-            from fiasco import log
-            log.debug(f'''Cannot compute additional quantities for {self.filename}.
-                          Temperature bins are not of equal width in log10 space.''')
         return df
 
     def to_hdf5(self, hf, df):

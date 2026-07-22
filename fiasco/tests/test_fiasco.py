@@ -29,7 +29,7 @@ def test_list_ions(hdf5_dbase_root):
 def test_get_dem_model(model_name, hdf5_dbase_root):
     dem_table = fiasco.get_dem_model(model_name)
     assert isinstance(dem_table, astropy.table.QTable)
-    colnames = ['dem', 'temperature_bin_center']
+    colnames = ['dem', 'temperature_bin_center', 'em']
     for cname in colnames:
         assert cname in dem_table.colnames
 
