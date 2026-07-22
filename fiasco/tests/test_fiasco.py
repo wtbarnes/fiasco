@@ -27,7 +27,7 @@ def test_list_ions(hdf5_dbase_root):
     'coronal_hole',
 ])
 def test_get_dem_model(model_name, hdf5_dbase_root):
-    dem_table = fiasco.get_dem_model(model_name)
+    dem_table = fiasco.get_dem_model(model_name, hdf5_dbase_root=hdf5_dbase_root)
     assert isinstance(dem_table, astropy.table.QTable)
     colnames = ['dem', 'temperature_bin_center', 'em']
     for cname in colnames:
