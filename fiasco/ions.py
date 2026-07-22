@@ -393,7 +393,7 @@ Using Datasets:
         Temperature at which `~fiasco.Ion.ionization_fraction` is maximum. This is a useful proxy for
         the temperature at which lines for this ion are formed.
         """
-        return self.temperature[np.argmax(self.ionization_fraction)]
+        return self.temperature[np.nanargmax(self.ionization_fraction)]
 
     @cached_property
     @needs_dataset('scups')
@@ -771,11 +771,13 @@ Using Datasets:
         except MissingDatasetException:
             rr_rate_ground = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         if self._has_dataset('rrlvl'):
-            rr_rate_interp = self._level_resolved_rates_interpolation(self._rrlvl['temperature'],
-                                                                      self._rrlvl['rate'],
-                                                                      interpolator=interp1d,
-                                                                      interpolator_kwargs={'fill_value': np.nan},
-                                                                      log_space=True)
+            rr_rate_interp = self._level_resolved_rates_interpolation(
+                self._rrlvl['temperature'],
+                self._rrlvl['rate'],
+                interpolator=interp1d,
+                interpolator_kwargs={'fill_value': np.nan, 'bounds_error': False},
+                log_space=True,
+            )
             level_final = self._rrlvl['final_level']
             level_initial = self._rrlvl['initial_level']
             # TODO: understand whether we need to sum over repeated level combinations
