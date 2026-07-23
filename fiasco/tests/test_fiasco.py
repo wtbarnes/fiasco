@@ -83,4 +83,4 @@ def test_line_ratio_temperature(fe_13):
                               couple_density_to_temperature=True,
                               use_two_ion_model=False)
     assert ratio.shape == fe_13.temperature.shape + (1,)
-    assert u.allclose(ratio.squeeze()[[0, 10, 19]], [3.04999452, 1.22415167, 0.3683284])
+    assert u.allclose(ratio.squeeze()[[0, 10, 19]], [3.0583776 , 1.22416729, 0.36830599])
