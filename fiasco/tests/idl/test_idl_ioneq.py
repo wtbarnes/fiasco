@@ -61,47 +61,86 @@ def temperature():
     'Fe XVIII',
     'Fe XXIV',
 ])
-def test_ionization_rate_from_idl(ion_name, temperature, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root):
-    script = """
-    temperature = {{ temperature | to_unit('K') | force_double_precision }}
-    rate = ioniz_rate('{{ ion_name }}', temperature)
-    """
-    ion = fiasco.Ion(ion_name, temperature, hdf5_dbase_root=hdf5_dbase_root)
-    idl_result = run_idl_script(idl_env,
-                                script,
-                                {'temperature': temperature, 'ion_name': ion._ion_name},
-                                ['rate'],
-                                f'ionization_rate_{ion.atomic_number}_{ion.ionization_stage}',
-                                dbase_version,
-                                chianti_idl_version,
-                                format_func={'rate': lambda x: x*u.Unit('cm3 s-1')})
-    assert u.allclose(idl_result['rate'], ion.ionization_rate, rtol=0.05)
-
-
-@pytest.mark.parametrize('ion_name', [
-    'Ne VII',
-    'Al III',
-    'Fe I',
-    'Fe XI',
-    'Fe XII',
-    'Fe XVIII',
-    'Fe XXIV',
+@pytest.mark.parametrize(('idl_function', 'fiasco_function', 'rtol'), [
+    ('ioniz_rate', 'ionization_rate', 0.05),
+    ('recomb_rate', 'recombination_rate', 0.02),
 ])
-def test_recombination_rate_from_idl(ion_name, temperature, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root):
+def test_rate_from_idl(
+    idl_function, fiasco_function, rtol, ion_name, temperature, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root
+):
     script = """
     temperature = {{ temperature | to_unit('K') | force_double_precision }}
-    rate = recomb_rate('{{ ion_name }}', temperature)
+    rate = {{ rate_function }}('{{ ion_name }}', temperature)
     """
     ion = fiasco.Ion(ion_name, temperature, hdf5_dbase_root=hdf5_dbase_root)
     idl_result = run_idl_script(idl_env,
                                 script,
-                                {'temperature': temperature, 'ion_name': ion._ion_name},
+                                {'temperature': temperature, 'ion_name': ion._ion_name, 'rate_function': idl_function},
                                 ['rate'],
-                                f'recombination_rate_{ion.atomic_number}_{ion.ionization_stage}',
+                                f'{fiasco_function}_{ion.atomic_number}_{ion.ionization_stage}',
                                 dbase_version,
                                 chianti_idl_version,
                                 format_func={'rate': lambda x: x*u.Unit('cm3 s-1')})
-    assert u.allclose(idl_result['rate'], ion.recombination_rate, rtol=0.02)
+    assert u.allclose(idl_result['rate'], getattr(ion, fiasco_function)(), rtol=rtol)
+
+
+@pytest.mark.requires_dbase_version('>= 11')
+@pytest.mark.parametrize('ion_name', ['C II',])
+@pytest.mark.parametrize(('idl_function', 'fiasco_function'), [
+    ('ch_diel_recomb', 'dielectronic_recombination_rate'),
+    ('ch_rad_recomb', 'radiative_recombination_rate'),
+])
+def test_level_resolved_recombination_rate_from_idl(
+    idl_function, fiasco_function, ion_name, temperature, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root
+):
+    script = """
+    temperature = {{ temperature | to_unit('K') | force_double_precision }}
+    rate = {{ rate_function }}('{{ ion_name }}', temperature, /level_resolved, /quiet)
+    """
+    ion = fiasco.Ion(ion_name, temperature, hdf5_dbase_root=hdf5_dbase_root)
+    idl_result = run_idl_script(
+        idl_env,
+        script,
+        {'temperature': temperature, 'ion_name': ion._ion_name, 'rate_function': idl_function},
+        ['rate'],
+        f'level_resolved_{fiasco_function}_{ion.atomic_number}_{ion.ionization_stage}',
+        dbase_version,
+        chianti_idl_version,
+        format_func={'rate': lambda x: x*u.Unit('cm3 s-1')}
+    )
+    assert u.allclose(idl_result['rate'],
+                      getattr(ion, fiasco_function)(level_resolved=True).T,
+                      rtol=1e-6)
+
+
+@pytest.mark.requires_dbase_version('>= 11')
+@pytest.mark.parametrize('ion_name', ['C II',])
+@pytest.mark.parametrize(('filetype', 'fiasco_function'), [
+    ('dilvl', 'direct_ionization_rate'),
+    ('ealvl', 'excitation_autoionization_rate'),
+])
+def test_level_resolved_ionization_rate_from_idl(
+    filetype, fiasco_function, ion_name, temperature, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root
+):
+    script = """
+    temperature = {{ temperature | to_unit('K') | force_double_precision }}
+    rate = ch_ioniz_rate_lr(!xuvtop+'/{{ file_name }}', temp_in=temperature)
+    rate = rate.rates
+    """
+    ion = fiasco.Ion(ion_name, temperature, hdf5_dbase_root=hdf5_dbase_root)
+    idl_result = run_idl_script(
+        idl_env,
+        script,
+        {'temperature': temperature, 'file_name': f'{ion.atomic_symbol.lower()}/{ion._ion_name}/{ion._ion_name}.{filetype}'},
+        ['rate'],
+        f'level_resolved_{fiasco_function}_{ion.atomic_number}_{ion.ionization_stage}',
+        dbase_version,
+        chianti_idl_version,
+        format_func={'rate': lambda x: x*u.Unit('cm3 s-1')}
+    )
+    assert u.allclose(idl_result['rate'],
+                      getattr(ion, fiasco_function)(level_resolved=True).T,
+                      rtol=1e-6)
 
 
 # NOTE: The list of ions here is motivated by the need to test the different cases for different
@@ -149,3 +188,64 @@ def test_dielectronic_recombination_suppression_factor_from_idl(ion_name, idl_en
         pytest.skip('Skipping dielectronic recombination suppression test for H- and He-like ions due '
                     'to a bug in the IDL software in versions prior to v11.0.2.')
     u.allclose(idl_result['suppression'], suppression.squeeze(), rtol=0.01)
+
+
+@pytest.mark.requires_dbase_version('>= 11')
+@pytest.mark.parametrize('ion_name', ['C II',])
+@pytest.mark.parametrize('atmosphere_model', [None, 'avrett_atmosphere'])
+def test_advanced_model_rates_from_idl(
+    ion_name, atmosphere_model, temperature, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root
+):
+    # Compare density-dependent rates for advanced model ions
+    # This tests the output of ch_adv_model_rates.pro which outputs
+    # both the ionization and recombination rates
+    # should also test with and without a model atmosphere
+    script = """
+    temperature = {{ temperature | to_unit('K') | force_double_precision }}
+    density = {{ density | to_unit('cm-3') | force_double_precision }}
+    {% if atmosphere_model %}
+    atmosphere_file = FILEPATH('{{ atmosphere_model }}.dat', $
+                               ROOT_DIR=!xuvtop, $
+                               SUBDIR=['ancillary_data', 'advanced_models', 'model_atmospheres'])
+    params = ch_adv_model_setup(temperature, /ct, atmosphere_file=atmosphere_file)
+    rate = ch_adv_model_rates('{{ ion_name }}', temperature, density, model_atm=params.ct_model)
+    {% else %}
+    rate = ch_adv_model_rates('{{ ion_name }}', temperature, density)
+    {% endif %}
+    ionization_rate = rate.final_ioniz
+    recombination_rate = rate.final_recomb
+    """
+    ion = fiasco.Ion(ion_name, temperature, hdf5_dbase_root=hdf5_dbase_root)
+    density = 1e15*u.K*u.cm**(-3)/temperature
+    input_args = {
+        'temperature': temperature,
+        'density': density,
+        'ion_name': ion._ion_name,
+        'atmosphere_model': atmosphere_model,
+    }
+    atm_name = 'no_atm' if atmosphere_model is None else atmosphere_model
+    file_name = f'advanced_model_rates_{atm_name}_{ion.atomic_number}_{ion.ionization_stage}'
+    idl_result = run_idl_script(
+        idl_env,
+        script,
+        input_args,
+        ['ionization_rate', 'recombination_rate'],
+        file_name,
+        dbase_version,
+        chianti_idl_version,
+        format_func={'ionization_rate': lambda x: x*u.Unit('cm3 s-1'),
+                     'recombination_rate': lambda x: x*u.Unit('cm3 s-1')}
+    )
+    assert u.allclose(
+        idl_result['ionization_rate'], ion.ionization_rate(density=density).T, rtol=1e-6
+    )
+    assert u.allclose(
+        idl_result['recombination_rate'], ion.recombination_rate(density=density).T, rtol=1e-6
+    )
+
+
+def test_density_dependent_ionization_fraction_from_idl():
+    # Compare density-dependent ionization fractions for a all ions of a few different elements
+    # included in the advanced model list.
+    # This tests the output of ch_calc_ioneq.pro
+    ...
