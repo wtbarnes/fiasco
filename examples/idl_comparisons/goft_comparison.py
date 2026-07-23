@@ -47,7 +47,7 @@ def plot_idl_comparison(x, y_idl, y_python, fig, n_rows, i_row, quantity_name, t
     ax2.axhline(y=1, color='k', ls=':')
     if i_row == 0:
         ax2.set_title('fiasco / IDL')
-    diff_limit = .05
+    diff_limit = 0.02
     ax2.set_ylim(1-diff_limit, 1+diff_limit)
     # Normalized difference
     ax3 = fig.add_subplot(n_rows, 3, i_row+3, sharex=ax1)

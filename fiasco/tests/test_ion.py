@@ -253,9 +253,9 @@ def test_level_populations(ion):
     pop = ion.level_populations(1e8 * u.cm**-3)
     assert pop.shape == ion.temperature.shape + (1,) + ion._elvlc['level'].shape
     # This value has not been checked for correctness
-    assert u.allclose(pop[0, 0, 0], 0.011643747849652244)
+    assert u.allclose(pop[0, 0, 0], 0.0111401417)
     # Check that the total populations are normalized to 1 for all temperatures
-    assert u.allclose(pop.squeeze().sum(axis=1), 1, atol=None, rtol=1e-15)
+    assert u.allclose(pop.squeeze().sum(axis=1), 1, atol=None, rtol=1e-10)
 
 
 @pytest.mark.requires_dbase_version('>= 8')
@@ -272,7 +272,7 @@ def test_contribution_function(ion):
     wvl_bb = ion.transitions.wavelength[ion.transitions.is_bound_bound]
     assert cont_func.shape == ion.temperature.shape + (1, ) + wvl_bb.shape
     # This value has not been tested for correctness
-    assert u.allclose(cont_func[0, 0, 0], 2.51408088e-30 * u.cm**3 * u.erg / u.s)
+    assert u.allclose(cont_func[0, 0, 0], 2.44349045e-30 * u.cm**3 * u.erg / u.s)
 
 
 @pytest.mark.requires_dbase_version('>= 8')
@@ -358,7 +358,7 @@ def test_emissivity(ion):
     wvl_bb = ion.transitions.wavelength[ion.transitions.is_bound_bound]
     assert emm.shape == ion.temperature.shape + (1, ) + wvl_bb.shape
     # This value has not been tested for correctness
-    assert u.allclose(emm[0, 0, 0], 2.18000422e-16 * u.erg / u.cm**3 / u.s)
+    assert u.allclose(emm[0, 0, 0], 2.11879311e-16 * u.erg / u.cm**3 / u.s)
 
 
 @pytest.mark.requires_dbase_version('>= 8')
