@@ -69,4 +69,7 @@ def test_old_fiasco_version_warning(tmpdir_factory, caplog):
         ds.attrs['unit'] = 'SKIP'
     with caplog.at_level(logging.WARN):
         fiasco.base.IonBase(test_ion, hdf5_dbase_root=path)
-    assert 'was produced with an earlier version of fiasco' in caplog.text
+    if current_version.is_devrelease:
+        assert caplog.text == ''
+    else:
+        assert 'was produced with an earlier version of fiasco' in caplog.text

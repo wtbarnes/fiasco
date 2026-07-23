@@ -17,6 +17,7 @@ __all__ = [
     'list_elements',
     'list_ions',
     'proton_electron_ratio',
+    'get_dem_model',
     'get_isoelectronic_sequence',
     'line_ratio',
 ]
@@ -82,6 +83,30 @@ def list_ions(hdf5_dbase_root=None, sort=True):
     # a numpy array. Cast to a list to make sure the return type is consistent for
     # all possible inputs
     return ions.tolist() if isinstance(ions, np.ndarray) else ions
+
+
+def get_dem_model(model, hdf5_dbase_root=None):
+    """
+    Return CHIANTI differential emission measure (DEM) model.
+
+    Parameters
+    ----------
+    model: `str`
+        Name of the CHIANTI DEM model.
+    hdf5_dbase_root: path-like, optional
+        If not specified, will default to that specified in ``fiasco.defaults``.
+
+    Returns
+    -------
+    : `~astropy.table.QTable`
+        Table of DEM parameters for a given model.
+    """
+    if hdf5_dbase_root is None:
+        hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
+    ds = DataIndexer(hdf5_dbase_root, '/dem')
+    if model not in ds.fields:
+        raise KeyError(f'Model name {model} not found. Must be one of {', '.join(ds.fields)}')
+    return ds[model].as_table()
 
 
 def get_isoelectronic_sequence(element, hdf5_dbase_root=None):

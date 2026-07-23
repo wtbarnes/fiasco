@@ -59,7 +59,7 @@ class IonBase:
         dbase_version = DataIndexer(self.hdf5_dbase_root, '/').fiasco_version
         if dbase_version is not None:
             current_version = Version(fiasco.__version__)
-            if dbase_version < current_version:
+            if dbase_version < current_version and not current_version.is_devrelease:
                 warning_msg = (f'{self.hdf5_dbase_root} was produced with an earlier version of '
                                f'fiasco ({dbase_version}) than the current version ({current_version}). '
                                'You may need to rebuild the HDF5 database. '

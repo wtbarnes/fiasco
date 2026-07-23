@@ -1,6 +1,7 @@
 """
 Test package level functions
 """
+import astropy.table
 import astropy.units as u
 import numpy as np
 import pytest
@@ -16,6 +17,21 @@ def test_list_elements(hdf5_dbase_root):
 def test_list_ions(hdf5_dbase_root):
     ions = fiasco.list_ions(hdf5_dbase_root)
     assert ions[:5] == ['H 1', 'H 2', 'He 1', 'He 2', 'He 3']
+
+
+@pytest.mark.parametrize('model_name', [
+    'flare',
+    'active_region',
+    'prominence',
+    'quiet_sun',
+    'coronal_hole',
+])
+def test_get_dem_model(model_name, hdf5_dbase_root):
+    dem_table = fiasco.get_dem_model(model_name, hdf5_dbase_root=hdf5_dbase_root)
+    assert isinstance(dem_table, astropy.table.QTable)
+    colnames = ['dem', 'temperature_bin_center', 'em']
+    for cname in colnames:
+        assert cname in dem_table.colnames
 
 
 def test_get_isoelectronic_sequence(hdf5_dbase_root):

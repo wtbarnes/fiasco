@@ -1,5 +1,6 @@
 {
   "test_files": [
+    "active_region.dem",
     "al_1.diparams",
     "al_1.fblvl",
     "al_2.diparams",
@@ -478,6 +479,7 @@
     "co_27.drparams",
     "co_27.rrparams",
     "co_28.rrparams",
+    "coronal_hole.dem",
     "cr_1.diparams",
     "cr_2.diparams",
     "cr_2.drparams",
@@ -1516,6 +1518,8 @@
     "p_15.scups",
     "p_15.wgfa",
     "p_16.rrparams",
+    "prominence.dem",
+    "quiet_sun.dem",
     "s_1.diparams",
     "s_1.fblvl",
     "s_2.diparams",
