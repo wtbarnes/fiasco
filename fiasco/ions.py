@@ -418,10 +418,9 @@ Using Datasets:
         --------
         fiasco.util.burgess_tully_descale : Descale and interpolate :math:`\Upsilon`.
         """
-        kBTE = np.outer(self.thermal_energy, 1.0 / self._scups['delta_energy'])
         upsilon = burgess_tully_descale(self._scups['bt_t'],
                                         self._scups['bt_upsilon'],
-                                        kBTE.T,
+                                        np.outer(self.thermal_energy, 1/self._scups['delta_energy']).T,
                                         self._scups['bt_c'],
                                         self._scups['bt_type'])
         upsilon = u.Quantity(np.where(upsilon > 0., upsilon, 0.))
@@ -484,9 +483,12 @@ Using Datasets:
         electron_collision_deexcitation_rate : De-excitation rate due to collisions
         """
         J = self.levels.total_angular_momentum
-        omega_upper = 2. * J[vectorize_where(self.levels.level, self._scups['upper_level'])] + 1.
-        omega_lower = 2. * J[vectorize_where(self.levels.level, self._scups['lower_level'])] + 1.
-        kBTE = np.outer(1./self.thermal_energy, self._scups['delta_energy'])
+        level_upper = vectorize_where(self.levels.level, self._scups['upper_level'])
+        level_lower = vectorize_where(self.levels.level, self._scups['lower_level'])
+        omega_upper = 2. * J[level_upper] + 1.
+        omega_lower = 2. * J[level_lower] + 1.
+        delta_energy = self.levels.energy[level_upper] - self.levels.energy[level_lower]
+        kBTE = np.outer(1./self.thermal_energy, delta_energy)
         return omega_upper / omega_lower * self.electron_collision_deexcitation_rate * np.exp(-kBTE)
 
     @cached_property
