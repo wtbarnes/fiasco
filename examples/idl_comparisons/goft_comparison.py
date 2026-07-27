@@ -109,3 +109,4 @@ for i, name in enumerate(goft_files):
     print(f"CHIANTI IDL {idl_result['chianti_idl_version']}")
     print(f'IDL code to produce {line_label} contribution function result:')
     print(idl_result['idl_script'])
+plt.show()
