@@ -52,6 +52,9 @@ Documentation = "https://fiasco.readthedocs.io"
 Repository = "https://github.com/wtbarnes/fiasco"
 Issues = "https://github.com/wtbarnes/fiasco/issues/"
 
+[project.scripts]
+build_fiasco_dbase = "fiasco.util.cli:build_and_download_database"
+
 [project.optional-dependencies]
 all = ["fiasco"]
 test = [
@@ -62,6 +65,9 @@ test = [
   "pytest-astropy>=0.11",
   "pytest-cov>=5",
   "pytest>=8",
+]
+cli = [
+  "click>=8.1",
 ]
 test_idl = [
   "fiasco[test]",
