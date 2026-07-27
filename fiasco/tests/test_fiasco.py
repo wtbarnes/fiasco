@@ -71,7 +71,9 @@ def test_line_ratio_wavelengths(fe_13, numerator, denominator, expected_result):
     ratio = fiasco.line_ratio(fe_13, numerator, denominator, density, use_two_ion_model=False)
     assert ratio.shape == fe_13.temperature.shape + density.shape
     result = ratio[np.argmax(fe_13.ionization_fraction), :]
-    assert u.allclose(result, expected_result)
+    # NOTE: The relative tolerance is set a bit lower here to accommodate small differences across versions
+    # These numbers were originally computed with v11, but may vary up to 0.05% from one version to the next
+    assert u.allclose(result, expected_result, atol=None, rtol=5e-4)
 
 
 def test_line_ratio_temperature(fe_13):
