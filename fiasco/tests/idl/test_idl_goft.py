@@ -97,4 +97,7 @@ def test_idl_compare_goft(idl_env, hdf5_dbase_root, dbase_version, chianti_idl_v
     goft_idl = idl_result['contribution_function']
     i_compare = np.where(goft_idl>=goft_idl.max()*1e-3)
     # Compare results
-    assert u.allclose(goft_idl[i_compare], goft_python[i_compare], atol=None, rtol=0.01)
+    # See https://github.com/wtbarnes/fiasco/issues/448#issuecomment-5094365951 for the logic
+    # behind this conditional.
+    rtol = 0.01 if version_check(dbase_version, '>=', '10') else 0.03
+    assert u.allclose(goft_idl[i_compare], goft_python[i_compare], atol=None, rtol=rtol)
