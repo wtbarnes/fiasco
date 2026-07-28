@@ -54,6 +54,7 @@ Issues = "https://github.com/wtbarnes/fiasco/issues/"
 
 [project.scripts]
 build_fiasco_dbase = "fiasco.util.cli:build_and_download_database"
+plot_ioneq = "fiasco.util.cli:plot_ionization_equilibrium"
 
 [project.optional-dependencies]
 all = ["fiasco"]
@@ -68,6 +69,7 @@ test = [
 ]
 cli = [
   "click>=8.1",
+  "matplotlib>=3.10",
 ]
 test_idl = [
   "fiasco[test]",
@@ -87,7 +89,7 @@ docs =[
   "sphinx>=8",
   "sphinxcontrib-bibtex>=2.6",
 ]
-dev = ["fiasco[test,docs]"]
+dev = ["fiasco[test,docs,cli]"]
 
 [tool.setuptools]
 packages = ["fiasco"]
