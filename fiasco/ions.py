@@ -775,7 +775,7 @@ Using Datasets:
         rate_matrix = self._empty_rate_matrix()
         try:
             # NOTE: Using copy to avoid in-place modification of cached property
-            rr_rate_ground = self.next_ion().radiative_recombination_rate.copy()
+            rr_rate_ground = self.next_ion().radiative_recombination_rate()
         except MissingDatasetException:
             rr_rate_ground = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         if self._has_dataset('rrlvl'):
@@ -1004,30 +1004,6 @@ Using Datasets:
         rates = np.where(rates<0, 0, rates)
         return rates
 
-    @cached_property
-    @needs_dataset('cilvl')
-    @u.quantity_input
-    def _level_resolved_ionization_rate(self):
-        ionization_rates = self._level_resolved_rates_interpolation(
-            self._cilvl['temperature'],
-            self._cilvl['ionization_rate'],
-            fill_below='extrapolate',
-            fill_above=0.0,
-        )
-        return self._cilvl['upper_level'], ionization_rates
-
-    @cached_property
-    @needs_dataset('reclvl')
-    @u.quantity_input
-    def _level_resolved_recombination_rate(self):
-        recombination_rates = self._level_resolved_rates_interpolation(
-            self._reclvl['temperature'],
-            self._reclvl['recombination_rate'],
-            fill_below=0.0,
-            fill_above='extrapolate',
-        )
-        return self._reclvl['upper_level'], recombination_rates
-
     @u.quantity_input
     def _population_correction(self, population, density, rate_matrix):
         """
@@ -1045,29 +1021,34 @@ Using Datasets:
         correction: `np.ndarray`
             Correction factor to multiply populations by
         """
-        # NOTE: These are done in separate try/except blocks because some ions have just a cilvl file,
+        # NOTE: These are done in separate conditionals because some ions have just a cilvl file,
         # some have just a reclvl file, and some have both.
-        # NOTE: Ionization fraction values for surrounding ions are retrieved afterwards because first and last ions do
-        # not have previous or next ions but also do not have reclvl or cilvl files.
+        # NOTE: First and last ions (1, Z+1) do not have cilvl or reclvl files so do not need to
+        # guard against retrieving next/previous of last/first ions.
         # NOTE: stripping the units off and adding them at the end because of some strange astropy
         # Quantity behavior that does not allow for adding these two compatible shapes together.
         numerator = np.zeros(population.shape)
-        try:
-            upper_level_ionization, ionization_rate = self._level_resolved_ionization_rate
+        if self._has_dataset('cilvl'):
+            ionization_rate = self._level_resolved_rates_interpolation(
+                self._cilvl['temperature'],
+                self._cilvl['ionization_rate'],
+                fill_below='extrapolate',
+                fill_above=0.0,
+            )
             ionization_fraction_previous = self.previous_ion().ionization_fraction.value[:, np.newaxis]
-            upper_index_ionization = upper_level_ionization-1
+            upper_index_ionization = self._cilvl['upper_level'] - 1
             numerator[:, upper_index_ionization] += (ionization_rate * ionization_fraction_previous).to_value('cm3 s-1')
-        except MissingDatasetException:
-            pass
-        try:
-            upper_level_recombination, recombination_rate = self._level_resolved_recombination_rate
+        if self._has_dataset('reclvl'):
+            recombination_rate = self._level_resolved_rates_interpolation(
+                self._reclvl['temperature'],
+                self._reclvl['recombination_rate'],
+                fill_below=0.0,
+                fill_above='extrapolate',
+            )
             ionization_fraction_next = self.next_ion().ionization_fraction.value[:, np.newaxis]
-            upper_index_recombination = upper_level_recombination-1
+            upper_index_recombination = self._reclvl['upper_level'] - 1
             numerator[:, upper_index_recombination] += (recombination_rate * ionization_fraction_next).to_value('cm3 s-1')
-        except MissingDatasetException:
-            pass
         numerator *= density.to_value('cm-3')[:,np.newaxis]
-
         c = rate_matrix.to_value('s-1').copy()
         # This excludes processes that depopulate the level
         i_diag, j_diag = np.diag_indices(c.shape[1])
@@ -1078,7 +1059,6 @@ Using Datasets:
         denominator *= self.ionization_fraction.value[:, np.newaxis]
         # Set any zero entries to NaN to avoid divide by zero warnings
         denominator = np.where(denominator==0.0, np.nan, denominator)
-
         ratio = numerator / denominator
         # Set ratio to zero where denominator is zero. This also covers the
         # case of out-of-bounds ionization fractions (which will be NaN)
