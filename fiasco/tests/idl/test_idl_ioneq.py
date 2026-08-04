@@ -44,7 +44,7 @@ def test_ionization_fraction_from_idl(ion_name, idl_env, dbase_version, chianti_
                      idl_result['temperature'],
                      hdf5_dbase_root=hdf5_dbase_root,
                      ionization_fraction=idl_result['ionization_fraction'])
-    assert u.allclose(idl_result['ioneq'], ion.ionization_fraction, rtol=0.0, atol=1e-5)
+    assert u.allclose(ion.ionization_fraction, idl_result['ioneq'], rtol=0.0, atol=1e-5)
 
 
 @pytest.fixture
@@ -81,7 +81,7 @@ def test_rate_from_idl(
                                 dbase_version,
                                 chianti_idl_version,
                                 format_func={'rate': lambda x: x*u.Unit('cm3 s-1')})
-    assert u.allclose(idl_result['rate'], getattr(ion, fiasco_function)(), rtol=rtol)
+    assert u.allclose(getattr(ion, fiasco_function)(), idl_result['rate'], rtol=rtol)
 
 
 @pytest.mark.requires_dbase_version('>= 11')
@@ -108,19 +108,20 @@ def test_level_resolved_recombination_rate_from_idl(
         chianti_idl_version,
         format_func={'rate': lambda x: x*u.Unit('cm3 s-1')}
     )
-    assert u.allclose(idl_result['rate'],
-                      getattr(ion, fiasco_function)(level_resolved=True).T,
-                      rtol=1e-6)
+    fiasco_result = getattr(ion, fiasco_function)(level_resolved=True).T
+    assert u.allclose(fiasco_result, idl_result['rate'], rtol=1e-6)
 
 
 @pytest.mark.requires_dbase_version('>= 11')
 @pytest.mark.parametrize('ion_name', ['C II',])
-@pytest.mark.parametrize(('filetype', 'fiasco_function'), [
-    ('dilvl', 'direct_ionization_rate'),
-    ('ealvl', 'excitation_autoionization_rate'),
+@pytest.mark.parametrize(('filetype', 'fiasco_function', 'rtol'), [
+    ('dilvl', 'direct_ionization_rate', 0.01),
+    # NOTE: Error tolerance is set higher here because of differences in interpolation approach in IDL.
+    # See https://github.com/wtbarnes/fiasco/pull/444#issuecomment-5182395833 for additional details.
+    ('ealvl', 'excitation_autoionization_rate', 0.1),
 ])
 def test_level_resolved_ionization_rate_from_idl(
-    filetype, fiasco_function, ion_name, temperature, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root
+    filetype, fiasco_function, rtol, ion_name, temperature, idl_env, dbase_version, chianti_idl_version, hdf5_dbase_root
 ):
     script = """
     temperature = {{ temperature | to_unit('K') | force_double_precision }}
@@ -138,9 +139,8 @@ def test_level_resolved_ionization_rate_from_idl(
         chianti_idl_version,
         format_func={'rate': lambda x: x*u.Unit('cm3 s-1')}
     )
-    assert u.allclose(idl_result['rate'],
-                      getattr(ion, fiasco_function)(level_resolved=True).T,
-                      rtol=1e-6)
+    fiasco_result = getattr(ion, fiasco_function)(level_resolved=True).T
+    assert u.allclose(fiasco_result, idl_result['rate'], rtol=rtol)
 
 
 # NOTE: The list of ions here is motivated by the need to test the different cases for different
@@ -187,7 +187,7 @@ def test_dielectronic_recombination_suppression_factor_from_idl(ion_name, idl_en
     if (ion.isoelectronic_sequence in ('H', 'He')) and version_check(idl_result['chianti_idl_version'], '<', '11.0.2'): # pragma: no cover
         pytest.skip('Skipping dielectronic recombination suppression test for H- and He-like ions due '
                     'to a bug in the IDL software in versions prior to v11.0.2.')
-    u.allclose(idl_result['suppression'], suppression.squeeze(), rtol=0.01)
+    u.allclose(suppression.squeeze(), idl_result['suppression'], rtol=0.01)
 
 
 @pytest.mark.requires_dbase_version('>= 11')
@@ -237,10 +237,10 @@ def test_advanced_model_rates_from_idl(
                      'recombination_rate': lambda x: x*u.Unit('cm3 s-1')}
     )
     assert u.allclose(
-        idl_result['ionization_rate'], ion.ionization_rate(density=density).T, rtol=1e-6
+        ion.ionization_rate(density=density).T, idl_result['ionization_rate'], rtol=1e-6
     )
     assert u.allclose(
-        idl_result['recombination_rate'], ion.recombination_rate(density=density).T, rtol=1e-6
+        ion.recombination_rate(density=density).T, idl_result['recombination_rate'], rtol=1e-6
     )
 
 
