@@ -148,12 +148,12 @@ Using Datasets:
             kwargs['ionization_potential'] = self.ionization_potential
         return kwargs
 
-    def _has_dataset(self, dset_name):
+    def _has_dataset(self, *dset_name):
         # There are some cases where we need to check for the existence of a dataset
         # within a function as opposed to checking for the existence of that dataset
         # before entering the function using the decorator approach.
         try:
-            needs_dataset(dset_name)(lambda _: None)(self)
+            needs_dataset(*dset_name)(lambda _: None)(self)
         except MissingDatasetException:
             return False
         else:
@@ -975,8 +975,10 @@ Using Datasets:
             rate_table = np.log10(rate_table)
         rates = []
         for t, r in zip(temperature_table, rate_table):
+            rate_interp = np.nan*np.ones(temperature.shape)
             # NOTE: Values outside of the temperature data range are set to NaN
-            rate_interp = interpolator(t, r, **interpolator_kwargs)(temperature)
+            idx_in_range = np.where(np.logical_and(temperature>=t[0], temperature<=t[-1]))
+            rate_interp[idx_in_range] = interpolator(t, r, **interpolator_kwargs)(temperature[idx_in_range])
             # Extrapolate above temperature range
             f_extrapolate = interp1d(t[-2:],
                                      r[-2:],
@@ -1275,7 +1277,6 @@ Using Datasets:
         return IonCollection(self).spectrum(*args, **kwargs)
 
     @cache
-    @needs_dataset('diparams')
     @u.quantity_input
     def direct_ionization_rate(self, level_resolved=False) -> u.cm**3 / u.s:
         r"""
@@ -1286,17 +1287,38 @@ Using Datasets:
         though contributions from inner-shell electrons are also considered for some ions.
         For more details, see the topic guide on :ref:`fiasco-topic-guide-direct-ionization-rate`
         as well as :cite:t:`young_chianti_2025`.
+
+        Parameters
+        ----------
+        level_resolved: `bool`, optional
+            If True, return the level-resolved excitation autoionization rates.
+            These are interpolated directly from the associated data files.
+            See Section 1.2.1 of :cite:t:`chianti_dufresne_2024-1` for more information.
+            To access the associated level indices, use ``._dilvl['level_1']``.
         """
-        xgl, wgl = np.polynomial.laguerre.laggauss(12)
-        kBT = self.thermal_energy
-        cross_section = self._direct_ionization_cross_section(np.outer(xgl, kBT))
-        rate_total = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
-        for ip, xs in zip(self._diparams['ip'], cross_section):
-            term1 = np.sqrt(8./np.pi/const.m_e)*np.sqrt(kBT)*np.exp(-ip/kBT)
-            term2 = ((wgl*xgl)[:, np.newaxis]*xs).sum(axis=0)
-            term3 = (wgl[:, np.newaxis]*xs).sum(axis=0)*ip/kBT
-            rate_total += term1*(term2 + term3)
-        return rate_total
+        if level_resolved and self._has_dataset('dilvl'):
+            return self._level_resolved_rates_interpolation(
+                self._dilvl['temperature'],
+                self._dilvl['rate'],
+                log_space=True,
+                interpolator=CubicSpline,
+                interpolator_kwargs={'bc_type': 'natural'},
+            )
+        elif (not level_resolved) and self._has_dataset('diparams'):
+            xgl, wgl = np.polynomial.laguerre.laggauss(12)
+            kBT = self.thermal_energy
+            cross_section = self._direct_ionization_cross_section(np.outer(xgl, kBT))
+            rate_total = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
+            for ip, xs in zip(self._diparams['ip'], cross_section):
+                term1 = np.sqrt(8./np.pi/const.m_e)*np.sqrt(kBT)*np.exp(-ip/kBT)
+                term2 = ((wgl*xgl)[:, np.newaxis]*xs).sum(axis=0)
+                term3 = (wgl[:, np.newaxis]*xs).sum(axis=0)*ip/kBT
+                rate_total += term1*(term2 + term3)
+            return rate_total
+        else:
+            raise MissingDatasetException(
+                f"{'dilvl' if level_resolved else 'diparams'} data missing for {self.ion_name}."
+            )
 
     @needs_dataset('diparams')
     @u.quantity_input
@@ -1316,7 +1338,6 @@ Using Datasets:
         return u.Quantity(cross_section_all)
 
     @cache
-    @needs_dataset('easplups', 'diparams')
     @u.quantity_input
     def excitation_autoionization_rate(self, level_resolved=False) -> u.cm**3 / u.s:
         r"""
@@ -1336,28 +1357,48 @@ Using Datasets:
         below the ionization threshold.
         Additionally, note that the constant has been rewritten in terms of :math:`h`
         rather than :math:`I_H` and :math:`a_0`.
-        """
-        c = const.h**2/(2. * np.pi * const.m_e)**(1.5)
-        kBTE = np.outer(self.thermal_energy, 1.0/self._easplups['delta_energy'])
-        # NOTE: Transpose here to make final dimensions compatible with multiplication with
-        # temperature when computing rate
-        kBTE = kBTE.T
-        xs = [np.linspace(0, 1, ups.shape[0]) for ups in self._easplups['bt_upsilon']]
-        upsilon = burgess_tully_descale(xs,
-                                        self._easplups['bt_upsilon'].value,
-                                        kBTE,
-                                        self._easplups['bt_c'].value,
-                                        self._easplups['bt_type'])
-        # NOTE: Use just the first row as the EA scaling from the diparams files is the same
-        # for all rows as it is not related to the number of lines included in the DI calculation.
-        # They are contained in this datastructure as a result of the quirk of them being stored in
-        # the diparams file in the database.
-        scaling = self._diparams['ea'][0][:, np.newaxis]
-        # NOTE: The 1/omega multiplicity factor is already included in the scaled upsilon
-        # values provided by CHIANTI
-        rate = c * scaling * upsilon * np.exp(-1 / kBTE) / np.sqrt(self.thermal_energy)
 
-        return rate.sum(axis=0)
+        Parameters
+        ----------
+        level_resolved: `bool`, optional
+            If True, return the level-resolved excitation autoionization rates.
+            These are interpolated directly from the associated data files.
+            See Section 1.2.1 of :cite:t:`chianti_dufresne_2024-1` for more information.
+            To access the associated level indices, use ``._ealvl['level_1']``.
+        """
+        if level_resolved and self._has_dataset('ealvl'):
+            return self._level_resolved_rates_interpolation(
+                self._ealvl['temperature'],
+                self._ealvl['rate'],
+                log_space=True,
+                interpolator=CubicSpline,
+                interpolator_kwargs={'bc_type': 'natural'},
+            )
+        elif (not level_resolved) and self._has_dataset('easplups', 'diparams'):
+            c = const.h**2/(2. * np.pi * const.m_e)**(1.5)
+            kBTE = np.outer(self.thermal_energy, 1.0/self._easplups['delta_energy'])
+            # NOTE: Transpose here to make final dimensions compatible with multiplication with
+            # temperature when computing rate
+            kBTE = kBTE.T
+            xs = [np.linspace(0, 1, ups.shape[0]) for ups in self._easplups['bt_upsilon']]
+            upsilon = burgess_tully_descale(xs,
+                                            self._easplups['bt_upsilon'].value,
+                                            kBTE,
+                                            self._easplups['bt_c'].value,
+                                            self._easplups['bt_type'])
+            # NOTE: Use just the first row as the EA scaling from the diparams files is the same
+            # for all rows as it is not related to the number of lines included in the DI calculation.
+            # They are contained in this datastructure as a result of the quirk of them being stored in
+            # the diparams file in the database.
+            scaling = self._diparams['ea'][0][:, np.newaxis]
+            # NOTE: The 1/omega multiplicity factor is already included in the scaled upsilon
+            # values provided by CHIANTI
+            rate = c * scaling * upsilon * np.exp(-1 / kBTE) / np.sqrt(self.thermal_energy)
+            return rate.sum(axis=0)
+        else:
+            raise MissingDatasetException(
+                f"{'ealvl' if level_resolved else 'easplups and diparams'} data missing for {self.ion_name}."
+            )
 
     @u.quantity_input(density=u.cm**(-3))
     def ionization_rate(self, density=None) -> u.cm**3 / u.s:
@@ -1444,10 +1485,12 @@ Using Datasets:
         """
         if level_resolved and self._has_dataset('rrcoeffs'):
             params = self._rrcoeffs
-        elif self._has_dataset('rrparams'):
+        elif (not level_resolved) and self._has_dataset('rrparams'):
             params = self._rrparams
         else:
-            raise MissingDatasetException(f'rrparams and rrcoeffs missing for {self.ion_name}')
+            raise MissingDatasetException(
+                f"{'rrcoeffs' if level_resolved else 'rrparams'} data missing for {self.ion_name}"
+            )
         return u.Quantity([
             self._calculate_radiative_recombination_rate({k: params[k][i] for k in params.fields})
             for i in range(params['fit_type'].shape[0])
@@ -1519,10 +1562,12 @@ Using Datasets:
                 self._calculate_dielectronic_recombination_rate(ft, {'E_fit': Ef, 'c_fit': cf})
                 for ft, Ef, cf in zip(*[self._drcoeffs[k] for k in ['fit_type', 'E_fit', 'C_fit']])
             ])
-        elif self._has_dataset('drparams'):
+        elif (not level_resolved) and self._has_dataset('drparams'):
             rate = self._calculate_dielectronic_recombination_rate(self._drparams['fit_type'][0], self._drparams)
         else:
-            raise MissingDatasetException(f'drparams and drcoeffs missing for {self.ion_name}')
+            raise MissingDatasetException(
+                f"{'drcoeffs' if level_resolved else 'drparams'} data missing for {self.ion_name}"
+            )
         if density is not None:
             # TODO: Allow for density to vary along an independent axis such that the DR rate could be a
             # function of both density and temperature.
