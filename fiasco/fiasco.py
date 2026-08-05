@@ -17,6 +17,7 @@ __all__ = [
     'list_elements',
     'list_ions',
     'proton_electron_ratio',
+    'get_atmosphere_model',
     'get_dem_model',
     'get_isoelectronic_sequence',
     'line_ratio',
@@ -85,6 +86,51 @@ def list_ions(hdf5_dbase_root=None, sort=True):
     return ions.tolist() if isinstance(ions, np.ndarray) else ions
 
 
+def get_atmosphere_model(model, add_helium_parameters=True, hdf5_dbase_root=None):
+    """
+    Return table of parameters for a selected model atmosphere.
+
+    .. note:: This is primarily for computing the charge transfer (CT)
+              ionization and recombination rates for the advanced model
+              ions. For more details, see Section 2.3 of
+              :cite:t:`dufresne_chiantiatomic_2024`.
+
+    Parameters
+    ----------
+    model: `str`
+        Name of the model atmosphere.
+    add_helium_parameters: `bool`, optional
+        If True, add ionization fraction of He as a function of temperature and
+        He abundance. These paraemters are required for the CT rate calculation.
+    hdf5_dbase_root: path-like, optional
+        If not specified, will default to that specified in ``fiasco.defaults``.
+
+    Returns
+    -------
+    : `~astropy.table.QTable`
+        Table of DEM parameters for a given model.
+    """
+    tab = _get_model_as_table('model_atmospheres', model, hdf5_dbase_root=hdf5_dbase_root)
+    if not add_helium_parameters:
+        return tab
+    # NOTE: Calculating it this way to be consistent with what is already in the table.
+    tab['fraction_H_2'] = 1 - tab['fraction_H_1']
+    total_he_frac = np.zeros(tab['temperature'].shape)
+    he_ion_names = ['He_1', 'He_2', 'He_3']
+    for name in he_ion_names:
+        ion = fiasco.Ion(name, tab['temperature'], hdf5_dbase_root=hdf5_dbase_root)
+        frac = np.where(np.isnan(ion.ionization_fraction), 0.0, ion.ionization_fraction)
+        tab[f'fraction_{name}'] = frac
+        total_he_frac += frac
+    # NOTE: Because of the interpolation, the ionization fractions may not add to exactly 1
+    # so this renormalizes them
+    for name in he_ion_names:
+        idx_nonzero = np.where(total_he_frac!=0)
+        tab[f'fraction_{name}'][idx_nonzero] = tab[f'fraction_{name}'][idx_nonzero] / total_he_frac[idx_nonzero]
+    tab[f'abundance_{ion.atomic_symbol}'] = ion.abundance*np.ones(tab['temperature'].shape)
+    return tab
+
+
 def get_dem_model(model, hdf5_dbase_root=None):
     """
     Return CHIANTI differential emission measure (DEM) model.
@@ -101,9 +147,13 @@ def get_dem_model(model, hdf5_dbase_root=None):
     : `~astropy.table.QTable`
         Table of DEM parameters for a given model.
     """
+    return _get_model_as_table('dem', model, hdf5_dbase_root=hdf5_dbase_root)
+
+
+def _get_model_as_table(top_level_path, model, hdf5_dbase_root=None):
     if hdf5_dbase_root is None:
         hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
-    ds = DataIndexer(hdf5_dbase_root, '/dem')
+    ds = DataIndexer(hdf5_dbase_root, f'/{top_level_path}')
     if model not in ds.fields:
         raise KeyError(f'Model name {model} not found. Must be one of {', '.join(ds.fields)}')
     return ds[model].as_table()
