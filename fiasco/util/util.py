@@ -24,6 +24,12 @@ def _atomic_number(element):
     return plasmapy.particles.atomic_number(element)
 
 
+@lru_cache(maxsize=None)
+def _atomic_symbol(atomic_number):
+    # Memoized version of plasmapy.particles.atomic_symbol (see _atomic_number).
+    return plasmapy.particles.atomic_symbol(atomic_number)
+
+
 def parse_ion_name(ion_name):
     """
     Parse the atomic number and ionization stage from representation of ion.
