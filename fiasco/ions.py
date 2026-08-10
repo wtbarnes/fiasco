@@ -230,6 +230,18 @@ Using Datasets:
                            self.temperature,
                            **self._instance_kwargs)
 
+    @cached_property
+    def _next_ion(self):
+        # Cached instance of the next ion for internal use such that expensive
+        # quantities computed on the next ion (e.g. rate matrices) are only
+        # computed once rather than on every call to next_ion().
+        return self.next_ion()
+
+    @cached_property
+    def _previous_ion(self):
+        # Cached instance of the previous ion for internal use (see _next_ion).
+        return self.previous_ion()
+
     @property
     @needs_dataset('elvlc', 'wgfa')
     def transitions(self):
@@ -682,13 +694,21 @@ Using Datasets:
     def _build_two_ion_coefficient_matrix(self, electron_density, include_protons=False):
         # Get coefficient matrix of recombined ion
         c_matrix_recombined = self._build_coefficient_matrix(electron_density, include_protons=include_protons)
+        # NOTE: The proton-electron ratio depends only on the temperature and the abundance and
+        # ionization fraction datasets, all of which are shared between the two ions. Seeding the
+        # cache of the next ion avoids recomputing an identical quantity.
+        if include_protons and 'proton_electron_ratio' not in self._next_ion.__dict__:
+            try:
+                self._next_ion.__dict__['proton_electron_ratio'] = self.proton_electron_ratio
+            except MissingDatasetException:
+                pass
         # Get coefficient matrix of recombining ion
         try:
-            c_matrix_recombining = self.next_ion()._build_coefficient_matrix(electron_density,
-                                                                             include_protons=include_protons)
+            c_matrix_recombining = self._next_ion._build_coefficient_matrix(electron_density,
+                                                                            include_protons=include_protons)
         except MissingDatasetException:
             self.log.warning(
-                f'No rate data available for recombining ion {self.next_ion().ion_name}. '
+                f'No rate data available for recombining ion {self._next_ion.ion_name}. '
                 f'Using single-ion model for {self.ion_name}.'
             )
             return c_matrix_recombined
@@ -696,10 +716,7 @@ Using Datasets:
         # Add terms that include both ions
         d_e = electron_density[:, np.newaxis, np.newaxis]
         rate_matrix_total += self._rate_matrix_autoionization
-        rate_matrix_total += d_e * (self._rate_matrix_ionization
-                                    + self._rate_matrix_radiative_recombination
-                                    + self._rate_matrix_dielectronic_capture
-                                    + self._rate_matrix_dielectronic_recombination)
+        rate_matrix_total += d_e * self._rate_matrix_two_ion_density_dependent
         # Add depopulating terms
         # NOTE: By summing over the rows, we are computing the processes that depopulate
         # that level by summing up all of the processes that populate *from* that level.
@@ -755,11 +772,22 @@ Using Datasets:
         return rate_matrix
 
     def _empty_rate_matrix(self, temperature_dependent=True, unit='cm3 s-1'):
-        n_levels = self.n_levels + self.next_ion().n_levels
+        n_levels = self.n_levels + self._next_ion.n_levels
         shape = (n_levels, n_levels)
         if temperature_dependent:
             shape = self.temperature.shape + shape
         return u.Quantity(np.zeros(shape), unit)
+
+    @cached_property
+    @u.quantity_input
+    def _rate_matrix_two_ion_density_dependent(self) -> u.Unit('cm3 s-1'):
+        # Sum of the density-dependent two-ion rate matrices. This sum is
+        # independent of density so it is cached to avoid recomputing it for
+        # every density value in the level populations calculation.
+        return (self._rate_matrix_ionization
+                + self._rate_matrix_radiative_recombination
+                + self._rate_matrix_dielectronic_capture
+                + self._rate_matrix_dielectronic_recombination)
 
     @cached_property
     @u.quantity_input
@@ -775,7 +803,7 @@ Using Datasets:
         rate_matrix = self._empty_rate_matrix()
         try:
             # NOTE: Using copy to avoid in-place modification of cached property
-            rr_rate_ground = self.next_ion().radiative_recombination_rate.copy()
+            rr_rate_ground = self._next_ion.radiative_recombination_rate.copy()
         except MissingDatasetException:
             rr_rate_ground = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         if self._has_dataset('rrlvl'):
@@ -822,7 +850,7 @@ Using Datasets:
 
     def _dielectronic_capture_rate(self, level_lower, level_upper, A_auto):
         # See Eq. A4 of Dere et al. (2019)
-        next_ion = self.next_ion()
+        next_ion = self._next_ion
         levels_recombined = self[vectorize_where(self.levels.level, level_upper)]
         levels_recombining = next_ion[vectorize_where(next_ion.levels.level, level_lower)]
         g_ratio = levels_recombined.weight / levels_recombining.weight
@@ -861,7 +889,7 @@ Using Datasets:
         rate_matrix = self._empty_rate_matrix()
         # Compute ground-ground dielectronic recombination rate
         try:
-            dr_rate_ground = self.next_ion().dielectronic_recombination_rate
+            dr_rate_ground = self._next_ion.dielectronic_recombination_rate
         except MissingDatasetException:
             dr_rate_ground = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         # NOTE: Explicitly not using a decorator here in order to return an empty matrix
@@ -1054,14 +1082,14 @@ Using Datasets:
         numerator = np.zeros(population.shape)
         try:
             upper_level_ionization, ionization_rate = self._level_resolved_ionization_rate
-            ionization_fraction_previous = self.previous_ion().ionization_fraction.value[:, np.newaxis]
+            ionization_fraction_previous = self._previous_ion.ionization_fraction.value[:, np.newaxis]
             upper_index_ionization = upper_level_ionization-1
             numerator[:, upper_index_ionization] += (ionization_rate * ionization_fraction_previous).to_value('cm3 s-1')
         except MissingDatasetException:
             pass
         try:
             upper_level_recombination, recombination_rate = self._level_resolved_recombination_rate
-            ionization_fraction_next = self.next_ion().ionization_fraction.value[:, np.newaxis]
+            ionization_fraction_next = self._next_ion.ionization_fraction.value[:, np.newaxis]
             upper_index_recombination = upper_level_recombination-1
             numerator[:, upper_index_recombination] += (recombination_rate * ionization_fraction_next).to_value('cm3 s-1')
         except MissingDatasetException:

@@ -4,8 +4,10 @@ Base classes for access to CHIANTI ion data.
 These classes are not meant to be instantiated directly by the user.
 """
 import astropy.units as u
+import pathlib
 import plasmapy.particles
 
+from functools import lru_cache
 from packaging.version import Version
 from plasmapy.utils import roman
 
@@ -16,8 +18,24 @@ from fiasco.io.factory import all_subclasses
 from fiasco.io.generic import GenericIonParser
 from fiasco.util import check_database, parse_ion_name, periodic_table_period
 from fiasco.util.exceptions import MissingIonError
+from fiasco.util.util import _atomic_number, _atomic_symbol, _element_name
 
 __all__ = ['IonBase']
+
+
+@lru_cache(maxsize=None)
+def _ion_names_in_dbase(hdf5_dbase_root, mtime_ns, size):
+    # Memoized set of available ion names per database file. The modification
+    # time and size of the file are part of the key such that the cache is
+    # invalidated if the database is rebuilt.
+    return frozenset(fiasco.list_ions(hdf5_dbase_root, sort=False))
+
+
+@lru_cache(maxsize=None)
+def _dbase_fiasco_version(hdf5_dbase_root, mtime_ns, size):
+    # Memoized fiasco version of the database file (see _ion_names_in_dbase)
+    # to avoid opening the database on every ion instantiation.
+    return DataIndexer(hdf5_dbase_root, '/').fiasco_version
 
 
 class IonBase:
@@ -46,7 +64,8 @@ class IonBase:
         else:
             self.hdf5_dbase_root = hdf5_dbase_root
         check_database(self.hdf5_dbase_root, **kwargs)
-        if self.ion_name not in fiasco.list_ions(self.hdf5_dbase_root, sort=False):
+        stat = pathlib.Path(self.hdf5_dbase_root).stat()
+        if self.ion_name not in _ion_names_in_dbase(str(self.hdf5_dbase_root), stat.st_mtime_ns, stat.st_size):
             raise MissingIonError(f'{self.ion_name} not found in {self.hdf5_dbase_root}')
         # Put import here to avoid circular imports
         from fiasco import log
@@ -56,7 +75,8 @@ class IonBase:
 
     def _check_dbase_fiasco_version(self):
         "Warn if database was generated with an earlier version of fiasco."
-        dbase_version = DataIndexer(self.hdf5_dbase_root, '/').fiasco_version
+        stat = pathlib.Path(self.hdf5_dbase_root).stat()
+        dbase_version = _dbase_fiasco_version(str(self.hdf5_dbase_root), stat.st_mtime_ns, stat.st_size)
         if dbase_version is not None:
             current_version = Version(fiasco.__version__)
             if dbase_version < current_version and not current_version.is_devrelease:
@@ -70,17 +90,17 @@ class IonBase:
     @property
     def atomic_number(self):
         """The atomic number of the element, :math:`Z`."""
-        return plasmapy.particles.atomic_number(self._base_rep[0])
+        return _atomic_number(self._base_rep[0])
 
     @property
     def element_name(self):
         """The full name of the element, e.g. "hydrogen"."""
-        return plasmapy.particles.element_name(self.atomic_number)
+        return _element_name(self.atomic_number)
 
     @property
     def atomic_symbol(self):
         """The standard atomic symbol for the element, e.g. "H" for hydrogen."""
-        return plasmapy.particles.atomic_symbol(self.atomic_number)
+        return _atomic_symbol(self.atomic_number)
 
     @property
     def ion_name(self):
@@ -101,7 +121,7 @@ class IonBase:
     def isoelectronic_sequence(self):
         "Atomic symbol denoting to which isoelectronic sequence this ion belongs."
         if (Z_iso := self.atomic_number - self.charge_state) > 0:
-            return plasmapy.particles.atomic_symbol(Z_iso)
+            return _atomic_symbol(Z_iso)
 
     @property
     @u.quantity_input

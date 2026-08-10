@@ -114,12 +114,16 @@ class DataIndexerHDF5:
     def __getitem__(self, key):
         if isinstance(key, int):
             raise NotImplementedError('Iteration not supported.')
-        if key not in self:
-            raise KeyError(f'{key} not found in {self.top_level_path}')
+        # NOTE: The membership check, indexer creation, and read are all done with
+        # a single open of the HDF5 file as opening and closing the file on every
+        # access carries a non-negligible overhead.
         with h5py.File(self.hdf5_dbase_root, 'r') as hf:
-            ds = hf[self.top_level_path][key]
+            grp = hf[self.top_level_path]
+            if key not in grp:
+                raise KeyError(f'{key} not found in {self.top_level_path}')
+            ds = grp[key]
             if isinstance(ds, h5py.Group):
-                data = DataIndexer.create_indexer(
+                data = DataIndexerHDF5(
                     self.hdf5_dbase_root, '/'.join([self.top_level_path, key]))
             else:
                 if ds.attrs['unit'] == 'SKIP' or ds.dtype == 'object':

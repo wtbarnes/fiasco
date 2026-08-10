@@ -3,7 +3,6 @@ Package-level functions.
 """
 import astropy.units as u
 import numpy as np
-import plasmapy.particles
 
 from plasmapy.particles.exceptions import InvalidParticleError
 from scipy.interpolate import interp1d
@@ -12,6 +11,7 @@ import fiasco
 
 from fiasco.io import DataIndexer
 from fiasco.util import parse_ion_name
+from fiasco.util.util import _atomic_number, _atomic_symbol
 
 __all__ = [
     'list_elements',
@@ -40,11 +40,11 @@ def list_elements(hdf5_dbase_root=None, sort=True):
     root = DataIndexer.create_indexer(hdf5_dbase_root, '/')
     for f in root.fields:
         try:
-            elements.append(plasmapy.particles.atomic_symbol(f.capitalize()))
+            elements.append(_atomic_symbol(f.capitalize()))
         except InvalidParticleError:
             continue
     if sort:
-        elements = sorted(elements, key=lambda x: plasmapy.particles.atomic_number(x))
+        elements = sorted(elements, key=lambda x: _atomic_number(x))
     return elements
 
 
@@ -69,7 +69,7 @@ def list_ions(hdf5_dbase_root=None, sort=True):
         ions = []
         for f in root.fields:
             try:
-                el = plasmapy.particles.atomic_symbol(f.capitalize())
+                el = _atomic_symbol(f.capitalize())
                 for i in root[f].fields:
                     if f == i.split('_')[0]:
                         ions.append(f"{el} {i.split('_')[1]}")
@@ -77,7 +77,7 @@ def list_ions(hdf5_dbase_root=None, sort=True):
                 continue
     # Optional because adds significant overhead
     if sort:
-        ions = sorted(ions, key=lambda x: (plasmapy.particles.atomic_number(x.split()[0]),
+        ions = sorted(ions, key=lambda x: (_atomic_number(x.split()[0]),
                                            int(x.split()[1])))
     # NOTE: when grabbing straight from the index and not sorting, the result will be
     # a numpy array. Cast to a list to make sure the return type is consistent for
@@ -130,7 +130,7 @@ def get_isoelectronic_sequence(element, hdf5_dbase_root=None):
     hdf5_dbase_root: path-like, optional
         If not specified, will default to that specified in ``fiasco.defaults``.
     """
-    Z_iso = plasmapy.particles.atomic_number(element)
+    Z_iso = _atomic_number(element)
     all_ions = list_ions(hdf5_dbase_root=hdf5_dbase_root)
 
     def _is_in_sequence(ion):
@@ -159,29 +159,37 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
     h_2 = fiasco.Ion('H +1', temperature, **kwargs)
     numerator = h_2.abundance * h_2._ion_fraction[h_2._instance_kwargs['ionization_fraction']]['ionization_fraction']
     denominator = u.Quantity(np.zeros(numerator.shape))
+    instance_kwargs = h_2._instance_kwargs
+    ionization_file = instance_kwargs['ionization_fraction']
     for el_name in list_elements(h_2.hdf5_dbase_root):
-        el = fiasco.Element(el_name, temperature, **h_2._instance_kwargs)
+        # NOTE: Only the first ion of each element is instantiated because instantiating
+        # an Ion for every ionization stage of every element carries significant overhead.
+        # The ionization fraction data of each ion is instead read directly from the
+        # database and is identical to that attached to the corresponding Ion instance.
+        ion_1 = fiasco.Ion((el_name, 1), temperature, **instance_kwargs)
         try:
-            abundance = el.abundance
+            abundance = ion_1.abundance
         except KeyError:
-            abund_file = el[0]._instance_kwargs['abundance']
+            abund_file = ion_1._instance_kwargs['abundance']
             log.warning(
-                f'Not including {el.atomic_symbol}. Abundance not available from {abund_file}.')
+                f'Not including {ion_1.atomic_symbol}. Abundance not available from {abund_file}.')
             continue
-        for ion in el:
-            ionization_file = ion._instance_kwargs['ionization_fraction']
-            # NOTE: We use ._ion_fraction here rather than .ionization_fraction to avoid
-            # doing an interpolation to the temperature array every single time and instead only
+        el_lower = ion_1.atomic_symbol.lower()
+        for stage in range(1, ion_1.atomic_number + 2):
+            # NOTE: We use the ioneq data directly rather than the ionization_fraction property
+            # to avoid doing an interpolation to the temperature array every single time and instead only
             # interpolate once at the end.
             # It is assumed that the ionization_fraction temperature array for each ion is the same.
             try:
-                ionization_fraction = ion._ion_fraction[ionization_file]['ionization_fraction']
-                t_ionization_fraction = ion._ion_fraction[ionization_file]['temperature']
+                ioneq_data = DataIndexer(h_2.hdf5_dbase_root,
+                                         f'{el_lower}/{el_lower}_{stage}/ioneq')[ionization_file]
+                ionization_fraction = ioneq_data['ionization_fraction']
+                t_ionization_fraction = ioneq_data['temperature']
             except KeyError:
                 log.warning(
-                    f'Not including {ion.ion_name}. Ionization fraction not available from {ionization_file}.')
+                    f'Not including {ion_1.atomic_symbol} {stage}. Ionization fraction not available from {ionization_file}.')
                 continue
-            denominator += ionization_fraction * abundance * ion.charge_state
+            denominator += ionization_fraction * abundance * (stage - 1)
 
     ratio = numerator / denominator
     f_interp = interp1d(t_ionization_fraction.to(temperature.unit).value,
