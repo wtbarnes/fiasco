@@ -10,6 +10,7 @@ from functools import cached_property
 import fiasco
 
 from fiasco.util import parse_ion_name
+from fiasco.util.util import _atomic_number
 
 __all__ = ['Element']
 
@@ -37,7 +38,7 @@ class Element(fiasco.IonCollection):
     def __init__(self, element_name, temperature: u.K, **kwargs):
         if isinstance(element_name, str):
             element_name = element_name.capitalize()
-        Z = plasmapy.particles.atomic_number(element_name)
+        Z = _atomic_number(element_name)
         ion_list = []
         for i in range(Z + 1):
             ion = fiasco.Ion((Z, i+1), temperature, **kwargs)
