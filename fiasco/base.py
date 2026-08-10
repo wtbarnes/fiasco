@@ -16,6 +16,7 @@ from fiasco.io.factory import all_subclasses
 from fiasco.io.generic import GenericIonParser
 from fiasco.util import check_database, parse_ion_name, periodic_table_period
 from fiasco.util.exceptions import MissingIonError
+from fiasco.util.util import _atomic_number, _atomic_symbol, _element_name
 
 __all__ = ['IonBase']
 
@@ -70,17 +71,17 @@ class IonBase:
     @property
     def atomic_number(self):
         """The atomic number of the element, :math:`Z`."""
-        return plasmapy.particles.atomic_number(self._base_rep[0])
+        return _atomic_number(self._base_rep[0])
 
     @property
     def element_name(self):
         """The full name of the element, e.g. "hydrogen"."""
-        return plasmapy.particles.element_name(self.atomic_number)
+        return _element_name(self.atomic_number)
 
     @property
     def atomic_symbol(self):
         """The standard atomic symbol for the element, e.g. "H" for hydrogen."""
-        return plasmapy.particles.atomic_symbol(self.atomic_number)
+        return _atomic_symbol(self.atomic_number)
 
     @property
     def ion_name(self):
@@ -101,7 +102,7 @@ class IonBase:
     def isoelectronic_sequence(self):
         "Atomic symbol denoting to which isoelectronic sequence this ion belongs."
         if (Z_iso := self.atomic_number - self.charge_state) > 0:
-            return plasmapy.particles.atomic_symbol(Z_iso)
+            return _atomic_symbol(Z_iso)
 
     @property
     @u.quantity_input
