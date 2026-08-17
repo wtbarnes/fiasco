@@ -929,12 +929,16 @@ Using Datasets:
             If "extrapolate", use the last two points to extrapolate above the temperature
             range. If a `float`, fill in all values above the temperature range using that
             value. If `None` (default), use the rate at the upper temperature boundary as
-            the fill value.
+            the fill value. If `None` and if there are zeros at the upper end of the rate
+            data, if the interpolation is done in log space, this is set to -inf to allow
+            the zeros in the data to propagate through to the final interpolated results.
         fill_below: `str` or `float`, optional
             If "extrapolate", use the first two points to extrapolate below the temperature
             range. If a `float`, fill in all values below the temperature range using that
             value. If `None` (default), use the rate at the lower temperature boundary as
-            the fill value.
+            the fill value. If `None` and if there are zeros at the lower end of the rate
+            data, if the interpolation is done in log space, this is set to -inf to allow
+            the zeros in the data to propagate through to the final interpolated results.
         interpolator: callable, optional
             Interpolator to use. By default, this is `~scipy.interpolation.PchipInterpolator`.
         interpolator_kwargs: `dict`, optional
@@ -971,11 +975,25 @@ Using Datasets:
         rate_table = rate_table.to_value('cm3 s-1')
         if log_space:
             temperature = np.log10(temperature)
-            temperature_table = np.log10(temperature_table)
-            rate_table = np.log10(rate_table)
         rates = []
         for t, r in zip(temperature_table, rate_table):
             rate_interp = np.nan*np.ones(temperature.shape)
+            # NOTE: Take log10 here to avoid non-finite entries in each iteration
+            default_lower_fill, default_upper_fill = None, None
+            if log_space:
+                is_nonzero = r>0
+                t = np.log10(t[is_nonzero])
+                r = np.log10(r[is_nonzero])
+                # This logic allows for passing zero rates through the interpolation in the case
+                # where the interpolation is done in log space.
+                if not is_nonzero[0]:
+                    default_lower_fill = -np.inf
+                if not is_nonzero[-1]:
+                    default_upper_fill = -np.inf
+            if default_lower_fill is None:
+                default_lower_fill = r[0]
+            if default_upper_fill is None:
+                default_upper_fill = r[-1]
             # NOTE: Values outside of the temperature data range are set to NaN
             idx_in_range = np.where(np.logical_and(temperature>=t[0], temperature<=t[-1]))
             rate_interp[idx_in_range] = interpolator(t, r, **interpolator_kwargs)(temperature[idx_in_range])
@@ -984,7 +1002,7 @@ Using Datasets:
                                      r[-2:],
                                      kind='linear',
                                      bounds_error=False,
-                                     fill_value=r[-1] if fill_above is None else fill_above)
+                                     fill_value=default_upper_fill if fill_above is None else fill_above)
             i_extrapolate = np.where(temperature > t[-1])
             rate_interp[i_extrapolate] = f_extrapolate(temperature[i_extrapolate])
             # Extrapolate below temperature range
@@ -992,7 +1010,7 @@ Using Datasets:
                                      r[:2],
                                      kind='linear',
                                      bounds_error=False,
-                                     fill_value=r[0] if fill_below is None else fill_below)
+                                     fill_value=default_lower_fill if fill_below is None else fill_below)
             i_extrapolate = np.where(temperature < t[0])
             rate_interp[i_extrapolate] = f_extrapolate(temperature[i_extrapolate])
             rates.append(rate_interp)
@@ -1400,6 +1418,56 @@ Using Datasets:
                 f"{'ealvl' if level_resolved else 'easplups and diparams'} data missing for {self.ion_name}."
             )
 
+    @needs_dataset('ctilvl')
+    @u.quantity_input
+    def charge_transfer_ionization_rate(self, atmosphere) -> u.cm**3 / u.s:
+        r"""
+        Ionization rate due to charge transfer with H and He.
+
+        The level-resolved ionization rate due to charge transfer with H
+        and He for a given model atmosphere. This is most useful in the
+        context of computing density-dependent ionization fractions.
+        See Section 2.3 of :cite:t:`dufresne_chiantiatomic_2024` for more
+        details on how this is implemented in CHIANTI. See also
+        :cite:t:`dufresne_Influence_2021` for more details on the charge
+        transfer calculation.
+
+        Parameters
+        ----------
+        atmosphere: `~astropy.table.QTable`
+            Table of model atmosphere parameters. This can be retrieved using
+            `~fiasco.get_atmosphere_model` or a custom model atmosphere can be
+            used. At a minimum, this table must contain the columns ``temperature``,
+            ``electron density``, ``H density``, ``H II fraction``, ``He II fraction``,
+            ``He III fraction``, and ``He abundance``. These are typically a function
+            of height in the solar atmosphere. Note that the temperature must be
+            monotonically increasing due to the need to interpolate these parameters
+            onto a new temperature grid.
+        """
+        rates_interp = self._level_resolved_rates_interpolation(
+            self._ctilvl['temperature'],
+            self._ctilvl['rate'],
+            log_space=True,
+            interpolator=CubicSpline,
+            interpolator_kwargs={'bc_type': 'natural'},
+        )
+        rates = u.Quantity(np.zeros(rates_interp.shape), rates_interp.unit)
+        f_interp = self._interpolate_ionization_fraction  # Alias to make lines shorter
+        frac_h_2 = f_interp(self.temperature, atmosphere['temperature'], atmosphere['H II fraction'])
+        frac_he_2 = f_interp(self.temperature, atmosphere['temperature'], atmosphere['He II fraction'])
+        frac_he_3 = f_interp(self.temperature, atmosphere['temperature'], atmosphere['He III fraction'])
+        abundance_he = f_interp(self.temperature, atmosphere['temperature'], atmosphere['He abundance'])
+        density_ratio = f_interp(
+            self.temperature, atmosphere['temperature'], atmosphere['H density']/atmosphere['electron density']
+        )
+        is_h_2 = self._ctilvl['Z_perturber']==1
+        rates[:, is_h_2] = rates_interp[:, is_h_2]*(frac_h_2*density_ratio)[:, np.newaxis]
+        is_he_2 = np.logical_and(self._ctilvl['Z_perturber']==2, self._ctilvl['N_e_perturber']==1)
+        rates[:, is_he_2] = rates_interp[:, is_he_2]*(frac_he_2*abundance_he*density_ratio)[:, np.newaxis]
+        is_he_3 = np.logical_and(self._ctilvl['Z_perturber']==2, self._ctilvl['N_e_perturber']==0)
+        rates[:, is_he_3] = rates_interp[:, is_he_3]*(frac_he_3*abundance_he*density_ratio)[:, np.newaxis]
+        return rates
+
     @u.quantity_input(density=u.cm**(-3))
     def ionization_rate(self, density=None) -> u.cm**3 / u.s:
         r"""
@@ -1687,6 +1755,56 @@ Using Datasets:
         if Z_iso < 5:
             psi = 2*psi/(1 + np.exp(-2.5e4*u.K*self.charge_state**2/self.temperature))
         return A_N*psi
+
+    @needs_dataset('ctrlvl')
+    @u.quantity_input
+    def charge_transfer_recombination_rate(self, atmosphere) -> u.cm**3 / u.s:
+        r"""
+        Recombination rate due to charge transfer with H and He.
+
+        The level-resolved recombination rate due to charge transfer with H
+        and He for a given model atmosphere. This is most useful in the
+        context of computing density-dependent ionization fractions.
+        See Section 2.3 of :cite:t:`dufresne_chiantiatomic_2024` for more
+        details on how this is implemented in CHIANTI. See also
+        :cite:t:`dufresne_Influence_2021` for more details on the charge
+        transfer calculation.
+
+        Parameters
+        ----------
+        atmosphere: `~astropy.table.QTable`
+            Table of model atmosphere parameters. This can be retrieved using
+            `~fiasco.get_atmosphere_model` or a custom model atmosphere can be
+            used. At a minimum, this table must contain the columns ``temperature``,
+            ``electron density``, ``H density``, ``H I fraction``, ``He I fraction``,
+            ``He II fraction``, and ``He abundance``. These are typically a function
+            of height in the solar atmosphere. Note that the temperature must be
+            monotonically increasing due to the need to interpolate these parameters
+            onto a new temperature grid.
+        """
+        rates_interp = self._level_resolved_rates_interpolation(
+            self._ctrlvl['temperature'],
+            self._ctrlvl['rate'],
+            log_space=True,
+            interpolator=CubicSpline,
+            interpolator_kwargs={'bc_type': 'natural'},
+        )
+        rates = u.Quantity(np.zeros(rates_interp.shape), rates_interp.unit)
+        f_interp = self._interpolate_ionization_fraction  # Alias to make lines shorter
+        frac_h_1 = f_interp(self.temperature, atmosphere['temperature'], atmosphere['H I fraction'])
+        frac_he_1 = f_interp(self.temperature, atmosphere['temperature'], atmosphere['He I fraction'])
+        frac_he_2 = f_interp(self.temperature, atmosphere['temperature'], atmosphere['He II fraction'])
+        abundance_he = f_interp(self.temperature, atmosphere['temperature'], atmosphere['He abundance'])
+        density_ratio = f_interp(
+            self.temperature, atmosphere['temperature'], atmosphere['H density']/atmosphere['electron density']
+        )
+        is_h_1 = self._ctrlvl['Z_perturber']==1
+        rates[:, is_h_1] = rates_interp[:, is_h_1]*(frac_h_1*density_ratio)[:, np.newaxis]
+        is_he_1 = np.logical_and(self._ctrlvl['Z_perturber']==2, self._ctrlvl['N_e_perturber']==2)
+        rates[:, is_he_1] = rates_interp[:, is_he_1]*(frac_he_1*abundance_he*density_ratio)[:, np.newaxis]
+        is_he_2 = np.logical_and(self._ctrlvl['Z_perturber']==2, self._ctrlvl['N_e_perturber']==1)
+        rates[:, is_he_2] = rates_interp[:, is_he_2]*(frac_he_2*abundance_he*density_ratio)[:, np.newaxis]
+        return rates
 
     @cached_property
     @needs_dataset('trparams')
