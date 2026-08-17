@@ -11,7 +11,7 @@ import scipy.special
 import warnings
 
 from astropy.utils.data import get_pkg_data_path
-from functools import cached_property
+from functools import cache, cached_property
 from scipy.interpolate import CubicSpline, interp1d, PchipInterpolator
 
 from fiasco import proton_electron_ratio
@@ -148,12 +148,12 @@ Using Datasets:
             kwargs['ionization_potential'] = self.ionization_potential
         return kwargs
 
-    def _has_dataset(self, dset_name):
+    def _has_dataset(self, *dset_name):
         # There are some cases where we need to check for the existence of a dataset
         # within a function as opposed to checking for the existence of that dataset
         # before entering the function using the decorator approach.
         try:
-            needs_dataset(dset_name)(lambda _: None)(self)
+            needs_dataset(*dset_name)(lambda _: None)(self)
         except MissingDatasetException:
             return False
         else:
@@ -766,7 +766,7 @@ Using Datasets:
     def _rate_matrix_ionization(self) -> u.Unit('cm3 s-1'):
         rate_matrix = self._empty_rate_matrix()
         # Ionization from ground state of recombined to ground state of recombining
-        rate_matrix[:, self.n_levels, 0] = self.ionization_rate
+        rate_matrix[:, self.n_levels, 0] = self.ionization_rate()
         return rate_matrix
 
     @cached_property
@@ -775,7 +775,7 @@ Using Datasets:
         rate_matrix = self._empty_rate_matrix()
         try:
             # NOTE: Using copy to avoid in-place modification of cached property
-            rr_rate_ground = self.next_ion().radiative_recombination_rate.copy()
+            rr_rate_ground = self.next_ion().radiative_recombination_rate()
         except MissingDatasetException:
             rr_rate_ground = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         if self._has_dataset('rrlvl'):
@@ -861,7 +861,7 @@ Using Datasets:
         rate_matrix = self._empty_rate_matrix()
         # Compute ground-ground dielectronic recombination rate
         try:
-            dr_rate_ground = self.next_ion().dielectronic_recombination_rate
+            dr_rate_ground = self.next_ion().dielectronic_recombination_rate()
         except MissingDatasetException:
             dr_rate_ground = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         # NOTE: Explicitly not using a decorator here in order to return an empty matrix
@@ -929,12 +929,16 @@ Using Datasets:
             If "extrapolate", use the last two points to extrapolate above the temperature
             range. If a `float`, fill in all values above the temperature range using that
             value. If `None` (default), use the rate at the upper temperature boundary as
-            the fill value.
+            the fill value. If `None` and if there are zeros at the upper end of the rate
+            data, if the interpolation is done in log space, this is set to -inf to allow
+            the zeros in the data to propagate through to the final interpolated results.
         fill_below: `str` or `float`, optional
             If "extrapolate", use the first two points to extrapolate below the temperature
             range. If a `float`, fill in all values below the temperature range using that
             value. If `None` (default), use the rate at the lower temperature boundary as
-            the fill value.
+            the fill value. If `None` and if there are zeros at the lower end of the rate
+            data, if the interpolation is done in log space, this is set to -inf to allow
+            the zeros in the data to propagate through to the final interpolated results.
         interpolator: callable, optional
             Interpolator to use. By default, this is `~scipy.interpolation.PchipInterpolator`.
         interpolator_kwargs: `dict`, optional
@@ -971,18 +975,34 @@ Using Datasets:
         rate_table = rate_table.to_value('cm3 s-1')
         if log_space:
             temperature = np.log10(temperature)
-            temperature_table = np.log10(temperature_table)
-            rate_table = np.log10(rate_table)
         rates = []
         for t, r in zip(temperature_table, rate_table):
+            rate_interp = np.nan*np.ones(temperature.shape)
+            # NOTE: Take log10 here to avoid non-finite entries in each iteration
+            default_lower_fill, default_upper_fill = None, None
+            if log_space:
+                is_nonzero = r>0
+                t = np.log10(t[is_nonzero])
+                r = np.log10(r[is_nonzero])
+                # This logic allows for passing zero rates through the interpolation in the case
+                # where the interpolation is done in log space.
+                if not is_nonzero[0]:
+                    default_lower_fill = -np.inf
+                if not is_nonzero[-1]:
+                    default_upper_fill = -np.inf
+            if default_lower_fill is None:
+                default_lower_fill = r[0]
+            if default_upper_fill is None:
+                default_upper_fill = r[-1]
             # NOTE: Values outside of the temperature data range are set to NaN
-            rate_interp = interpolator(t, r, **interpolator_kwargs)(temperature)
+            idx_in_range = np.where(np.logical_and(temperature>=t[0], temperature<=t[-1]))
+            rate_interp[idx_in_range] = interpolator(t, r, **interpolator_kwargs)(temperature[idx_in_range])
             # Extrapolate above temperature range
             f_extrapolate = interp1d(t[-2:],
                                      r[-2:],
                                      kind='linear',
                                      bounds_error=False,
-                                     fill_value=r[-1] if fill_above is None else fill_above)
+                                     fill_value=default_upper_fill if fill_above is None else fill_above)
             i_extrapolate = np.where(temperature > t[-1])
             rate_interp[i_extrapolate] = f_extrapolate(temperature[i_extrapolate])
             # Extrapolate below temperature range
@@ -990,7 +1010,7 @@ Using Datasets:
                                      r[:2],
                                      kind='linear',
                                      bounds_error=False,
-                                     fill_value=r[0] if fill_below is None else fill_below)
+                                     fill_value=default_lower_fill if fill_below is None else fill_below)
             i_extrapolate = np.where(temperature < t[0])
             rate_interp[i_extrapolate] = f_extrapolate(temperature[i_extrapolate])
             rates.append(rate_interp)
@@ -1003,30 +1023,6 @@ Using Datasets:
         # to zero.
         rates = np.where(rates<0, 0, rates)
         return rates
-
-    @cached_property
-    @needs_dataset('cilvl')
-    @u.quantity_input
-    def _level_resolved_ionization_rate(self):
-        ionization_rates = self._level_resolved_rates_interpolation(
-            self._cilvl['temperature'],
-            self._cilvl['ionization_rate'],
-            fill_below='extrapolate',
-            fill_above=0.0,
-        )
-        return self._cilvl['upper_level'], ionization_rates
-
-    @cached_property
-    @needs_dataset('reclvl')
-    @u.quantity_input
-    def _level_resolved_recombination_rate(self):
-        recombination_rates = self._level_resolved_rates_interpolation(
-            self._reclvl['temperature'],
-            self._reclvl['recombination_rate'],
-            fill_below=0.0,
-            fill_above='extrapolate',
-        )
-        return self._reclvl['upper_level'], recombination_rates
 
     @u.quantity_input
     def _population_correction(self, population, density, rate_matrix):
@@ -1045,29 +1041,34 @@ Using Datasets:
         correction: `np.ndarray`
             Correction factor to multiply populations by
         """
-        # NOTE: These are done in separate try/except blocks because some ions have just a cilvl file,
+        # NOTE: These are done in separate conditionals because some ions have just a cilvl file,
         # some have just a reclvl file, and some have both.
-        # NOTE: Ionization fraction values for surrounding ions are retrieved afterwards because first and last ions do
-        # not have previous or next ions but also do not have reclvl or cilvl files.
+        # NOTE: First and last ions (1, Z+1) do not have cilvl or reclvl files so do not need to
+        # guard against retrieving next/previous of last/first ions.
         # NOTE: stripping the units off and adding them at the end because of some strange astropy
         # Quantity behavior that does not allow for adding these two compatible shapes together.
         numerator = np.zeros(population.shape)
-        try:
-            upper_level_ionization, ionization_rate = self._level_resolved_ionization_rate
+        if self._has_dataset('cilvl'):
+            ionization_rate = self._level_resolved_rates_interpolation(
+                self._cilvl['temperature'],
+                self._cilvl['ionization_rate'],
+                fill_below='extrapolate',
+                fill_above=0.0,
+            )
             ionization_fraction_previous = self.previous_ion().ionization_fraction.value[:, np.newaxis]
-            upper_index_ionization = upper_level_ionization-1
+            upper_index_ionization = self._cilvl['upper_level'] - 1
             numerator[:, upper_index_ionization] += (ionization_rate * ionization_fraction_previous).to_value('cm3 s-1')
-        except MissingDatasetException:
-            pass
-        try:
-            upper_level_recombination, recombination_rate = self._level_resolved_recombination_rate
+        if self._has_dataset('reclvl'):
+            recombination_rate = self._level_resolved_rates_interpolation(
+                self._reclvl['temperature'],
+                self._reclvl['recombination_rate'],
+                fill_below=0.0,
+                fill_above='extrapolate',
+            )
             ionization_fraction_next = self.next_ion().ionization_fraction.value[:, np.newaxis]
-            upper_index_recombination = upper_level_recombination-1
+            upper_index_recombination = self._reclvl['upper_level'] - 1
             numerator[:, upper_index_recombination] += (recombination_rate * ionization_fraction_next).to_value('cm3 s-1')
-        except MissingDatasetException:
-            pass
         numerator *= density.to_value('cm-3')[:,np.newaxis]
-
         c = rate_matrix.to_value('s-1').copy()
         # This excludes processes that depopulate the level
         i_diag, j_diag = np.diag_indices(c.shape[1])
@@ -1078,7 +1079,6 @@ Using Datasets:
         denominator *= self.ionization_fraction.value[:, np.newaxis]
         # Set any zero entries to NaN to avoid divide by zero warnings
         denominator = np.where(denominator==0.0, np.nan, denominator)
-
         ratio = numerator / denominator
         # Set ratio to zero where denominator is zero. This also covers the
         # case of out-of-bounds ionization fractions (which will be NaN)
@@ -1294,10 +1294,9 @@ Using Datasets:
         """
         return IonCollection(self).spectrum(*args, **kwargs)
 
-    @cached_property
-    @needs_dataset('diparams')
+    @cache
     @u.quantity_input
-    def direct_ionization_rate(self) -> u.cm**3 / u.s:
+    def direct_ionization_rate(self, level_resolved=False) -> u.cm**3 / u.s:
         r"""
         Ionization rate due to collisions as a function of temperature.
 
@@ -1306,17 +1305,38 @@ Using Datasets:
         though contributions from inner-shell electrons are also considered for some ions.
         For more details, see the topic guide on :ref:`fiasco-topic-guide-direct-ionization-rate`
         as well as :cite:t:`young_chianti_2025`.
+
+        Parameters
+        ----------
+        level_resolved: `bool`, optional
+            If True, return the level-resolved excitation autoionization rates.
+            These are interpolated directly from the associated data files.
+            See Section 1.2.1 of :cite:t:`chianti_dufresne_2024-1` for more information.
+            To access the associated level indices, use ``._dilvl['level_1']``.
         """
-        xgl, wgl = np.polynomial.laguerre.laggauss(12)
-        kBT = self.thermal_energy
-        cross_section = self._direct_ionization_cross_section(np.outer(xgl, kBT))
-        rate_total = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
-        for ip, xs in zip(self._diparams['ip'], cross_section):
-            term1 = np.sqrt(8./np.pi/const.m_e)*np.sqrt(kBT)*np.exp(-ip/kBT)
-            term2 = ((wgl*xgl)[:, np.newaxis]*xs).sum(axis=0)
-            term3 = (wgl[:, np.newaxis]*xs).sum(axis=0)*ip/kBT
-            rate_total += term1*(term2 + term3)
-        return rate_total
+        if level_resolved and self._has_dataset('dilvl'):
+            return self._level_resolved_rates_interpolation(
+                self._dilvl['temperature'],
+                self._dilvl['rate'],
+                log_space=True,
+                interpolator=CubicSpline,
+                interpolator_kwargs={'bc_type': 'natural'},
+            )
+        elif (not level_resolved) and self._has_dataset('diparams'):
+            xgl, wgl = np.polynomial.laguerre.laggauss(12)
+            kBT = self.thermal_energy
+            cross_section = self._direct_ionization_cross_section(np.outer(xgl, kBT))
+            rate_total = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
+            for ip, xs in zip(self._diparams['ip'], cross_section):
+                term1 = np.sqrt(8./np.pi/const.m_e)*np.sqrt(kBT)*np.exp(-ip/kBT)
+                term2 = ((wgl*xgl)[:, np.newaxis]*xs).sum(axis=0)
+                term3 = (wgl[:, np.newaxis]*xs).sum(axis=0)*ip/kBT
+                rate_total += term1*(term2 + term3)
+            return rate_total
+        else:
+            raise MissingDatasetException(
+                f"{'dilvl' if level_resolved else 'diparams'} data missing for {self.ion_name}."
+            )
 
     @needs_dataset('diparams')
     @u.quantity_input
@@ -1335,10 +1355,9 @@ Using Datasets:
 
         return u.Quantity(cross_section_all)
 
-    @cached_property
-    @needs_dataset('easplups', 'diparams')
+    @cache
     @u.quantity_input
-    def excitation_autoionization_rate(self) -> u.cm**3 / u.s:
+    def excitation_autoionization_rate(self, level_resolved=False) -> u.cm**3 / u.s:
         r"""
         Ionization rate due to excitation autoionization.
 
@@ -1356,32 +1375,101 @@ Using Datasets:
         below the ionization threshold.
         Additionally, note that the constant has been rewritten in terms of :math:`h`
         rather than :math:`I_H` and :math:`a_0`.
+
+        Parameters
+        ----------
+        level_resolved: `bool`, optional
+            If True, return the level-resolved excitation autoionization rates.
+            These are interpolated directly from the associated data files.
+            See Section 1.2.1 of :cite:t:`chianti_dufresne_2024-1` for more information.
+            To access the associated level indices, use ``._ealvl['level_1']``.
         """
-        c = const.h**2/(2. * np.pi * const.m_e)**(1.5)
-        kBTE = np.outer(self.thermal_energy, 1.0/self._easplups['delta_energy'])
-        # NOTE: Transpose here to make final dimensions compatible with multiplication with
-        # temperature when computing rate
-        kBTE = kBTE.T
-        xs = [np.linspace(0, 1, ups.shape[0]) for ups in self._easplups['bt_upsilon']]
-        upsilon = burgess_tully_descale(xs,
-                                        self._easplups['bt_upsilon'].value,
-                                        kBTE,
-                                        self._easplups['bt_c'].value,
-                                        self._easplups['bt_type'])
-        # NOTE: Use just the first row as the EA scaling from the diparams files is the same
-        # for all rows as it is not related to the number of lines included in the DI calculation.
-        # They are contained in this datastructure as a result of the quirk of them being stored in
-        # the diparams file in the database.
-        scaling = self._diparams['ea'][0][:, np.newaxis]
-        # NOTE: The 1/omega multiplicity factor is already included in the scaled upsilon
-        # values provided by CHIANTI
-        rate = c * scaling * upsilon * np.exp(-1 / kBTE) / np.sqrt(self.thermal_energy)
+        if level_resolved and self._has_dataset('ealvl'):
+            return self._level_resolved_rates_interpolation(
+                self._ealvl['temperature'],
+                self._ealvl['rate'],
+                log_space=True,
+                interpolator=CubicSpline,
+                interpolator_kwargs={'bc_type': 'natural'},
+            )
+        elif (not level_resolved) and self._has_dataset('easplups', 'diparams'):
+            c = const.h**2/(2. * np.pi * const.m_e)**(1.5)
+            kBTE = np.outer(self.thermal_energy, 1.0/self._easplups['delta_energy'])
+            # NOTE: Transpose here to make final dimensions compatible with multiplication with
+            # temperature when computing rate
+            kBTE = kBTE.T
+            xs = [np.linspace(0, 1, ups.shape[0]) for ups in self._easplups['bt_upsilon']]
+            upsilon = burgess_tully_descale(xs,
+                                            self._easplups['bt_upsilon'].value,
+                                            kBTE,
+                                            self._easplups['bt_c'].value,
+                                            self._easplups['bt_type'])
+            # NOTE: Use just the first row as the EA scaling from the diparams files is the same
+            # for all rows as it is not related to the number of lines included in the DI calculation.
+            # They are contained in this datastructure as a result of the quirk of them being stored in
+            # the diparams file in the database.
+            scaling = self._diparams['ea'][0][:, np.newaxis]
+            # NOTE: The 1/omega multiplicity factor is already included in the scaled upsilon
+            # values provided by CHIANTI
+            rate = c * scaling * upsilon * np.exp(-1 / kBTE) / np.sqrt(self.thermal_energy)
+            return rate.sum(axis=0)
+        else:
+            raise MissingDatasetException(
+                f"{'ealvl' if level_resolved else 'easplups and diparams'} data missing for {self.ion_name}."
+            )
 
-        return rate.sum(axis=0)
-
-    @cached_property
+    @needs_dataset('ctilvl')
     @u.quantity_input
-    def ionization_rate(self) -> u.cm**3 / u.s:
+    def charge_transfer_ionization_rate(self, atmosphere) -> u.cm**3 / u.s:
+        r"""
+        Ionization rate due to charge transfer with H and He.
+
+        The level-resolved ionization rate due to charge transfer with H
+        and He for a given model atmosphere. This is most useful in the
+        context of computing density-dependent ionization fractions.
+        See Section 2.3 of :cite:t:`dufresne_chiantiatomic_2024` for more
+        details on how this is implemented in CHIANTI. See also
+        :cite:t:`dufresne_Influence_2021` for more details on the charge
+        transfer calculation.
+
+        Parameters
+        ----------
+        atmosphere: `~astropy.table.QTable`
+            Table of model atmosphere parameters. This can be retrieved using
+            `~fiasco.get_atmosphere_model` or a custom model atmosphere can be
+            used. At a minimum, this table must contain the columns ``temperature``,
+            ``electron density``, ``H density``, ``H II fraction``, ``He II fraction``,
+            ``He III fraction``, and ``He abundance``. These are typically a function
+            of height in the solar atmosphere. Note that the temperature must be
+            monotonically increasing due to the need to interpolate these parameters
+            onto a new temperature grid.
+        """
+        rates_interp = self._level_resolved_rates_interpolation(
+            self._ctilvl['temperature'],
+            self._ctilvl['rate'],
+            log_space=True,
+            interpolator=CubicSpline,
+            interpolator_kwargs={'bc_type': 'natural'},
+        )
+        rates = u.Quantity(np.zeros(rates_interp.shape), rates_interp.unit)
+        f_interp = self._interpolate_ionization_fraction  # Alias to make lines shorter
+        frac_h_2 = f_interp(self.temperature, atmosphere['temperature'], atmosphere['H II fraction'])
+        frac_he_2 = f_interp(self.temperature, atmosphere['temperature'], atmosphere['He II fraction'])
+        frac_he_3 = f_interp(self.temperature, atmosphere['temperature'], atmosphere['He III fraction'])
+        abundance_he = f_interp(self.temperature, atmosphere['temperature'], atmosphere['He abundance'])
+        density_ratio = f_interp(
+            self.temperature, atmosphere['temperature'], atmosphere['H density']/atmosphere['electron density']
+        )
+        is_h_2 = self._ctilvl['Z_perturber']==1
+        rates[:, is_h_2] = rates_interp[:, is_h_2]*(frac_h_2*density_ratio)[:, np.newaxis]
+        is_he_2 = np.logical_and(self._ctilvl['Z_perturber']==2, self._ctilvl['N_e_perturber']==1)
+        rates[:, is_he_2] = rates_interp[:, is_he_2]*(frac_he_2*abundance_he*density_ratio)[:, np.newaxis]
+        is_he_3 = np.logical_and(self._ctilvl['Z_perturber']==2, self._ctilvl['N_e_perturber']==0)
+        rates[:, is_he_3] = rates_interp[:, is_he_3]*(frac_he_3*abundance_he*density_ratio)[:, np.newaxis]
+        return rates
+
+    @u.quantity_input(density=u.cm**(-3))
+    def ionization_rate(self, density=None) -> u.cm**3 / u.s:
         r"""
         Total ionization rate as a function of temperature.
 
@@ -1398,19 +1486,18 @@ Using Datasets:
         excitation_autoionization_rate
         """
         try:
-            di_rate = self.direct_ionization_rate
+            di_rate = self.direct_ionization_rate()
         except MissingDatasetException:
             di_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         try:
-            ea_rate = self.excitation_autoionization_rate
+            ea_rate = self.excitation_autoionization_rate()
         except MissingDatasetException:
             ea_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         return di_rate + ea_rate
 
-    @cached_property
-    @needs_dataset('rrparams')
+    @cache
     @u.quantity_input
-    def radiative_recombination_rate(self) -> u.cm**3 / u.s:
+    def radiative_recombination_rate(self, level_resolved=False) -> u.cm**3 / u.s:
         r"""
         Radiative recombination rate as a function of temperature.
 
@@ -1447,27 +1534,54 @@ Using Datasets:
 
         where :math:`A` and :math:`\eta` are fitting parameters provided in the
         CHIANTI atomic database and :math:`T_0=10^4` K.
-        """
-        if self._rrparams['fit_type'][0] == 1 or self._rrparams['fit_type'][0] == 2:
-            A = self._rrparams['A_fit']
-            B = self._rrparams['B_fit']
-            if self._rrparams['fit_type'] == 2:
-                B = B + self._rrparams['C_fit']*np.exp(-self._rrparams['T2_fit']/self.temperature)
-            T0 = self._rrparams['T0_fit']
-            T1 = self._rrparams['T1_fit']
 
+        Parameters
+        ----------
+        level_resolved: `bool`, optional
+            If True, return the level-resolved radiative recombination rates. These are
+            typically calculated using the first method as described above. See
+            Section 1.2.2 of :cite:t:`chianti_dufresne_2024-1` for more information.
+
+        Returns
+        -------
+        : `~astropy.units.Quantity`
+            Radiative recombination rate as a function of temperature. If ``level_resolved``
+            is True, this will have shape ``(l,n)`` where ``l`` is the number temperatures and
+            ``n`` is the number of levels and the rates correspond to the recombination rate out
+            of the ground state and ``n-1`` metastable states. Otherwise, the result will have shape
+            ``(l,)`` and corresponds to recombination out of the ground state.
+        """
+        if level_resolved and self._has_dataset('rrcoeffs'):
+            params = self._rrcoeffs
+        elif (not level_resolved) and self._has_dataset('rrparams'):
+            params = self._rrparams
+        else:
+            raise MissingDatasetException(
+                f"{'rrcoeffs' if level_resolved else 'rrparams'} data missing for {self.ion_name}"
+            )
+        return u.Quantity([
+            self._calculate_radiative_recombination_rate({k: params[k][i] for k in params.fields})
+            for i in range(params['fit_type'].shape[0])
+        ]).squeeze().T
+
+    def _calculate_radiative_recombination_rate(self, params):
+        if params['fit_type'] == 1 or params['fit_type'] == 2:
+            A = params['A_fit']
+            B = params['B_fit']
+            if params['fit_type'] == 2:
+                B = B + params['C_fit']*np.exp(-params['T2_fit']/self.temperature)
+            T0 = params['T0_fit']
+            T1 = params['T1_fit']
             return A/(np.sqrt(self.temperature/T0) * (1 + np.sqrt(self.temperature/T0))**(1. - B)
                       * (1. + np.sqrt(self.temperature/T1))**(1. + B))
-        elif self._rrparams['fit_type'][0] == 3:
-            return self._rrparams['A_fit'] * (
-                    (self.temperature/(1e4*u.K))**(-self._rrparams['eta_fit']))
+        elif params['fit_type'] == 3:
+            return params['A_fit'] * (
+                    (self.temperature/(1e4*u.K))**(-params['eta_fit']))
         else:
-            raise ValueError(f"Unrecognized fit type {self._rrparams['fit_type']}")
+            raise ValueError(f"Unrecognized fit type {params['fit_type']}")
 
-    @cached_property
-    @needs_dataset('drparams')
-    @u.quantity_input
-    def dielectronic_recombination_rate(self) -> u.cm**3 / u.s:
+    @u.quantity_input(density=u.cm**(-3))
+    def dielectronic_recombination_rate(self, density=None, level_resolved=False) -> u.cm**3 / u.s:
         r"""
         Dielectronic recombination rate as a function of temperature.
 
@@ -1493,20 +1607,55 @@ Using Datasets:
             \alpha_{DR} = A T^{-3/2}e^{-T_0/T}(1 + B e^{-T_1/T})
 
         where :math:`A,B,T_0,T_1` are fitting coefficients stored in the CHIANTI database.
+
+        Parameters
+        ----------
+        density: `~astropy.units.Quantity`, optional
+        level_resolved: `bool`, optional
+            If True, return the level-resolved dielectronic recombination rates. These are
+            typically calculated using the first method as described above. See Section 1.2.2
+            of :cite:t:`chianti_dufresne_2024-1` for more information.
+
+        Returns
+        -------
+        : `~astropy.units.Quantity`
+            Dielectronic recombination rate as a function of temperature. If ``level_resolved``
+            is True, this will have shape ``(l,n)`` where ``l`` is the number temperatures and
+            ``n`` is the number of levels and the rates correspond to the recombination rate out
+            of the ground state and ``n-1`` metastable states. Otherwise, the result will have shape
+            ``(l,)`` and corresponds to recombination out of the ground state.
         """
-        if self._drparams['fit_type'][0] == 1:
-            E_over_T = np.outer(self._drparams['E_fit'], 1./self.temperature)
+        if level_resolved and self._has_dataset('drcoeffs'):
+            rate = u.Quantity([
+                self._calculate_dielectronic_recombination_rate(ft, {'E_fit': Ef, 'c_fit': cf})
+                for ft, Ef, cf in zip(*[self._drcoeffs[k] for k in ['fit_type', 'E_fit', 'C_fit']])
+            ])
+        elif (not level_resolved) and self._has_dataset('drparams'):
+            rate = self._calculate_dielectronic_recombination_rate(self._drparams['fit_type'][0], self._drparams)
+        else:
+            raise MissingDatasetException(
+                f"{'drcoeffs' if level_resolved else 'drparams'} data missing for {self.ion_name}"
+            )
+        if density is not None:
+            # TODO: Allow for density to vary along an independent axis such that the DR rate could be a
+            # function of both density and temperature.
+            rate *= self._dielectronic_recombination_suppression(density, couple_density_to_temperature=True)
+        return rate.T
+
+    def _calculate_dielectronic_recombination_rate(self, fit_type, params):
+        if fit_type == 1:
+            E_over_T = np.outer(params['E_fit'], 1./self.temperature)
             return self.temperature**(-1.5)*(
-                    self._drparams['c_fit'][:, np.newaxis]*np.exp(-E_over_T)).sum(axis=0)
-        elif self._drparams['fit_type'][0] == 2:
-            A = self._drparams['A_fit']
-            B = self._drparams['B_fit']
-            T0 = self._drparams['T0_fit']
-            T1 = self._drparams['T1_fit']
+                    params['c_fit'][:, np.newaxis]*np.exp(-E_over_T)).sum(axis=0)
+        elif fit_type == 2:
+            A = params['A_fit']
+            B = params['B_fit']
+            T0 = params['T0_fit']
+            T1 = params['T1_fit']
             return A * self.temperature**(-1.5) * np.exp(-T0/self.temperature) * (
                     1. + B * np.exp(-T1/self.temperature))
         else:
-            raise ValueError(f"Unrecognized fit type {self._drparams['fit_type']}")
+            raise ValueError(f"Unrecognized fit type {fit_type}")
 
     @u.quantity_input
     def _dielectronic_recombination_suppression(self, density:u.Unit('cm-3'), couple_density_to_temperature=True):
@@ -1607,20 +1756,68 @@ Using Datasets:
             psi = 2*psi/(1 + np.exp(-2.5e4*u.K*self.charge_state**2/self.temperature))
         return A_N*psi
 
+    @needs_dataset('ctrlvl')
+    @u.quantity_input
+    def charge_transfer_recombination_rate(self, atmosphere) -> u.cm**3 / u.s:
+        r"""
+        Recombination rate due to charge transfer with H and He.
+
+        The level-resolved recombination rate due to charge transfer with H
+        and He for a given model atmosphere. This is most useful in the
+        context of computing density-dependent ionization fractions.
+        See Section 2.3 of :cite:t:`dufresne_chiantiatomic_2024` for more
+        details on how this is implemented in CHIANTI. See also
+        :cite:t:`dufresne_Influence_2021` for more details on the charge
+        transfer calculation.
+
+        Parameters
+        ----------
+        atmosphere: `~astropy.table.QTable`
+            Table of model atmosphere parameters. This can be retrieved using
+            `~fiasco.get_atmosphere_model` or a custom model atmosphere can be
+            used. At a minimum, this table must contain the columns ``temperature``,
+            ``electron density``, ``H density``, ``H I fraction``, ``He I fraction``,
+            ``He II fraction``, and ``He abundance``. These are typically a function
+            of height in the solar atmosphere. Note that the temperature must be
+            monotonically increasing due to the need to interpolate these parameters
+            onto a new temperature grid.
+        """
+        rates_interp = self._level_resolved_rates_interpolation(
+            self._ctrlvl['temperature'],
+            self._ctrlvl['rate'],
+            log_space=True,
+            interpolator=CubicSpline,
+            interpolator_kwargs={'bc_type': 'natural'},
+        )
+        rates = u.Quantity(np.zeros(rates_interp.shape), rates_interp.unit)
+        f_interp = self._interpolate_ionization_fraction  # Alias to make lines shorter
+        frac_h_1 = f_interp(self.temperature, atmosphere['temperature'], atmosphere['H I fraction'])
+        frac_he_1 = f_interp(self.temperature, atmosphere['temperature'], atmosphere['He I fraction'])
+        frac_he_2 = f_interp(self.temperature, atmosphere['temperature'], atmosphere['He II fraction'])
+        abundance_he = f_interp(self.temperature, atmosphere['temperature'], atmosphere['He abundance'])
+        density_ratio = f_interp(
+            self.temperature, atmosphere['temperature'], atmosphere['H density']/atmosphere['electron density']
+        )
+        is_h_1 = self._ctrlvl['Z_perturber']==1
+        rates[:, is_h_1] = rates_interp[:, is_h_1]*(frac_h_1*density_ratio)[:, np.newaxis]
+        is_he_1 = np.logical_and(self._ctrlvl['Z_perturber']==2, self._ctrlvl['N_e_perturber']==2)
+        rates[:, is_he_1] = rates_interp[:, is_he_1]*(frac_he_1*abundance_he*density_ratio)[:, np.newaxis]
+        is_he_2 = np.logical_and(self._ctrlvl['Z_perturber']==2, self._ctrlvl['N_e_perturber']==1)
+        rates[:, is_he_2] = rates_interp[:, is_he_2]*(frac_he_2*abundance_he*density_ratio)[:, np.newaxis]
+        return rates
+
     @cached_property
     @needs_dataset('trparams')
     @u.quantity_input
     def _total_recombination_rate(self) -> u.cm**3 / u.s:
         temperature_data = self._trparams['temperature'].to_value('K')
         rate_data = self._trparams['recombination_rate'].to_value('cm3 s-1')
-        f_interp = interp1d(temperature_data, rate_data, fill_value='extrapolate', kind='cubic')
         f_interp = PchipInterpolator(np.log10(temperature_data), np.log10(rate_data), extrapolate=True)
         rate_interp = 10**f_interp(np.log10(self.temperature.to_value('K')))
         return u.Quantity(rate_interp, 'cm3 s-1')
 
-    @cached_property
-    @u.quantity_input
-    def recombination_rate(self) -> u.cm**3 / u.s:
+    @u.quantity_input(density=u.cm**(-3))
+    def recombination_rate(self, density=None) -> u.cm**3 / u.s:
         r"""
         Total recombination rate as a function of temperature.
 
@@ -1638,8 +1835,20 @@ Using Datasets:
             However, for some ions, total recombination rate data is available in the
             so-called ``.trparams`` files. For these ions, the output of this method
             will *not* be equal to the sum of the `dielectronic_recombination_rate` and
-            `radiative_recombination_rate` method. As such, when computing the total
-            recombination rate, this method should always be used.
+            `radiative_recombination_rate` method.
+
+        .. important::
+
+            If the aforementioned ``.trparams`` data are available, they will be
+            unaffected by any input density as these data represent the *total* rate
+            and as such any density-dependent suppression cannot be applied to only the
+            dielectronic component. If you need to compute the density-dependent rate even
+            when these data are present, compute the sum of `radiative_recombination_rate` and
+            `dielectronic_recombination_rate`, using the input density for the latter.
+
+        Parameters
+        ----------
+        density: `~astropy.units.Quantity`, optional
 
         See Also
         --------
@@ -1658,14 +1867,19 @@ Using Datasets:
         except MissingDatasetException:
             self.log.debug(f'No total recombination data available for {self.ion_name}.')
         else:
+            if density is not None:
+                self.log.warning(
+                    'Total recombination rate data are only temperature dependent. '
+                    f'Ignoring density input for {self.ion_name} recombination rate.'
+                )
             return tr_rate
         try:
-            rr_rate = self.radiative_recombination_rate
+            rr_rate = self.radiative_recombination_rate()
         except MissingDatasetException:
             self.log.debug(f'No radiative recombination data available for {self.ion_name}.')
             rr_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')
         try:
-            dr_rate = self.dielectronic_recombination_rate
+            dr_rate = self.dielectronic_recombination_rate(density=density)
         except MissingDatasetException:
             self.log.debug(f'No dielectronic recombination data available for {self.ion_name}.')
             dr_rate = u.Quantity(np.zeros(self.temperature.shape), 'cm3 s-1')

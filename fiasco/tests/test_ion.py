@@ -52,6 +52,7 @@ def c5(hdf5_dbase_root):
 def c6(hdf5_dbase_root):
     return fiasco.Ion('C VI', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
+
 @pytest.fixture
 def n4(hdf5_dbase_root):
     # NOTE: This ion was added because there are more levels listed in elvlc than in wgfa.
@@ -60,9 +61,14 @@ def n4(hdf5_dbase_root):
 
 
 @pytest.fixture
+def fe17(hdf5_dbase_root):
+    # NOTE: This ion was added because it seems to be the only ion with both reclvl and cilvl files
+    # for all currently supported versions of the database (v8--v11)
+    return fiasco.Ion('Fe XVII', temperature, hdf5_dbase_root=hdf5_dbase_root)
+
+
+@pytest.fixture
 def fe20(hdf5_dbase_root):
-    # NOTE: This ion was added because it has reclvl and cilvl files which
-    # we need to test the level-resolved rate correction factor
     return fiasco.Ion('Fe XX', temperature, hdf5_dbase_root=hdf5_dbase_root)
 
 
@@ -308,13 +314,13 @@ def test_coupling_unequal_dimensions_exception(ion):
 
 
 @pytest.fixture
-def pops_with_correction(fe20):
-    return fe20.level_populations(1e9*u.cm**(-3)).squeeze()
+def pops_with_correction(fe17):
+    return fe17.level_populations(1e9*u.cm**(-3)).squeeze()
 
 
 @pytest.fixture
-def pops_no_correction(fe20):
-    return fe20.level_populations(1e9*u.cm**(-3),
+def pops_no_correction(fe17):
+    return fe17.level_populations(1e9*u.cm**(-3),
                                   include_level_resolved_rate_correction=False).squeeze()
 
 
@@ -324,22 +330,26 @@ def test_level_populations_normalized(pops_no_correction, pops_with_correction):
     assert u.allclose(pops_no_correction.sum(axis=1), 1, atol=None, rtol=1e-15)
 
 
-@pytest.mark.requires_dbase_version('>= 8', '<= 8.0.7')
-def test_level_populations_correction(fe20, pops_no_correction, pops_with_correction):
+@pytest.mark.requires_dbase_version('>= 8')
+def test_level_populations_correction(fe17, pops_no_correction, pops_with_correction):
     # Test level-resolved correction applied to correct levels
-    i_corrected = np.unique(np.concatenate([fe20._cilvl['upper_level'], fe20._reclvl['upper_level']]))
+    i_corrected = np.unique(np.concatenate([fe17._cilvl['upper_level'], fe17._reclvl['upper_level']]))
     i_corrected -= 1
     # This tests that, for at least some portion of the temperature axis, the populations are
     # significantly different for each corrected level
-    pops_equal = u.isclose(pops_with_correction[:, i_corrected], pops_no_correction[:, i_corrected],
-                           atol=0.0, rtol=1e-5)
+    pops_equal = u.isclose(pops_with_correction[:, i_corrected],
+                           pops_no_correction[:, i_corrected],
+                           atol=None,
+                           rtol=1e-5)
     assert ~np.all(np.all(pops_equal, axis=0))
     # All other levels should be unchanged (with some tolerance for renormalization)
     is_uncorrected = np.ones(pops_no_correction.shape[-1], dtype=bool)
     is_uncorrected[i_corrected] = False
     i_uncorrected = np.where(is_uncorrected)
-    assert u.allclose(pops_with_correction[:, i_uncorrected], pops_no_correction[:, i_uncorrected],
-                      atol=0.0, rtol=1e-5)
+    assert u.allclose(pops_with_correction[:, i_uncorrected],
+                      pops_no_correction[:, i_uncorrected],
+                      atol=None,
+                      rtol=1e-5)
 
 
 @pytest.mark.requires_dbase_version('>= 9')
@@ -390,9 +400,22 @@ def test_intensity(ion, em):
     ('radiative_recombination_rate', 1.6221634159408823e-12*u.cm**3 / u.s),
 ])
 def test_rates(ion, rate_name, answer):
-    rate = getattr(ion, rate_name)
+    rate = getattr(ion, rate_name)()
     assert rate.shape == ion.temperature.shape
     assert u.allclose(rate[0], answer, rtol=1e-6)
+
+
+@pytest.mark.parametrize(('density', 'answer'), [
+    # NOTE: The expected values have not been tested for correctness though
+    # both the recombination rates and the suppression factor calculation
+    # are already tested against the IDL result.
+    (None, 1.60593802e-11 * u.cm**3 / u.s),
+    (1e9*u.cm**(-3), 3.6077091e-12* u.cm**3 / u.s),
+    (1e15*u.K*u.cm**(-3)/temperature, 2.4619068e-12 * u.cm**3 / u.s),
+])
+def test_suppressed_dielectronic_recombination_rate(ion, density, answer):
+    dr_rate = ion.dielectronic_recombination_rate(density=density)
+    assert u.allclose(dr_rate[0], answer)
 
 
 def test_total_recombination_rate_priority(ion):
@@ -400,7 +423,7 @@ def test_total_recombination_rate_priority(ion):
     # files is available that it is prioritized over the sum of the DR and RR rates.
     # This is the case for this ion because Fe V has total recombination rate data
     # available.
-    recomb_rate = ion.recombination_rate
+    recomb_rate = ion.recombination_rate()
     tot_recomb_rate = ion._total_recombination_rate
     assert np.all(recomb_rate == tot_recomb_rate)
 

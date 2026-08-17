@@ -4,6 +4,7 @@ fiasco: A Python interface to the CHIANTI atomic database
 from fiasco.collections import IonCollection
 from fiasco.elements import Element
 from fiasco.fiasco import (
+    get_atmosphere_model,
     get_dem_model,
     get_isoelectronic_sequence,
     line_ratio,

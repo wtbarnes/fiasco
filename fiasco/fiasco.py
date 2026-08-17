@@ -17,6 +17,7 @@ __all__ = [
     'list_elements',
     'list_ions',
     'proton_electron_ratio',
+    'get_atmosphere_model',
     'get_dem_model',
     'get_isoelectronic_sequence',
     'line_ratio',
@@ -85,6 +86,67 @@ def list_ions(hdf5_dbase_root=None, sort=True):
     return ions.tolist() if isinstance(ions, np.ndarray) else ions
 
 
+def get_atmosphere_model(model,
+                         add_helium_parameters=True,
+                         clip_monotonic_increasing=True,
+                         hdf5_dbase_root=None,
+                         **ion_kwargs):
+    """
+    Return table of parameters for a selected model atmosphere.
+
+    .. note:: This is primarily for computing the charge transfer (CT)
+              ionization and recombination rates for the advanced model
+              ions. For more details, see Section 2.3 of
+              :cite:t:`dufresne_chiantiatomic_2024`.
+
+    Parameters
+    ----------
+    model: `str`
+        Name of the model atmosphere.
+    add_helium_parameters: `bool`, optional
+        If True, add ionization fraction of He as a function of temperature and
+        He abundance by computing the ionization fraction of He in equilibrium
+        using `~fiasco.element.equilibrium_ionization`. These parameters are
+        required for the CT rate calculation.
+    clip_monotonic_increasing: `bool`, optional
+        If True, clip the table to include only rows where the temperature is increasing
+        monotonically as a function of height. This is necessary when interpolating to
+        different temperature grids as is done in :meth:`~fiasco.Ion.charge_transfer_ionization_rate`
+        and :meth:`~fiasco.Ion.charge_transfer_recombination_rate`.
+    hdf5_dbase_root: path-like, optional
+        If not specified, will default to that specified in ``fiasco.defaults``.
+
+    Returns
+    -------
+    : `~astropy.table.QTable`
+        Table of parameters for a given atmosphere model.
+    """
+    tab = _get_model_as_table('model_atmospheres', model, hdf5_dbase_root=hdf5_dbase_root)
+    # NOTE: renaming here rather than database as names in database must be a single string,
+    # but we want the columns in the table to be more human-readable.
+    tab.rename_columns(
+        ['density_e', 'density_H', 'fraction_H_1'],
+        ['electron density', 'H density', 'H I fraction']
+    )
+    # NOTE: Explicit reordering of columns to preserve more intuitive ordering that is not necessarily
+    # preserved when pulling directly from the database.
+    tab = tab[['height', 'temperature', 'pressure', 'electron density', 'H density', 'H I fraction']]
+    # NOTE: Calculating it this way to be consistent with what is already in the table.
+    tab['H II fraction'] = 1 - tab['H I fraction']
+    if add_helium_parameters:
+        # NOTE: Calculating the ionization fractions in equilibrium at the model atmosphere temperatures
+        # is faster and more simple than re-interpolating the tabulated ionization fractions.
+        helium = fiasco.Element('He', tab['temperature'], hdf5_dbase_root=hdf5_dbase_root, **ion_kwargs)
+        ioneq = helium.equilibrium_ionization  # FIXME: This will need to be a function soon!
+        for ion in helium:
+            tab[f'{ion.ion_name_roman} fraction'] = ioneq[..., ion.charge_state]
+        tab[f'{helium.atomic_symbol} abundance'] = helium.abundance*np.ones(tab['temperature'].shape)
+    if clip_monotonic_increasing:
+        is_increasing = tab['temperature'][1:] > tab['temperature'][:-1]
+        tab = tab[np.append(is_increasing[0], is_increasing)]
+    return tab
+
+
 def get_dem_model(model, hdf5_dbase_root=None):
     """
     Return CHIANTI differential emission measure (DEM) model.
@@ -101,9 +163,13 @@ def get_dem_model(model, hdf5_dbase_root=None):
     : `~astropy.table.QTable`
         Table of DEM parameters for a given model.
     """
+    return _get_model_as_table('dem', model, hdf5_dbase_root=hdf5_dbase_root)
+
+
+def _get_model_as_table(top_level_path, model, hdf5_dbase_root=None):
     if hdf5_dbase_root is None:
         hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
-    ds = DataIndexer(hdf5_dbase_root, '/dem')
+    ds = DataIndexer(hdf5_dbase_root, f'/{top_level_path}')
     if model not in ds.fields:
         raise KeyError(f'Model name {model} not found. Must be one of {', '.join(ds.fields)}')
     return ds[model].as_table()
