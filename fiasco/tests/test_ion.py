@@ -582,6 +582,25 @@ def test_ionization_fraction_setter(ion, ioneq_input, ioneq_output):
         assert u.allclose(ion._instance_kwargs['ionization_fraction'], ioneq_input)
 
 
+@pytest.mark.parametrize('value', [
+    0.83,
+    0.83 * np.ones(temperature.shape),
+])
+def test_proton_electron_ratio_setter(ion, value):
+    ion.proton_electron_ratio = value
+    assert ion.proton_electron_ratio.shape == ion.temperature.shape
+    assert u.allclose(ion.proton_electron_ratio, 0.83)
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_emissivity_uses_proton_electron_ratio(ion):
+    # Setting the ratio to 0 should zero the emissivity, which is only the case
+    # if emissivity uses the (cached) property rather than recomputing the ratio.
+    ion.proton_electron_ratio = 0.0
+    emm = ion.emissivity(1e7 * u.cm**-3)
+    assert u.allclose(emm, 0 * u.erg / u.cm**3 / u.s)
+
+
 def test_ionization_fraction_setter_exception(ion):
     # This should fail because the input has len>1 but is not the same
     # shape as the temperature array

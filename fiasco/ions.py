@@ -70,6 +70,7 @@ class Ion(IonBase):
         super().__init__(ion_name, *args, **kwargs)
         self.temperature = np.atleast_1d(temperature)
         self._dset_names = {}
+        self._proton_electron_ratio = None
         self.abundance = abundance
         self.ionization_fraction = ionization_fraction
         self.ionization_potential = ionization_potential
@@ -203,10 +204,26 @@ Using Datasets:
         """
         return self.temperature.to('erg', equivalencies=u.equivalencies.temperature_energy())
 
-    @cached_property
+    @property
     @u.quantity_input
     def proton_electron_ratio(self) -> u.dimensionless_unscaled:
-        return proton_electron_ratio(self.temperature, **self._instance_kwargs)
+        """
+        Ratio of proton to electron number density as a function of temperature.
+
+        Computed with `fiasco.proton_electron_ratio` on first access and cached afterward.
+        The ratio depends only on the temperature and the abundance and ionization fraction
+        datasets, so it can also be set directly to avoid recomputing it for every ion that
+        shares the same temperature, e.g.
+        ``ion.proton_electron_ratio = fiasco.proton_electron_ratio(ion.temperature)``.
+        """
+        if self._proton_electron_ratio is None:
+            self._proton_electron_ratio = proton_electron_ratio(self.temperature, **self._instance_kwargs)
+        return self._proton_electron_ratio
+
+    @proton_electron_ratio.setter
+    def proton_electron_ratio(self, value):
+        # Multiplying by np.ones allows for passing in scalar values
+        self._proton_electron_ratio = np.atleast_1d(value) * np.ones(self.temperature.shape)
 
     def next_ion(self):
         """
@@ -1214,8 +1231,7 @@ Using Datasets:
         contribution_function : Calculate contribution function, :math:`G(n,T)`
         """
         density = np.atleast_1d(density)
-        pe_ratio = proton_electron_ratio(self.temperature, **self._instance_kwargs)
-        pe_ratio = pe_ratio[:, np.newaxis, np.newaxis]
+        pe_ratio = self.proton_electron_ratio[:, np.newaxis, np.newaxis]
         g = self.contribution_function(density, **kwargs)
         density_squared = density**2
         couple_density_to_temperature = kwargs.get('couple_density_to_temperature', False)
