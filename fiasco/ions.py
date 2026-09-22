@@ -204,6 +204,26 @@ Using Datasets:
         return np.min([n_elvlc, n_wgfa, n_scups])
 
     @property
+    def _is_level_metastable(self):
+        # Whether a level is metastable or not. This is a property on Ion rather than Levels
+        # because it relies on the information in the wgfa files. It is only used in a limited
+        # context so it is made private.
+        # This is a near direct translation of metastable_levels.pro from the CHIANTI IDL code.
+        density = 1e10*u.cm**(-3)  # TODO: make this configurable somehow?
+        threshold = 5e4 * u.Unit('cm-3 s')  # TODO: make this configurable somehow?
+        kBT = self.formation_temperature.to('eV', equivalencies=u.equivalencies.temperature_energy())
+        elvlc_factor = np.exp(-self.levels.energy/kBT)/self.levels.weight
+        is_not_tp = ~self.transitions.is_twophoton
+        A_values = self.transitions.A[is_not_tp]
+        upper_level = self.transitions.upper_level[is_not_tp]
+        A_max = u.Quantity([A_values[np.where(upper_level==i)].max() if i in upper_level
+                            else np.nan/u.s
+                            for i in self.levels.level])
+        criteria = density / A_max * elvlc_factor * np.sqrt(13.606*u.eV/kBT)
+        is_meta = np.where(np.isnan(criteria), True, criteria>threshold)
+        return is_meta
+
+    @property
     def n_transitions(self):
         """
         Number of transitions in the CHIANTI model
@@ -257,7 +277,7 @@ Using Datasets:
                            self.temperature,
                            **self._instance_kwargs)
 
-    @property
+    @cached_property
     @needs_dataset('elvlc', 'wgfa')
     def transitions(self):
         "A `~fiasco.Transitions` object holding the information about transitions for this ion."
