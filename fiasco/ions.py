@@ -1514,6 +1514,27 @@ Using Datasets:
         rates[:, is_he_3] = rates_interp[:, is_he_3]*(frac_he_3*abundance_he*density_ratio)[:, np.newaxis]
         return rates
 
+    @u.quantity_input(ip=u.eV)
+    def _bc_ionization_rate(self, ip=None) -> u.cm**3 / u.s:
+        """
+        Estimate ionization rate using Eq. 6 of :cite:t:`burgess_Electron_1983`.
+
+        .. note:: This is a private function as it is only meant to be used in the context
+                  of computing the level-resolved ionization rates for the advanced model in
+                  the case where no level-resolved data is available.
+        """
+        # FIXME: This is copied directly from the IDL implementation. I am not sure where these
+        # numbers come from though is related to the filling rules for orbitals.
+        electrons_eff = [1, 2, 1, 2,  1, 2, 3, 4, 5, 6, 1, 2, 1, 2, 3, 4]
+        electrons_eff = electrons_eff[self.atomic_number-self.ionization_stage]
+        const = 2.3 * 2.1715e-8 * u.Unit('cm3 s-1')
+        ip = self.ionization_potential if ip is None else ip
+        kt_ip = self.thermal_energy / ip
+        beta = (np.sqrt((100*self.charge_state + 91)/(4*self.charge_state + 3)) - 5)/4
+        w = (np.log(1 + kt_ip))**(beta / (1 + kt_ip))
+        exp_int = scipy.special.exp1(1/kt_ip.decompose().value)
+        return const*electrons_eff*((1*u.Ry)/ip)**(3/2)/np.sqrt(kt_ip)*w*exp_int
+
     @u.quantity_input(density=u.cm**(-3))
     def ionization_rate(self, density=None) -> u.cm**3 / u.s:
         r"""
