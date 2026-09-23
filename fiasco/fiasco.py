@@ -48,7 +48,7 @@ def list_elements(hdf5_dbase_root=None, sort=True):
     return elements
 
 
-def list_ions(hdf5_dbase_root=None, sort=True):
+def list_ions(hdf5_dbase_root=None, sort=True, base_rep=False):
     """
     List all available ions in the CHIANTI database
 
@@ -58,6 +58,10 @@ def list_ions(hdf5_dbase_root=None, sort=True):
         If not specified, will default to that specified in ``fiasco.defaults``.
     sort: `bool`, optional
         If True, sort the list of elements by increasing atomic number.
+    base_rep: `bool`, optional
+        If True, return list of ions as tuples of ``(Z, z)``, where ``Z`` is the
+        atomic number and ``z`` is the ionization stage. This format may be useful
+        when constructing a large list of `~fiasco.Ion` objects.
     """
     if hdf5_dbase_root is None:
         hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
@@ -82,7 +86,12 @@ def list_ions(hdf5_dbase_root=None, sort=True):
     # NOTE: when grabbing straight from the index and not sorting, the result will be
     # a numpy array. Cast to a list to make sure the return type is consistent for
     # all possible inputs
-    return ions.tolist() if isinstance(ions, np.ndarray) else ions
+    ion_list = ions.tolist() if isinstance(ions, np.ndarray) else ions
+    if base_rep:
+        # NOTE: Explicitly not using parse_ion_name here as it can be slow.
+        el_map = {el: plasmapy.particles.atomic_number(el) for el in list_elements(sort=False)}
+        ion_list = [(el_map[el], int(ion)) for el, ion in map(lambda x: x.split(), ion_list)]
+    return ion_list
 
 
 def get_dem_model(model, hdf5_dbase_root=None):
@@ -156,32 +165,40 @@ def proton_electron_ratio(temperature: u.K, **kwargs):
     """
     # Import here to avoid circular imports
     from fiasco import log
+
+    # NOTE: Set this to avoid infinite recursion. The exact value is arbitrary because it
+    # is not used in this calculation.
+    kwargs['proton_electron_ratio'] = 0.0
     h_2 = fiasco.Ion('H +1', temperature, **kwargs)
     numerator = h_2.abundance * h_2._ion_fraction[h_2._instance_kwargs['ionization_fraction']]['ionization_fraction']
     denominator = u.Quantity(np.zeros(numerator.shape))
-    for el_name in list_elements(h_2.hdf5_dbase_root):
-        el = fiasco.Element(el_name, temperature, **h_2._instance_kwargs)
+    abund_file = h_2._instance_kwargs['abundance']
+    ionization_file = h_2._instance_kwargs['ionization_fraction']
+    for ion_name in list_ions(hdf5_dbase_root=h_2.hdf5_dbase_root, sort=False, base_rep=True):
+        # NOTE: Using IonBase to avoid the overhead of repeatedly constructing an Ion object.
+        ion = fiasco.base.IonBase(ion_name,
+                                  hdf5_dbase_root=h_2._instance_kwargs['hdf5_dbase_root'],
+                                  safe_mode=False)
         try:
-            abundance = el.abundance
+            abundance = ion._abund[abund_file]
         except KeyError:
-            abund_file = el[0]._instance_kwargs['abundance']
             log.warning(
-                f'Not including {el.atomic_symbol}. Abundance not available from {abund_file}.')
+                f'Not including {ion.ion_name_roman}. Abundance not available from {abund_file}.')
             continue
-        for ion in el:
-            ionization_file = ion._instance_kwargs['ionization_fraction']
-            # NOTE: We use ._ion_fraction here rather than .ionization_fraction to avoid
-            # doing an interpolation to the temperature array every single time and instead only
-            # interpolate once at the end.
-            # It is assumed that the ionization_fraction temperature array for each ion is the same.
-            try:
-                ionization_fraction = ion._ion_fraction[ionization_file]['ionization_fraction']
-                t_ionization_fraction = ion._ion_fraction[ionization_file]['temperature']
-            except KeyError:
-                log.warning(
-                    f'Not including {ion.ion_name}. Ionization fraction not available from {ionization_file}.')
-                continue
-            denominator += ionization_fraction * abundance * ion.charge_state
+        # NOTE: We use ._ion_fraction here rather than .ionization_fraction to avoid
+        # doing an interpolation to the temperature array every single time and instead only
+        # interpolate once at the end.
+        # It is assumed that the ionization_fraction temperature array for each ion is the same.
+        try:
+            ion_fraction_ds = ion._ion_fraction[ionization_file]
+        except KeyError:
+            log.warning(
+                f'Not including {ion.ion_name}. Ionization fraction not available from {ionization_file}.')
+            continue
+        else:
+            ionization_fraction = ion_fraction_ds['ionization_fraction']
+            t_ionization_fraction = ion_fraction_ds['temperature']
+        denominator += ionization_fraction * abundance * ion.charge_state
 
     ratio = numerator / denominator
     f_interp = interp1d(t_ionization_fraction.to(temperature.unit).value,
