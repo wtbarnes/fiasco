@@ -56,6 +56,11 @@ class Ion(IonBase):
     ionization_potential : `str` or `~astropy.units.Quantity`, optional
         If a string is provided, use the appropriate "ip" dataset.
         If a scalar value is provided, use that value for the ionization potential. This value should be convertible to eV.
+    proton_electron_ratio : `float` or array-like, optional
+        Ratio of proton to electron densities, :math:`n_H/n_e`, as a function of temperature. Can be a scalar value or
+        an array with the same shape as ``temperature``. If not specified, this is calculated using
+        `~fiasco.proton_electron_ratio`. When instantiating many ions, it may be more efficient to precompute this
+        quantity and then pass it to the constructor through this keyword argument.
     """
 
     @u.quantity_input
@@ -65,15 +70,16 @@ class Ion(IonBase):
                  abundance='sun_coronal_1992_feldman_ext',
                  ionization_fraction='chianti',
                  ionization_potential='chianti',
+                 proton_electron_ratio=None,
                  *args,
                  **kwargs):
         super().__init__(ion_name, *args, **kwargs)
         self.temperature = np.atleast_1d(temperature)
         self._dset_names = {}
-        self._proton_electron_ratio = None
         self.abundance = abundance
         self.ionization_fraction = ionization_fraction
         self.ionization_potential = ionization_potential
+        self.proton_electron_ratio = proton_electron_ratio
         self.gaunt_factor = GauntFactor(hdf5_dbase_root=self.hdf5_dbase_root)
 
     def _new_instance(self, temperature=None, **kwargs):
@@ -147,6 +153,12 @@ Using Datasets:
             kwargs['ionization_fraction'] = self.ionization_fraction
         if kwargs['ionization_potential'] is None:
             kwargs['ionization_potential'] = self.ionization_potential
+        # NOTE: It is possible that this property is needed prior to the proton/electron ratio
+        # being set. This logic guards against that.
+        try:
+            kwargs['proton_electron_ratio'] = self.proton_electron_ratio
+        except AttributeError:
+            self.log.debug('Proton/electron ratio not added to instance kwargs.')
         return kwargs
 
     def _has_dataset(self, dset_name):
@@ -209,21 +221,14 @@ Using Datasets:
     def proton_electron_ratio(self) -> u.dimensionless_unscaled:
         """
         Ratio of proton to electron number density as a function of temperature.
-
-        Computed with `fiasco.proton_electron_ratio` on first access and cached afterward.
-        The ratio depends only on the temperature and the abundance and ionization fraction
-        datasets, so it can also be set directly to avoid recomputing it for every ion that
-        shares the same temperature, e.g.
-        ``ion.proton_electron_ratio = fiasco.proton_electron_ratio(ion.temperature)``.
         """
-        if self._proton_electron_ratio is None:
-            self._proton_electron_ratio = proton_electron_ratio(self.temperature, **self._instance_kwargs)
         return self._proton_electron_ratio
 
     @proton_electron_ratio.setter
     def proton_electron_ratio(self, value):
-        # Multiplying by np.ones allows for passing in scalar values
-        self._proton_electron_ratio = np.atleast_1d(value) * np.ones(self.temperature.shape)
+        if value is None:
+            value = proton_electron_ratio(self.temperature, **self._instance_kwargs)
+        self._proton_electron_ratio = u.Quantity(value*np.ones(self.temperature.shape))
 
     def next_ion(self):
         """

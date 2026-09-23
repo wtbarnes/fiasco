@@ -589,7 +589,12 @@ def test_ionization_fraction_setter(ion, ioneq_input, ioneq_output):
 def test_proton_electron_ratio_setter(ion, value):
     ion.proton_electron_ratio = value
     assert ion.proton_electron_ratio.shape == ion.temperature.shape
-    assert u.allclose(ion.proton_electron_ratio, 0.83)
+    assert u.allclose(ion.proton_electron_ratio, value)
+    new_ion = fiasco.Ion(ion.ion_name,
+                         ion.temperature,
+                         proton_electron_ratio=value)
+    assert new_ion.proton_electron_ratio.shape == new_ion.temperature.shape
+    assert u.allclose(new_ion.proton_electron_ratio, value)
 
 
 @pytest.mark.requires_dbase_version('>= 8')
