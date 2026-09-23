@@ -16,6 +16,7 @@ from fiasco.io.factory import all_subclasses
 from fiasco.io.generic import GenericIonParser
 from fiasco.util import check_database, parse_ion_name, periodic_table_period
 from fiasco.util.exceptions import MissingIonError
+from fiasco.util.tools import _get_atomic_symbol, _get_element_name
 
 __all__ = ['IonBase']
 
@@ -39,20 +40,28 @@ class IonBase:
     """
 
     def __init__(self, ion_name, hdf5_dbase_root=None, **kwargs):
-        # base rep is a tuple of integers (atomic_number, ionization_stage)
-        self._base_rep = parse_ion_name(ion_name)
         if hdf5_dbase_root is None:
             self.hdf5_dbase_root = fiasco.defaults['hdf5_dbase_root']
         else:
             self.hdf5_dbase_root = hdf5_dbase_root
-        check_database(self.hdf5_dbase_root, **kwargs)
-        if self.ion_name not in fiasco.list_ions(self.hdf5_dbase_root, sort=False):
-            raise MissingIonError(f'{self.ion_name} not found in {self.hdf5_dbase_root}')
         # Put import here to avoid circular imports
         from fiasco import log
         self.log = log
-        # Warn users if the database they are using is potentially stale.
-        self._check_dbase_fiasco_version()
+        # This optional kwarg is here to avoid costly checks in cases where one
+        # is sure the database already exists, the ion name is valid and already
+        # in the right forma, and the version is not potentially stale. This is
+        # not documented publicly as it is not meant to be used except by other
+        # internal fiasco functions where the inputs are already validated.
+        if kwargs.pop('safe_mode', True):
+            # base rep is a tuple of integers (atomic_number, ionization_stage)
+            self._base_rep = parse_ion_name(ion_name)
+            check_database(self.hdf5_dbase_root, **kwargs)
+            if self.ion_name not in fiasco.list_ions(self.hdf5_dbase_root, sort=False):
+                raise MissingIonError(f'{self.ion_name} not found in {self.hdf5_dbase_root}')
+            # Warn users if the database they are using is potentially stale.
+            self._check_dbase_fiasco_version()
+        else:
+            self._base_rep = ion_name
 
     def _check_dbase_fiasco_version(self):
         "Warn if database was generated with an earlier version of fiasco."
@@ -70,17 +79,17 @@ class IonBase:
     @property
     def atomic_number(self):
         """The atomic number of the element, :math:`Z`."""
-        return plasmapy.particles.atomic_number(self._base_rep[0])
+        return self._base_rep[0]
 
     @property
     def element_name(self):
         """The full name of the element, e.g. "hydrogen"."""
-        return plasmapy.particles.element_name(self.atomic_number)
+        return _get_element_name(self.atomic_number)
 
     @property
     def atomic_symbol(self):
         """The standard atomic symbol for the element, e.g. "H" for hydrogen."""
-        return plasmapy.particles.atomic_symbol(self.atomic_number)
+        return _get_atomic_symbol(self.atomic_number)
 
     @property
     def ion_name(self):
@@ -101,7 +110,7 @@ class IonBase:
     def isoelectronic_sequence(self):
         "Atomic symbol denoting to which isoelectronic sequence this ion belongs."
         if (Z_iso := self.atomic_number - self.charge_state) > 0:
-            return plasmapy.particles.atomic_symbol(Z_iso)
+            return _get_atomic_symbol(Z_iso)
 
     @property
     @u.quantity_input
