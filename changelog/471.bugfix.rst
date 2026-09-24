@@ -1,1 +1,0 @@
-`fiasco.Ion.emissivity` now uses the cached `fiasco.Ion.proton_electron_ratio` property rather than recomputing the proton-to-electron ratio, which walks the entire database, on every call. `fiasco.Ion.proton_electron_ratio` can now also be set directly so that a ratio computed once with `fiasco.proton_electron_ratio` can be shared between ions with the same temperature.
