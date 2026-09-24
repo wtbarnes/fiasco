@@ -39,6 +39,9 @@ class Element(fiasco.IonCollection):
             element_name = element_name.capitalize()
         Z = plasmapy.particles.atomic_number(element_name)
         ion_list = []
+        if (pe_ratio := kwargs.pop('proton_electron_ratio', None)) is None:
+            pe_ratio = fiasco.proton_electron_ratio(temperature, **kwargs)
+        kwargs['proton_electron_ratio'] = pe_ratio
         for i in range(Z + 1):
             ion = fiasco.Ion((Z, i+1), temperature, **kwargs)
             ion_list.append(ion)

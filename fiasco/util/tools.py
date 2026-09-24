@@ -8,6 +8,10 @@ import plasmapy.particles
 from functools import partial
 from scipy.interpolate import splev, splrep
 
+_MAX_Z = 40
+_ATOMIC_SYMBOL_LOOKUP = {z: plasmapy.particles.atomic_symbol(z) for z in range(1, _MAX_Z+1)}
+_ELEMENT_NAME_LOOKUP = {z: plasmapy.particles.element_name(z) for z in range(1, _MAX_Z+1)}
+
 __all__ = [
     'vectorize_where',
     'vectorize_where_sum',
@@ -235,3 +239,25 @@ def periodic_table_period(element):
         if element <= r:
             return i+1
     raise ValueError(f'No period available for {element=}.')
+
+
+def _get_atomic_symbol(Z):
+    """
+    Return atomic symbol for a given atomic number.
+
+    .. note:: This function is simply a fast version of
+              plasmapy.particles.atomic_symbol and is only
+              meant for internal use.
+    """
+    return _ATOMIC_SYMBOL_LOOKUP[Z]
+
+
+def _get_element_name(Z):
+    """
+    Return element name for a given atomic number.
+
+    .. note:: This function is simply a fast version of
+              plasmapy.particles.element_name and is only meant for
+              internal use.
+    """
+    return _ELEMENT_NAME_LOOKUP[Z]
