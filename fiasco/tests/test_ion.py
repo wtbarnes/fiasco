@@ -70,7 +70,9 @@ def test_new_instance(ion):
     abundance = ion._instance_kwargs['abundance']
     new_ion = ion._new_instance()
     for k in new_ion._instance_kwargs:
-        assert new_ion._instance_kwargs[k] == ion._instance_kwargs[k]
+        if k != 'proton_electron_ratio':
+            assert new_ion._instance_kwargs[k] == ion._instance_kwargs[k]
+    assert u.allclose(new_ion.proton_electron_ratio, ion.proton_electron_ratio, rtol=0)
     assert u.allclose(new_ion.temperature, ion.temperature, rtol=0)
     new_ion = ion._new_instance(temperature=ion.temperature[:1])
     assert u.allclose(new_ion.temperature, ion.temperature[:1])
@@ -194,7 +196,7 @@ def test_no_elvlc_raises_index_error(hdf5_dbase_root):
 def test_ionization_fraction(ion):
     t_data = ion._ion_fraction[ion._dset_names['ionization_fraction']]['temperature']
     ionization_data = ion._ion_fraction[ion._dset_names['ionization_fraction']]['ionization_fraction']
-    ion_at_nodes = ion._new_instance(temperature=t_data)
+    ion_at_nodes = ion._new_instance(temperature=t_data, proton_electron_ratio=1)
     assert u.allclose(ion_at_nodes.ionization_fraction, ionization_data, rtol=1e-6)
 
 
@@ -205,7 +207,7 @@ def test_ionization_fraction_positive(ion):
 def test_ionization_fraction_out_bounds_is_nan(ion):
     t_data = ion._ion_fraction[ion._dset_names['ionization_fraction']]['temperature']
     t_out_of_bounds = t_data[[0,-1]] + [-100, 1e6] * u.K
-    ion_out_of_bounds = ion._new_instance(temperature=t_out_of_bounds)
+    ion_out_of_bounds = ion._new_instance(temperature=t_out_of_bounds, proton_electron_ratio=1)
     assert np.isnan(ion_out_of_bounds.ionization_fraction).all()
 
 
@@ -230,9 +232,9 @@ def test_proton_collision(fe10):
 
 def test_missing_abundance(hdf5_dbase_root):
     _ion = fiasco.Ion('Li 1',
-                          temperature,
-                          abundance='sun_coronal_1992_feldman',
-                          hdf5_dbase_root=hdf5_dbase_root)
+                      temperature,
+                      abundance='sun_coronal_1992_feldman',
+                      hdf5_dbase_root=hdf5_dbase_root)
     with pytest.raises(MissingDatasetException):
         _ion.abundance
 
@@ -590,9 +592,7 @@ def test_proton_electron_ratio_setter(ion, value):
     ion.proton_electron_ratio = value
     assert ion.proton_electron_ratio.shape == ion.temperature.shape
     assert u.allclose(ion.proton_electron_ratio, value)
-    new_ion = fiasco.Ion(ion.ion_name,
-                         ion.temperature,
-                         proton_electron_ratio=value)
+    new_ion = ion._new_instance(proton_electron_ratio=value)
     assert new_ion.proton_electron_ratio.shape == new_ion.temperature.shape
     assert u.allclose(new_ion.proton_electron_ratio, value)
 
