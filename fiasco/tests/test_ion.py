@@ -196,7 +196,7 @@ def test_no_elvlc_raises_index_error(hdf5_dbase_root):
 def test_ionization_fraction(ion):
     t_data = ion._ion_fraction[ion._dset_names['ionization_fraction']]['temperature']
     ionization_data = ion._ion_fraction[ion._dset_names['ionization_fraction']]['ionization_fraction']
-    ion_at_nodes = ion._new_instance(temperature=t_data, proton_electron_ratio=1)
+    ion_at_nodes = ion._new_instance(temperature=t_data)
     assert u.allclose(ion_at_nodes.ionization_fraction, ionization_data, rtol=1e-6)
 
 
@@ -207,7 +207,7 @@ def test_ionization_fraction_positive(ion):
 def test_ionization_fraction_out_bounds_is_nan(ion):
     t_data = ion._ion_fraction[ion._dset_names['ionization_fraction']]['temperature']
     t_out_of_bounds = t_data[[0,-1]] + [-100, 1e6] * u.K
-    ion_out_of_bounds = ion._new_instance(temperature=t_out_of_bounds, proton_electron_ratio=1)
+    ion_out_of_bounds = ion._new_instance(temperature=t_out_of_bounds)
     assert np.isnan(ion_out_of_bounds.ionization_fraction).all()
 
 

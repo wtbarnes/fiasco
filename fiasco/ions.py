@@ -88,9 +88,14 @@ class Ion(IonBase):
         possibly different arguments. If different arguments are not
         specified, this will just create a copy of itself.
         """
+        new_kwargs = self._instance_kwargs
         if temperature is None:
             temperature = self.temperature.copy()
-        new_kwargs = self._instance_kwargs
+        else:
+            # If a new temperature array is specified, this could now be stale
+            # so we remove the old value and force it to be recomputed on the
+            # updated temperature array if a new value is not specified.
+            new_kwargs.pop('proton_electron_ratio', None)
         new_kwargs.update(kwargs)
         return type(self)(self.ion_name, temperature, **new_kwargs)
 
