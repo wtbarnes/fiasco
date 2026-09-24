@@ -1,0 +1,1 @@
+Added `fiasco.IonCollection.build_line_list` for building a table of the emission lines of every ion in a collection, optionally restricted to a wavelength range and a minimum abundance, with the contribution function of each line and, if a DEM model is given, its intensity.
