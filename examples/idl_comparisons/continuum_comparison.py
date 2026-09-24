@@ -65,7 +65,8 @@ def plot_idl_comparison(wavelength, temperature, result_fiasco, result_idl):
 # thermal bremsstrahlung.
 idl_result_freefree = read_idl_test_output('freefree_all_ions', LATEST_VERSION)
 ion_kwargs = {'abundance': idl_result_freefree['abundance'],
-              'ionization_fraction': idl_result_freefree['ionization_fraction']}
+              'ionization_fraction': idl_result_freefree['ionization_fraction'],
+              'proton_electron_ratio': 0.83}
 all_ions = [fiasco.Ion(ion_name, idl_result_freefree['temperature'], **ion_kwargs) for ion_name in fiasco.list_ions()]
 all_ions = fiasco.IonCollection(*all_ions)
 free_free = all_ions.free_free(idl_result_freefree['wavelength'])
@@ -83,7 +84,8 @@ print(idl_result_freefree['idl_script'])
 # continuum emission.
 idl_result_freebound = read_idl_test_output('freebound_all_ions', LATEST_VERSION)
 ion_kwargs = {'abundance': idl_result_freebound['abundance'],
-              'ionization_fraction': idl_result_freebound['ionization_fraction']}
+              'ionization_fraction': idl_result_freebound['ionization_fraction'],
+              'proton_electron_ratio': 0.83}
 all_ions = [fiasco.Ion(ion_name, idl_result_freebound['temperature'], **ion_kwargs) for ion_name in fiasco.list_ions()]
 all_ions = fiasco.IonCollection(*all_ions)
 free_bound = all_ions.free_bound(idl_result_freebound['wavelength'])
@@ -101,7 +103,8 @@ print(idl_result_freebound['idl_script'])
 # continuum emission.
 idl_result_twophoton = read_idl_test_output('twophoton_all_ions', LATEST_VERSION)
 ion_kwargs = {'abundance': idl_result_twophoton['abundance'],
-              'ionization_fraction': idl_result_twophoton['ionization_fraction']}
+              'ionization_fraction': idl_result_twophoton['ionization_fraction'],
+              'proton_electron_ratio': 0.83}
 all_ions = [fiasco.Ion(ion_name, idl_result_twophoton['temperature'], **ion_kwargs) for ion_name in fiasco.list_ions()]
 all_ions = fiasco.IonCollection(*all_ions)
 two_photon = all_ions.two_photon(idl_result_twophoton['wavelength'],

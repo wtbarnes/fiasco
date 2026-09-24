@@ -22,6 +22,9 @@ def ion_input_args():
     return {
         'abundance': 'sun_coronal_1992_feldman_ext',
         'ionization_fraction': 'chianti',
+        # NOTE: this isn't used anywhere in the continuum calculations
+        # so just set it to a scalar value for efficiency.
+        'proton_electron_ratio': 0.83,
     }
 
 
