@@ -89,7 +89,8 @@ def list_ions(hdf5_dbase_root=None, sort=True, base_rep=False):
     ion_list = ions.tolist() if isinstance(ions, np.ndarray) else ions
     if base_rep:
         # NOTE: Explicitly not using parse_ion_name here as it can be slow.
-        el_map = {el: plasmapy.particles.atomic_number(el) for el in list_elements(sort=False)}
+        elements = list_elements(hdf5_dbase_root=hdf5_dbase_root, sort=False)
+        el_map = {el: plasmapy.particles.atomic_number(el) for el in elements}
         ion_list = [(el_map[el], int(ion)) for el, ion in map(lambda x: x.split(), ion_list)]
     return ion_list
 
