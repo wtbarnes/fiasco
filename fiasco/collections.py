@@ -248,23 +248,20 @@ Available Ions
             table as well. The contribution function is interpolated (in :math:`\log T`)
             to the temperature bin centers of the model and summed over the bins; bins
             outside the temperature range of the collection contribute nothing.
-        couple_density_to_temperature: `bool`, optional
-            If True, the density will vary along the same axis as temperature.
-            See `fiasco.Ion.contribution_function`.
+        kwargs: `dict`, optional
+            Any keyword argument accepted by `fiasco.Ion.contribution_function`, such as
+            ``couple_density_to_temperature``, is passed through to it.
 
         Returns
         -------
         : `~astropy.table.QTable`
-            One row per transition with the columns ``element``, ``atomic_number``,
-            ``ion_name``, ``abundance``, ``ionization_potential``, ``wavelength``,
-            ``energy``, ``A``, ``upper_level``, ``lower_level``, ``upper_label``,
-            ``lower_label``, ``is_observed``, and ``contribution_function``, plus
-            ``intensity`` if ``emission_measure`` is
-            given. The ``contribution_function`` column has an entry of shape ``(l, m)``
-            per row, where ``l`` is the number of temperatures and ``m`` is the number of
-            densities (or 1 if ``couple_density_to_temperature=True``), and ``intensity``
-            has an entry of shape ``(m,)``. The temperature and density are stored in
-            the ``meta`` of the table.
+            One row per transition, with the properties of the transition and of the ion
+            it belongs to as columns. The ``contribution_function`` column has an entry
+            of shape ``(l, m)`` per row, where ``l`` is the number of temperatures and
+            ``m`` is the number of densities (or 1 if ``couple_density_to_temperature=True``),
+            and ``intensity``, present if ``emission_measure`` is given, has an entry of
+            shape ``(m,)``. The temperature, density, dataset names, and database and
+            fiasco versions are stored in the ``meta`` of the table.
 
         See Also
         --------
@@ -279,6 +276,7 @@ Available Ions
             log_temperature_dem = np.log10(emission_measure['temperature_bin_center'].to_value('K'))
             em = emission_measure['em']
         tables = []
+        included = []
         for ion in self:
             try:
                 abundance = ion.abundance
@@ -299,10 +297,6 @@ Available Ions
             except MissingDatasetException as e:
                 self.log.warning(f'{ion.ion_name} not included in line list. {e}')
                 continue
-            try:
-                ionization_potential = ion.ionization_potential
-            except MissingDatasetException:
-                ionization_potential = np.nan * u.eV
             # Put the transition axis first so that each row of the table holds the
             # contribution function of one transition
             g = np.moveaxis(g[..., in_range], -1, 0)
@@ -312,9 +306,9 @@ Available Ions
                 'atomic_number': [ion.atomic_number] * n_lines,
                 'ion_name': [ion.ion_name_roman] * n_lines,
                 'abundance': [abundance] * n_lines,
-                'ionization_potential': u.Quantity([ionization_potential] * n_lines),
+                'ionization_potential': u.Quantity([ion.ionization_potential] * n_lines),
                 'wavelength': wavelength[in_range],
-                'energy': wavelength[in_range].to('eV', equivalencies=u.spectral()),
+                'energy': transitions.delta_energy[is_bound_bound][in_range],
                 'A': transitions.A[is_bound_bound][in_range],
                 'upper_level': transitions.upper_level[is_bound_bound][in_range],
                 'lower_level': transitions.lower_level[is_bound_bound][in_range],
@@ -329,11 +323,18 @@ Available Ions
                 intensity = (g_dem * em[np.newaxis, :, np.newaxis]).sum(axis=1)
                 table['intensity'] = intensity / (4*np.pi*u.steradian)
             tables.append(table)
+            included.append(ion)
         if not tables:
             raise ValueError('No lines found for any ion in collection.')
         line_list = vstack(tables)
         line_list.meta['temperature'] = self.temperature
         line_list.meta['density'] = density
+        for key in ('abundance', 'ionization_fraction'):
+            # the name is None for an ion whose dataset was set to a value directly
+            names = sorted({ion._dset_names[key] for ion in included}, key=str)
+            line_list.meta[key] = names[0] if len(names) == 1 else names
+        line_list.meta['chianti_version'] = str(included[0]._elvlc.version)
+        line_list.meta['fiasco_version'] = fiasco.__version__
         return line_list
 
     @u.quantity_input
