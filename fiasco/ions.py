@@ -234,6 +234,8 @@ Using Datasets:
         if value is None:
             value = proton_electron_ratio(self.temperature, **self._instance_kwargs)
         self._proton_electron_ratio = u.Quantity(value*np.ones(self.temperature.shape))
+        self.__dict__.pop('_next_ion', None)
+        self.__dict__.pop('_previous_ion', None)
 
     def next_ion(self):
         """
@@ -304,6 +306,8 @@ Using Datasets:
             ionization_fraction = np.atleast_1d(ionization_fraction) * np.ones(self.temperature.shape)
             self._dset_names['ionization_fraction'] = None
             self._ionization_fraction = ionization_fraction
+        self.__dict__.pop('_next_ion', None)
+        self.__dict__.pop('_previous_ion', None)
 
     @staticmethod
     def _interpolate_ionization_fraction(temperature, temperature_data, ionization_data):
