@@ -7,7 +7,7 @@ import astropy.units as u
 import pathlib
 import plasmapy.particles
 
-from functools import lru_cache
+from functools import cache
 from packaging.version import Version
 from plasmapy.utils import roman
 
@@ -23,7 +23,7 @@ from fiasco.util.tools import _get_atomic_symbol, _get_element_name
 __all__ = ['IonBase']
 
 
-@lru_cache(maxsize=None)
+@cache
 def _ion_names_in_dbase(hdf5_dbase_root, mtime_ns, size):
     # Memoized set of available ion names per database file. The modification
     # time and size of the file are part of the key such that the cache is
@@ -31,7 +31,7 @@ def _ion_names_in_dbase(hdf5_dbase_root, mtime_ns, size):
     return frozenset(fiasco.list_ions(hdf5_dbase_root, sort=False))
 
 
-@lru_cache(maxsize=None)
+@cache
 def _dbase_fiasco_version(hdf5_dbase_root, mtime_ns, size):
     # Memoized fiasco version of the database file (see _ion_names_in_dbase)
     # to avoid opening the database on every ion instantiation.
@@ -73,8 +73,9 @@ class IonBase:
             # base rep is a tuple of integers (atomic_number, ionization_stage)
             self._base_rep = parse_ion_name(ion_name)
             check_database(self.hdf5_dbase_root, **kwargs)
-            stat = pathlib.Path(self.hdf5_dbase_root).stat()
-            if self.ion_name not in _ion_names_in_dbase(str(self.hdf5_dbase_root), stat.st_mtime_ns, stat.st_size):
+            path = pathlib.Path(self.hdf5_dbase_root).resolve()
+            stat = path.stat()
+            if self.ion_name not in _ion_names_in_dbase(str(path), stat.st_mtime_ns, stat.st_size):
                 raise MissingIonError(f'{self.ion_name} not found in {self.hdf5_dbase_root}')
             # Warn users if the database they are using is potentially stale.
             self._check_dbase_fiasco_version()
@@ -83,8 +84,9 @@ class IonBase:
 
     def _check_dbase_fiasco_version(self):
         "Warn if database was generated with an earlier version of fiasco."
-        stat = pathlib.Path(self.hdf5_dbase_root).stat()
-        dbase_version = _dbase_fiasco_version(str(self.hdf5_dbase_root), stat.st_mtime_ns, stat.st_size)
+        path = pathlib.Path(self.hdf5_dbase_root).resolve()
+        stat = path.stat()
+        dbase_version = _dbase_fiasco_version(str(path), stat.st_mtime_ns, stat.st_size)
         if dbase_version is not None:
             current_version = Version(fiasco.__version__)
             if dbase_version < current_version and not current_version.is_devrelease:

@@ -4,6 +4,7 @@ Test base ion functionality
 import h5py
 import logging
 import numpy as np
+import os
 import pytest
 
 from packaging.version import Version
@@ -73,3 +74,30 @@ def test_old_fiasco_version_warning(tmpdir_factory, caplog):
         assert caplog.text == ''
     else:
         assert 'was produced with an earlier version of fiasco' in caplog.text
+
+
+@pytest.mark.parametrize(('second_ion', 'second_version'), [
+    ('C 1', '0.9.0'),
+    ('H 1', '0.8.0'),
+])
+def test_database_cache_with_relative_paths(tmp_path, monkeypatch, caplog, second_ion, second_version):
+    monkeypatch.setattr(fiasco, '__version__', '0.9.0')
+    paths = []
+    for directory, ion_name, version in [('first', 'H 1', '0.9.0'), ('second', second_ion, second_version)]:
+        path = tmp_path / directory / 'dbase.h5'
+        path.parent.mkdir()
+        with h5py.File(path, 'w') as hf:
+            hf.attrs['fiasco_version'] = version
+            dataset = hf.create_dataset('ion_index', data=np.array([ion_name], dtype='S3'))
+            dataset.attrs['unit'] = 'SKIP'
+        os.utime(path, ns=(1_000_000_000, 1_000_000_000))
+        paths.append(path)
+    assert paths[0].stat().st_size == paths[1].stat().st_size
+    monkeypatch.chdir(paths[0].parent)
+    fiasco.base.IonBase('H 1', hdf5_dbase_root='dbase.h5')
+    monkeypatch.chdir(paths[1].parent)
+    caplog.clear()
+    with caplog.at_level(logging.WARN):
+        ion = fiasco.base.IonBase(second_ion, hdf5_dbase_root='dbase.h5')
+    assert ion.ion_name == second_ion
+    assert ('was produced with an earlier version' in caplog.text) == (second_version == '0.8.0')
