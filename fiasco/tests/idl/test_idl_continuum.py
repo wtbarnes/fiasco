@@ -97,6 +97,14 @@ def test_idl_compare_free_free(idl_env, all_ions, idl_input_args, dbase_version,
     assert u.allclose(free_free_python, idl_result['free_free'], atol=None, rtol=0.005)
 
 
+FREE_BOUND_XFAIL = (
+    "CHIANTI's freebound_ion.pro keeps a level only if the shortest requested wavelength reaches its "
+    "excitation energy, so from 25 Angstrom up IDL lacks recombination onto the excited levels of "
+    "42 ions; fiasco no longer does."
+)
+
+
+@pytest.mark.xfail(strict=True, reason=FREE_BOUND_XFAIL)
 def test_idl_compare_free_bound(idl_env, all_ions, idl_input_args, dbase_version, chianti_idl_version):
     script = """
     {% if chianti_idl_version | version_check('<', 9) %}
@@ -141,6 +149,7 @@ def test_idl_compare_free_bound(idl_env, all_ions, idl_input_args, dbase_version
     assert u.allclose(free_bound_python, idl_result['free_bound'], atol=None, rtol=0.005)
 
 
+@pytest.mark.xfail(strict=True, reason=FREE_BOUND_XFAIL)
 def test_idl_compare_free_bound_ion(idl_env, all_ions, idl_input_args, dbase_version, chianti_idl_version):
     script = """
     ; set temperature and wavelength
