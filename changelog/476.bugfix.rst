@@ -1,0 +1,1 @@
+`Ion.free_bound` no longer drops levels whose excitation energy is above the most energetic photon in the requested wavelengths; the result no longer depends on the wavelength range. From 25 Å up, 42 ions gain levels that emit in range: the H-like and He-like ions from nitrogen up, and higher-n levels of Li-like to Ne-like ions from sulphur up.
