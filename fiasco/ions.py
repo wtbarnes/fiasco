@@ -1847,8 +1847,9 @@ Using Datasets:
                                          level_fb):
             # Energy required to ionize ion from level i
             E_ionize = self.ionization_potential - E
-            # Check if ionization potential and photon energy sufficient
-            if (E_ionize < 0*u.erg) or (E_photon.max() < E):
+            # Levels above the ionization potential cannot be recombined onto. Below their edges
+            # the cross-sections are zero, so the requested wavelengths need no check here.
+            if E_ionize < 0*u.erg:
                 continue
             # Only use Verner cross-section for ground state
             if level == 1 and use_verner:

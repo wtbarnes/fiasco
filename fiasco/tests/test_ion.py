@@ -447,6 +447,17 @@ def test_free_bound(ion):
     assert u.allclose(emission[0, 0], 9.79e-26 * u.cm**3 * u.erg / u.Angstrom / u.s, rtol=1e-2)
 
 
+def test_free_bound_independent_of_wavelength_range(c6):
+    # Recombination onto an excited level emits at every wavelength shortward of that level's own
+    # ionization edge, so a wavelength range whose photons cannot reach the level's excitation
+    # energy must not drop it. For C VI, 50-200 Angstrom cannot reach any excited level (n=2 at
+    # 367 eV and above) but their edges all lie longward of 100 Angstrom (n=2 at 101, n=3 at 228).
+    narrow = c6.free_bound([50, 200] * u.Angstrom)
+    wide = c6.free_bound([1, 50, 200] * u.Angstrom)[:, 1:]
+    assert u.allclose(narrow, wide, rtol=1e-12)
+    assert np.all(narrow > 0 * narrow.unit)
+
+
 def test_free_bound_radiative_loss(ion, h1):
     assert ion.free_bound_radiative_loss().shape == ion.temperature.shape
     assert u.allclose(h1.free_bound_radiative_loss(), 0.0 * u.erg * u.cm**3 / u.s)
