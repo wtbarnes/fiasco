@@ -261,7 +261,7 @@ def test_build_line_list_minimum_abundance(line_list_collection):
     # Selecting by abundance removes iron. H II passes the abundance cut but has no
     # transitions, so it is never in the line list.
     line_list = line_list_collection.build_line_list(line_list_density, minimum_abundance=1e-3)
-    assert set(line_list['ion_name']) == {'H I'}
+    assert set(line_list['ion name']) == {'H I'}
 
 
 @pytest.mark.requires_dbase_version('>= 8')
