@@ -447,6 +447,21 @@ def test_free_bound(ion):
     assert u.allclose(emission[0, 0], 9.79e-26 * u.cm**3 * u.erg / u.Angstrom / u.s, rtol=1e-2)
 
 
+def test_free_bound_edge_behavior(ion):
+    # This tests that the free bound continuum is zero at wavelengths that are above all of the
+    # ionization edges and non-zero when below at least one of the ionization edges
+    E_fblvl = np.where(np.logical_and(ion._fblvl['E_obs']==0, ion._fblvl['level']>1),
+                       ion._fblvl['E_th'],
+                       ion._fblvl['E_obs'])
+    E_ionize = ion.ionization_potential - E_fblvl.to('erg', equivalencies=u.spectral())
+    w_above = (E_ionize.max()*1.01).to('Angstrom', equivalencies=u.spectral())
+    emission = ion.free_bound(w_above)
+    assert (emission.squeeze() > 0).all()
+    w_below = (E_ionize.min()*0.99).to('Angstrom', equivalencies=u.spectral())
+    emission = ion.free_bound(w_below)
+    assert (emission.squeeze() == 0).all()
+
+
 def test_free_bound_radiative_loss(ion, h1):
     assert ion.free_bound_radiative_loss().shape == ion.temperature.shape
     assert u.allclose(h1.free_bound_radiative_loss(), 0.0 * u.erg * u.cm**3 / u.s)
