@@ -281,7 +281,7 @@ def test_build_line_list_wavelength_range(line_list_collection):
     line_list = line_list_collection.build_line_list(line_list_density, wavelength_range=wavelength_range)
     assert np.all(line_list['wavelength'] >= wavelength_range[0])
     assert np.all(line_list['wavelength'] <= wavelength_range[1])
-    assert 'H I' in set(line_list['ion_name'])
+    assert 'H I' in set(line_list['ion name'])
 
 
 @pytest.mark.requires_dbase_version('>= 8')
