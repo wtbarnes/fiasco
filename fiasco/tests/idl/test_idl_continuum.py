@@ -97,6 +97,10 @@ def test_idl_compare_free_free(idl_env, all_ions, idl_input_args, dbase_version,
     assert u.allclose(free_free_python, idl_result['free_free'], atol=None, rtol=0.005)
 
 
+# TODO: Mark as conditionally run once a version of the IDL code is released that includes this fix
+# This could either replace the v11.0 data that are used or could just include it in the v11.1 version to
+# test against.
+@pytest.mark.xfail(strict=True, reason='There is a bug in CHIANTI IDL <11.0.1 in choosing which levels are excluded in the free-bound calculation.')
 def test_idl_compare_free_bound(idl_env, all_ions, idl_input_args, dbase_version, chianti_idl_version):
     script = """
     {% if chianti_idl_version | version_check('<', 9) %}
@@ -141,6 +145,10 @@ def test_idl_compare_free_bound(idl_env, all_ions, idl_input_args, dbase_version
     assert u.allclose(free_bound_python, idl_result['free_bound'], atol=None, rtol=0.005)
 
 
+# TODO: Mark as conditionally run once a version of the IDL code is released that includes this fix
+# This could either replace the v11.0 data that are used or could just include it in the v11.1 version to
+# test against.
+@pytest.mark.xfail(strict=True, reason='There is a bug in CHIANTI IDL <11.0.1 in choosing which levels are excluded in the free-bound calculation.')
 def test_idl_compare_free_bound_ion(idl_env, all_ions, idl_input_args, dbase_version, chianti_idl_version):
     script = """
     ; set temperature and wavelength

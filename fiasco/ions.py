@@ -1848,7 +1848,7 @@ Using Datasets:
             # Energy required to ionize ion from level i
             E_ionize = self.ionization_potential - E
             # Check if ionization potential and photon energy sufficient
-            if (E_ionize < 0*u.erg) or (E_photon.max() < E):
+            if (E_ionize < 0*u.erg) or (E_photon.max() < E_ionize):
                 continue
             # Only use Verner cross-section for ground state
             if level == 1 and use_verner:
