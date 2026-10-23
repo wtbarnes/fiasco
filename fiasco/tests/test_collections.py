@@ -239,7 +239,7 @@ def test_build_line_list_levels(line_list, line_list_collection):
 @pytest.mark.requires_dbase_version('>= 8')
 def test_build_line_list_contribution_function(line_list, line_list_collection):
     _, fe5, _ = line_list_collection
-    assert line_list['contribution_function'].shape == (len(line_list), temperature.shape[0], 1)
+    assert line_list['contribution function'].shape == (len(line_list), temperature.shape[0], 1)
     g_fe5 = fe5.contribution_function(line_list_density)
     assert u.allclose(line_list['contribution_function'][line_list['ion_name'] == 'Fe V'],
                       np.moveaxis(g_fe5, -1, 0))
