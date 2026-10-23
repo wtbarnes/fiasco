@@ -2,6 +2,7 @@
 Test collection functionality
 """
 import astropy.units as u
+import logging
 import numpy as np
 import pytest
 
@@ -196,6 +197,109 @@ def test_spectrum(hdf5_dbase_root):
     w2, spec2 = c.spectrum(density, em)
     assert spec2.shape == (1, 1, ) + w2.shape
     assert np.all(spec == spec2)
+
+
+line_list_density = 1e9 * u.cm**-3
+
+
+@pytest.fixture
+def line_list_collection(hdf5_dbase_root):
+    h1 = fiasco.Ion('H 1', temperature, hdf5_dbase_root=hdf5_dbase_root)
+    fe5 = fiasco.Ion('Fe 5', temperature, hdf5_dbase_root=hdf5_dbase_root)
+    # H 2 has no transition data and should be skipped
+    h2 = fiasco.Ion('H 2', temperature, hdf5_dbase_root=hdf5_dbase_root)
+    return h1 + fe5 + h2
+
+
+@pytest.fixture
+def line_list(line_list_collection):
+    return line_list_collection.build_line_list(line_list_density)
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_build_line_list_rows(line_list, line_list_collection):
+    h1, fe5, _ = line_list_collection
+    n_h1 = h1.transitions.is_bound_bound.sum()
+    n_fe5 = fe5.transitions.is_bound_bound.sum()
+    assert len(line_list) == n_h1 + n_fe5
+    assert set(line_list['ion name']) == {'H I', 'Fe V'}
+    assert 'intensity' not in line_list.colnames
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_build_line_list_levels(line_list, line_list_collection):
+    _, fe5, _ = line_list_collection
+    is_fe5 = line_list['ion name'] == 'Fe V'
+    assert np.array_equal(line_list['upper level'][is_fe5],
+                          fe5.transitions.upper_level[fe5.transitions.is_bound_bound])
+    assert np.all(line_list['upper level'] > line_list['lower level'])
+    assert np.all(line_list['energy'] > 0 * u.eV)
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_build_line_list_contribution_function(line_list, line_list_collection):
+    _, fe5, _ = line_list_collection
+    assert line_list['contribution function'].shape == (len(line_list), temperature.shape[0], 1)
+    g_fe5 = fe5.contribution_function(line_list_density)
+    assert u.allclose(line_list['contribution function'][line_list['ion name'] == 'Fe V'],
+                      np.moveaxis(g_fe5, -1, 0))
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_build_line_list_meta(line_list, line_list_collection):
+    h1, _, _ = line_list_collection
+    assert u.allclose(line_list.meta['temperature'], temperature)
+    assert u.allclose(line_list.meta['density'], line_list_density)
+    assert line_list.meta['abundance'] == h1._dset_names['abundance']
+    assert line_list.meta['ionization_fraction'] == h1._dset_names['ionization_fraction']
+    assert line_list.meta['chianti_version'] == str(h1._elvlc.version)
+    assert line_list.meta['fiasco_version'] == fiasco.__version__
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_build_line_list_minimum_abundance(line_list_collection):
+    # Selecting by abundance removes iron. H II passes the abundance cut but has no
+    # transitions, so it is never in the line list.
+    line_list = line_list_collection.build_line_list(line_list_density, minimum_abundance=1e-3)
+    assert set(line_list['ion name']) == {'H I'}
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_build_line_list_skipped_ions_logged(line_list_collection, caplog):
+    with caplog.at_level(logging.INFO, logger='fiasco'):
+        line_list_collection.build_line_list(line_list_density, minimum_abundance=1e-3)
+    assert 'Fe 5 not included in line list. Abundance' in caplog.text
+    caplog.clear()
+    with caplog.at_level(logging.INFO, logger='fiasco'):
+        line_list_collection.build_line_list(line_list_density, wavelength_range=[1215, 1216] * u.angstrom)
+    assert 'Fe 5 not included in line list. No transitions between' in caplog.text
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_build_line_list_wavelength_range(line_list_collection):
+    wavelength_range = [900, 1300] * u.angstrom
+    line_list = line_list_collection.build_line_list(line_list_density, wavelength_range=wavelength_range)
+    assert np.all(line_list['wavelength'] >= wavelength_range[0])
+    assert np.all(line_list['wavelength'] <= wavelength_range[1])
+    assert 'H I' in set(line_list['ion name'])
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_build_line_list_intensity(hdf5_dbase_root):
+    fe5 = fiasco.Ion('Fe 5', temperature, hdf5_dbase_root=hdf5_dbase_root)
+    c = fiasco.IonCollection(fe5)
+    density = [1e9, 1e10] * u.cm**-3
+    dem = fiasco.get_dem_model('quiet_sun', hdf5_dbase_root=hdf5_dbase_root)
+    line_list = c.build_line_list(density, emission_measure=dem)
+    assert line_list['intensity'].shape == (len(line_list), 2)
+    assert line_list['intensity'].unit.is_equivalent(u.erg / u.cm**2 / u.s / u.steradian)
+    assert np.all(line_list['intensity'] >= 0)
+
+
+def test_build_line_list_no_valid_ions(hdf5_dbase_root):
+    c = fiasco.IonCollection(fiasco.Ion('H 2', temperature, hdf5_dbase_root=hdf5_dbase_root))
+    with pytest.raises(ValueError, match='No lines found for any ion in collection.'):
+        c.build_line_list(1e9 * u.cm**-3)
 
 
 def test_spectrum_no_valid_ions(hdf5_dbase_root):

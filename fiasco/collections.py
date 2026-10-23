@@ -6,6 +6,8 @@ import numpy as np
 
 from astropy.convolution import convolve, Model1DKernel
 from astropy.modeling.models import Gaussian1D
+from astropy.table import QTable, vstack
+from scipy.interpolate import interp1d
 
 import fiasco
 
@@ -213,6 +215,133 @@ Available Ions
             else:
                 two_photon += tp * ion.abundance * ion.ionization_fraction[:, np.newaxis, np.newaxis]
         return two_photon
+
+    @u.quantity_input
+    def build_line_list(self,
+                        density: u.cm**(-3),
+                        minimum_abundance=0,
+                        wavelength_range: u.angstrom = None,
+                        emission_measure=None,
+                        **kwargs):
+        r"""
+        Build a table of the emission lines of all ions in the collection.
+
+        Each row of the table is one bound-bound transition of one ion in the
+        collection, together with the contribution function of that transition
+        as a function of temperature and density. Ions without the data needed to
+        compute the contribution function are skipped with a warning.
+
+        Parameters
+        ----------
+        density: `~astropy.units.Quantity`
+            Electron number density used to compute the contribution function.
+        minimum_abundance: `float`, optional
+            Ions of elements with an abundance below this value are not included.
+        wavelength_range: `~astropy.units.Quantity`, optional
+            Two-element quantity giving the lower and upper bounds on the wavelengths of
+            transitions to include. Ions with no transition in this range are skipped.
+            Default is to include all transitions.
+        emission_measure: `~astropy.table.QTable`, optional
+            Differential emission measure model in the form returned by
+            `fiasco.get_dem_model`, with ``temperature_bin_center`` and ``em`` columns.
+            If given, the line-of-sight intensity of each transition is included in the
+            table as well. The contribution function is interpolated (in :math:`\log T`)
+            to the temperature bin centers of the model and summed over the bins; bins
+            outside the temperature range of the collection contribute nothing.
+        kwargs: `dict`, optional
+            Any keyword argument accepted by `fiasco.Ion.contribution_function`, such as
+            ``couple_density_to_temperature``, is passed through to it.
+
+        Returns
+        -------
+        : `~astropy.table.QTable`
+            One row per transition, with the properties of the transition and of the ion
+            it belongs to as columns. The ``contribution_function`` column has an entry
+            of shape ``(l, m)`` per row, where ``l`` is the number of temperatures and
+            ``m`` is the number of densities (or 1 if ``couple_density_to_temperature=True``),
+            and ``intensity``, present if ``emission_measure`` is given, has an entry of
+            shape ``(m,)``. The temperature, density, dataset names, and database and
+            fiasco versions are stored in the ``meta`` of the table.
+
+        See Also
+        --------
+        fiasco.Ion.contribution_function
+        fiasco.get_dem_model
+        """
+        density = np.atleast_1d(density)
+        if wavelength_range is None:
+            wavelength_range = u.Quantity([0, np.inf], 'angstrom')
+        if emission_measure is not None:
+            log_temperature = np.log10(self.temperature.to_value('K'))
+            log_temperature_dem = np.log10(emission_measure['temperature_bin_center'].to_value('K'))
+            em = emission_measure['em']
+        tables = []
+        included = []
+        for ion in self:
+            try:
+                abundance = ion.abundance
+                transitions = ion.transitions
+            except MissingDatasetException as e:
+                self.log.warning(f'{ion.ion_name} not included in line list. {e}')
+                continue
+            if abundance < minimum_abundance:
+                self.log.info(f'{ion.ion_name} not included in line list. '
+                              f'Abundance {abundance:.3g} is below minimum_abundance={minimum_abundance:.3g}.')
+                continue
+            is_bound_bound = transitions.is_bound_bound
+            wavelength = transitions.wavelength[is_bound_bound]
+            in_range = np.logical_and(wavelength >= wavelength_range[0],
+                                      wavelength <= wavelength_range[1])
+            if not in_range.any():
+                self.log.info(f'{ion.ion_name} not included in line list. '
+                              f'No transitions between {wavelength_range[0]:.3f} and {wavelength_range[1]:.3f}.')
+                continue
+            try:
+                g = ion.contribution_function(density, **kwargs)
+            except MissingDatasetException as e:
+                self.log.warning(f'{ion.ion_name} not included in line list. {e}')
+                continue
+            # Put the transition axis first so that each row of the table holds the
+            # contribution function of one transition
+            g = np.moveaxis(g[..., in_range], -1, 0)
+            n_lines = in_range.sum()
+            table = QTable({
+                'element': [ion.atomic_symbol] * n_lines,
+                'atomic number': [ion.atomic_number] * n_lines,
+                'ion name': [ion.ion_name_roman] * n_lines,
+                'abundance': [abundance] * n_lines,
+                'ionization potential': u.Quantity([ion.ionization_potential] * n_lines),
+                'wavelength': wavelength[in_range],
+                'energy': transitions.delta_energy[is_bound_bound][in_range],
+                'A': transitions.A[is_bound_bound][in_range],
+                'upper level': transitions.upper_level[is_bound_bound][in_range],
+                'lower level': transitions.lower_level[is_bound_bound][in_range],
+                'upper label': transitions.upper_label[is_bound_bound][in_range],
+                'lower label': transitions.lower_label[is_bound_bound][in_range],
+                'is observed': transitions.is_observed[is_bound_bound][in_range],
+                'contribution function': g,
+            })
+            if emission_measure is not None:
+                f_interp = interp1d(log_temperature, g.value, axis=1, bounds_error=False, fill_value=0.0)
+                g_dem = f_interp(log_temperature_dem) * g.unit
+                intensity = (g_dem * em[np.newaxis, :, np.newaxis]).sum(axis=1)
+                table['intensity'] = intensity / (4*np.pi*u.steradian)
+            tables.append(table)
+            included.append(ion)
+        if not tables:
+            raise ValueError('No lines found for any ion in collection.')
+        line_list = vstack(tables)
+        line_list.meta['temperature'] = self.temperature
+        line_list.meta['density'] = density
+        # Each ion in a collection can use its own abundance and ionization fraction
+        # datasets, so record the names from the ions that made it into the table.
+        # The name is None for an ion whose dataset was set to a value directly.
+        for key in ('abundance', 'ionization_fraction'):
+            names = sorted({ion._dset_names[key] for ion in included}, key=str)
+            line_list.meta[key] = names[0] if len(names) == 1 else names
+        line_list.meta['chianti_version'] = str(included[0]._elvlc.version)
+        line_list.meta['fiasco_version'] = fiasco.__version__
+        return line_list
 
     @u.quantity_input
     def spectrum(self, density: u.cm**(-3), emission_measure: u.cm**(-5), wavelength_range=None,
