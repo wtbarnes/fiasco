@@ -307,19 +307,19 @@ Available Ions
             n_lines = in_range.sum()
             table = QTable({
                 'element': [ion.atomic_symbol] * n_lines,
-                'atomic_number': [ion.atomic_number] * n_lines,
-                'ion_name': [ion.ion_name_roman] * n_lines,
+                'atomic number': [ion.atomic_number] * n_lines,
+                'ion name': [ion.ion_name_roman] * n_lines,
                 'abundance': [abundance] * n_lines,
-                'ionization_potential': u.Quantity([ion.ionization_potential] * n_lines),
+                'ionization potential': u.Quantity([ion.ionization_potential] * n_lines),
                 'wavelength': wavelength[in_range],
                 'energy': transitions.delta_energy[is_bound_bound][in_range],
                 'A': transitions.A[is_bound_bound][in_range],
-                'upper_level': transitions.upper_level[is_bound_bound][in_range],
-                'lower_level': transitions.lower_level[is_bound_bound][in_range],
-                'upper_label': transitions.upper_label[is_bound_bound][in_range],
-                'lower_label': transitions.lower_label[is_bound_bound][in_range],
-                'is_observed': transitions.is_observed[is_bound_bound][in_range],
-                'contribution_function': g,
+                'upper level': transitions.upper_level[is_bound_bound][in_range],
+                'lower level': transitions.lower_level[is_bound_bound][in_range],
+                'upper label': transitions.upper_label[is_bound_bound][in_range],
+                'lower label': transitions.lower_label[is_bound_bound][in_range],
+                'is observed': transitions.is_observed[is_bound_bound][in_range],
+                'contribution function': g,
             })
             if emission_measure is not None:
                 f_interp = interp1d(log_temperature, g.value, axis=1, bounds_error=False, fill_value=0.0)
