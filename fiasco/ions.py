@@ -2036,7 +2036,6 @@ Using Datasets:
         """
         wavelength = np.atleast_1d(wavelength)
         electron_density = np.atleast_1d(electron_density)
-
         final_shape = self.temperature.shape + electron_density.shape + wavelength.shape
         couple_density_to_temperature = kwargs.setdefault('couple_density_to_temperature', False)
         if couple_density_to_temperature:
@@ -2054,8 +2053,9 @@ Using Datasets:
         else:
             return u.Quantity(np.zeros(final_shape),  'erg cm^3 s^-1 Angstrom^-1')
         level_index = np.where(self.levels.label==label)
+        if level_index[0].shape != (1,):
+            raise ValueError(f'Multiple levels {self.levels.level[level_index]} for label {label}.')
         rest_wavelength = self.levels.energy[level_index].to('AA', equivalencies=u.equivalencies.spectral())
-
         # NOTE: Explicitly setting the boundary condition type here to match the behavior of the
         # IDL spline interpolation functions. See https://github.com/wtbarnes/fiasco/pull/297 for
         # additional details.
@@ -2063,18 +2063,18 @@ Using Datasets:
         x_new = (rest_wavelength / wavelength).decompose().to_value(u.dimensionless_unscaled)
         psi_interp = cubic_spline(x_new)
         psi_interp = np.where(x_new>1.0, 0.0, psi_interp)
-
         energy_dist = (A_ji * rest_wavelength * psi_interp) / (psi_norm * wavelength**3)
         # NOTE: There are known issues when including the proton rates here for some ions so these
         # are excluded by default. See https://github.com/wtbarnes/fiasco/pull/260#issuecomment-1955770878
         # for more details.
         kwargs.setdefault('include_protons', False)
         level_population = self.level_populations(electron_density, **kwargs)
-        level_population = level_population[..., self.levels[level_index].level-1]
-
+        # NOTE: This is necessary as the level population grid is not necessarily the same as self.levels.level
+        # NOTE: Ensure idx is a scalar so that level_population is always 2D
+        idx = np.where(np.arange(1, self.n_levels+1, 1)==self.levels.level[level_index])[0][0]
+        level_population = level_population[..., idx]
         if couple_density_to_temperature:
             electron_density = electron_density[:, np.newaxis]
         level_density = level_population / electron_density
         matrix = np.outer(level_density, energy_dist).reshape(final_shape)
-
         return const.h * const.c * matrix
