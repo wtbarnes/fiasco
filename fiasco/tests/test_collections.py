@@ -229,7 +229,7 @@ def test_build_line_list_rows(line_list, line_list_collection):
 @pytest.mark.requires_dbase_version('>= 8')
 def test_build_line_list_levels(line_list, line_list_collection):
     _, fe5, _ = line_list_collection
-    is_fe5 = line_list['ion_name'] == 'Fe V'
+    is_fe5 = line_list['ion name'] == 'Fe V'
     assert np.array_equal(line_list['upper_level'][is_fe5],
                           fe5.transitions.upper_level[fe5.transitions.is_bound_bound])
     assert np.all(line_list['upper_level'] > line_list['lower_level'])
