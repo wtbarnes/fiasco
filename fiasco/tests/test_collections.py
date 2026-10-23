@@ -222,7 +222,7 @@ def test_build_line_list_rows(line_list, line_list_collection):
     n_h1 = h1.transitions.is_bound_bound.sum()
     n_fe5 = fe5.transitions.is_bound_bound.sum()
     assert len(line_list) == n_h1 + n_fe5
-    assert set(line_list['ion_name']) == {'H I', 'Fe V'}
+    assert set(line_list['ion name']) == {'H I', 'Fe V'}
     assert 'intensity' not in line_list.colnames
 
 
