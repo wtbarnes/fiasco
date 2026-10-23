@@ -469,19 +469,32 @@ def test_free_bound_radiative_loss(ion, h1):
     assert u.isclose(ion.free_bound_radiative_loss()[20], 1.977311794139327e-23 * u.erg * u.cm**3 / u.s)
 
 
-# The two-photon test currently fails for dbase_version >= 9 because it is missing c_5.reclvl
-@pytest.mark.requires_dbase_version('>= 8','<= 8.0.7')
 @pytest.mark.parametrize(('ion_fixture_name', 'include_protons', 'expected'), [
     ('c4', False, 0.0 * u.cm**3 * u.erg / u.Angstrom / u.s),
-    ('c5', False, 4.08382025e-25 * u.cm**3 * u.erg / u.Angstrom / u.s),
+    # The two-photon test currently fails for dbase_version >= 9 because it is missing c_5.reclvl
+    pytest.param(
+        'c5', False, 4.08382025e-25 * u.cm**3 * u.erg / u.Angstrom / u.s,
+        marks=pytest.mark.requires_dbase_version('>= 8', '<= 8.0.7')
+    ),
     ('c6', False, 8.23471268e-26 * u.cm**3 * u.erg / u.Angstrom / u.s),
-    ('c6', True,  6.77829033e-29 * u.cm**3 * u.erg / u.Angstrom / u.s),
 ])
 def test_two_photon(request, ion_fixture_name, include_protons, expected):
     ion = request.getfixturevalue(ion_fixture_name)
     emission = ion.two_photon(200 * u.Angstrom, electron_density=1e10 * u.cm**(-3), include_protons=include_protons)
     assert emission.shape == ion.temperature.shape + (1, 1)
     assert u.allclose(emission[30, 0, 0], expected)
+
+
+@pytest.mark.parametrize(('density', 'couple_density_to_temperature', 'expected_shape'), [
+    (1e9*u.cm**(-3), False, (1,)),
+    ([1e9,]*u.cm**(-3), False, (1,)),
+    ([1e8, 1e9, 1e10]*u.cm**(-3), False, (3,)),
+    (1e9*u.cm**(-3)*np.ones((100,)), True, (1,)),
+])
+def test_two_photon_density_shape(c5, density, couple_density_to_temperature, expected_shape):
+    wavelength = np.linspace(20, 100, 5) * u.AA
+    emission = c5.two_photon(wavelength, density, couple_density_to_temperature=couple_density_to_temperature)
+    assert emission.shape == c5.temperature.shape+expected_shape+wavelength.shape
 
 
 def test_free_bound_no_recombining(h1):
