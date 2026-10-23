@@ -90,7 +90,7 @@ def test_idl_compare_free_free(idl_env, all_ions, idl_input_args, dbase_version,
                                 'freefree_all_ions',
                                 dbase_version,
                                 chianti_idl_version,
-                                format_func={'free_free': lambda x: x/1e40*u.Unit('erg cm3 s-1 Angstrom-1')})
+                                format_func={'free_free': lambda x: x*4*np.pi/1e40*u.Unit('erg cm3 s-1 Angstrom-1')})
 
     free_free_python = all_ions.free_free(idl_result['wavelength'])
     # Compare IDL and Python calculation
