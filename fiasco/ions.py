@@ -224,6 +224,20 @@ Using Datasets:
         return is_meta
 
     @property
+    def _n_levels_metastable(self):
+        # Number of metastable levels. This is used in the density-dependent rate calculations
+        # for the ions with so-called "advanced models". It is used only in a limited context
+        # so it is made private. This first tries to determine the number of metastable levels
+        # from the level-resolved recombination data and if unavailable uses an approximation
+        # for determining which levels are metastable.
+        if self._has_dataset('rrcoeffs'):
+            n_meta = self._rrcoeffs['level'].shape[0]
+        else:
+            is_dipole = ~self._is_level_metastable
+            n_meta = is_dipole.shape[0] if not is_dipole.any() else np.where(is_dipole)[0][0]
+        return n_meta
+
+    @property
     def n_transitions(self):
         """
         Number of transitions in the CHIANTI model
@@ -1525,14 +1539,17 @@ Using Datasets:
         """
         # FIXME: This is copied directly from the IDL implementation. I am not sure where these
         # numbers come from though is related to the filling rules for orbitals.
-        electrons_eff = [1, 2, 1, 2,  1, 2, 3, 4, 5, 6, 1, 2, 1, 2, 3, 4]
+        electrons_eff = [1, 2, 1, 2, 1, 2, 3, 4, 5, 6, 1, 2, 1, 2, 3, 4]
         electrons_eff = electrons_eff[self.atomic_number-self.ionization_stage]
         const = 2.3 * 2.1715e-8 * u.Unit('cm3 s-1')
         ip = self.ionization_potential if ip is None else ip
         kt_ip = self.thermal_energy / ip
+        # Eq 3
         beta = (np.sqrt((100*self.charge_state + 91)/(4*self.charge_state + 3)) - 5)/4
+        # Eq 7
         w = (np.log(1 + kt_ip))**(beta / (1 + kt_ip))
         exp_int = scipy.special.exp1(1/kt_ip.decompose().value)
+        # Eq 6
         return const*electrons_eff*((1*u.Ry)/ip)**(3/2)/np.sqrt(kt_ip)*w*exp_int
 
     @u.quantity_input(density=u.cm**(-3))
