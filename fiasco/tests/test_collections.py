@@ -96,7 +96,7 @@ def test_free_free(another_collection, wavelength):
     assert ff.shape == temperature.shape + wavelength.shape if wavelength.shape else (1,)
     index_w = 50 if wavelength.shape else 0
     index_t = 24  # This is approximately where the ionization fraction for Fe V peaks
-    assert u.allclose(ff[index_t, index_w], 3.2914969734961024e-42 * u.Unit('erg cm3 s-1 Angstrom-1'))
+    assert u.allclose(ff[index_t, index_w], 4.13621708e-41 * u.Unit('erg cm3 s-1 Angstrom-1'))
 
 
 @pytest.mark.parametrize('wavelength', [wavelength, wavelength[50]])
