@@ -1,6 +1,7 @@
 """
 Tests for util functions
 """
+import numpy as np
 import packaging.version
 import pytest
 
@@ -41,3 +42,9 @@ def test_get_chianti_catalog(ascii_dbase_root):
 def test_chianti_version(ascii_dbase_root):
     version = read_chianti_version(ascii_dbase_root)
     assert isinstance(version, packaging.version.Version)
+
+
+def test_parse_ion_name_cache_preserves_input_type_validation():
+    assert parse_ion_name((np.int64(26), 21)) == (26, 21)
+    with pytest.raises(TypeError):
+        parse_ion_name((26.0, 21))

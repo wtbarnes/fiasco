@@ -625,6 +625,30 @@ def test_proton_electron_ratio_setter(ion, value):
     assert u.allclose(new_ion.proton_electron_ratio, value)
 
 
+@pytest.mark.requires_dbase_version('>= 9')
+def test_two_ion_matrix_after_changing_proton_electron_ratio(c5):
+    ion = c5._new_instance(temperature=c5.temperature[:2], proton_electron_ratio=0.83)
+    density = [1e9] * u.cm**-3
+    before = ion._build_two_ion_coefficient_matrix(density, include_protons=True)
+    ion.proton_electron_ratio = 0.0
+    after = ion._build_two_ion_coefficient_matrix(density, include_protons=True)
+    expected = ion._new_instance()._build_two_ion_coefficient_matrix(density, include_protons=True)
+    np.testing.assert_array_equal(after, expected)
+    assert np.any(before != after)
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_level_populations_after_changing_ionization_fraction(fe20):
+    ion = fe20._new_instance(temperature=[1e7, 1.5e7] * u.K)
+    density = [1e9] * u.cm**-3
+    before = ion.level_populations(density, use_two_ion_model=False)
+    ion.ionization_fraction = 0.123 * u.dimensionless_unscaled
+    after = ion.level_populations(density, use_two_ion_model=False)
+    expected = ion._new_instance().level_populations(density, use_two_ion_model=False)
+    np.testing.assert_array_equal(after, expected)
+    assert np.any(before != after)
+
+
 @pytest.mark.requires_dbase_version('>= 8')
 def test_emissivity_uses_proton_electron_ratio(ion):
     # Setting the ratio to 0 should zero the emissivity, which is only the case
