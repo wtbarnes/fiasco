@@ -2,6 +2,7 @@
 Test collection functionality
 """
 import astropy.units as u
+import logging
 import numpy as np
 import pytest
 
@@ -257,9 +258,21 @@ def test_build_line_list_meta(line_list, line_list_collection):
 
 @pytest.mark.requires_dbase_version('>= 8')
 def test_build_line_list_minimum_abundance(line_list_collection):
-    # Selecting by abundance removes iron
+    # Selecting by abundance removes iron. H II passes the abundance cut but has no
+    # transitions, so it is never in the line list.
     line_list = line_list_collection.build_line_list(line_list_density, minimum_abundance=1e-3)
     assert set(line_list['ion_name']) == {'H I'}
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_build_line_list_skipped_ions_logged(line_list_collection, caplog):
+    with caplog.at_level(logging.INFO, logger='fiasco'):
+        line_list_collection.build_line_list(line_list_density, minimum_abundance=1e-3)
+    assert 'Fe 5 not included in line list. Abundance' in caplog.text
+    caplog.clear()
+    with caplog.at_level(logging.INFO, logger='fiasco'):
+        line_list_collection.build_line_list(line_list_density, wavelength_range=[1215, 1216] * u.angstrom)
+    assert 'Fe 5 not included in line list. No transitions between' in caplog.text
 
 
 @pytest.mark.requires_dbase_version('>= 8')

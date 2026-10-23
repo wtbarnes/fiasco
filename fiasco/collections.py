@@ -285,12 +285,16 @@ Available Ions
                 self.log.warning(f'{ion.ion_name} not included in line list. {e}')
                 continue
             if abundance < minimum_abundance:
+                self.log.info(f'{ion.ion_name} not included in line list. '
+                              f'Abundance {abundance:.3g} is below minimum_abundance={minimum_abundance:.3g}.')
                 continue
             is_bound_bound = transitions.is_bound_bound
             wavelength = transitions.wavelength[is_bound_bound]
             in_range = np.logical_and(wavelength >= wavelength_range[0],
                                       wavelength <= wavelength_range[1])
             if not in_range.any():
+                self.log.info(f'{ion.ion_name} not included in line list. '
+                              f'No transitions between {wavelength_range[0]:.3f} and {wavelength_range[1]:.3f}.')
                 continue
             try:
                 g = ion.contribution_function(density, **kwargs)
@@ -329,8 +333,10 @@ Available Ions
         line_list = vstack(tables)
         line_list.meta['temperature'] = self.temperature
         line_list.meta['density'] = density
+        # Each ion in a collection can use its own abundance and ionization fraction
+        # datasets, so record the names from the ions that made it into the table.
+        # The name is None for an ion whose dataset was set to a value directly.
         for key in ('abundance', 'ionization_fraction'):
-            # the name is None for an ion whose dataset was set to a value directly
             names = sorted({ion._dset_names[key] for ion in included}, key=str)
             line_list.meta[key] = names[0] if len(names) == 1 else names
         line_list.meta['chianti_version'] = str(included[0]._elvlc.version)
