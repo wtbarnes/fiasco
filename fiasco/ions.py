@@ -1680,6 +1680,11 @@ Using Datasets:
 
             This does not include ionization fraction or abundance factors.
 
+        .. important::
+
+            Unlike the equivalent IDL routine, the output here is not
+            expressed per steradian.
+
         Free-free emission, also known as *bremsstrahlung* (or “braking radiation”),
         is produced when an ion interacts with a free electron, reduces the momentum
         of the free electron, and, by conservation of energy and momentum, produces
@@ -1689,10 +1694,12 @@ Using Datasets:
 
         .. math::
 
-            C_{ff}(\lambda,T_e) = \frac{c}{3m_e}\left(\frac{\alpha h}{\pi}\right)^3\sqrt{\frac{2\pi}{3m_ek_B}}\frac{z^2}{\lambda^2T_e^{1/2}}\exp{\left(-\frac{hc}{\lambda k_BT_e}\right)}\langle g_{ff}\rangle,
+            C_{ff}(\lambda,T_e) = 4\pi\frac{c}{3m_e}\left(\frac{\alpha h}{\pi}\right)^3\sqrt{\frac{2\pi}{3m_ek_B}}\frac{z^2}{\lambda^2T_e^{1/2}}\exp{\left(-\frac{hc}{\lambda k_BT_e}\right)}\langle g_{ff}\rangle,
 
         where :math:`\alpha` is the fine-structure constant, :math:`z` is the charge of the ion, and
-        :math:`\langle g_{ff}\rangle` is the velocity-averaged free-free Gaunt factor.
+        :math:`\langle g_{ff}\rangle` is the velocity-averaged free-free Gaunt factor. Note that in
+        comparison to the expression in :cite:t:`phillips_ultraviolet_2008`, the numerical constant
+        has been multiplied by :math:`4\pi` such that the units are *not* per steradian.
 
         Parameters
         ----------
@@ -1703,12 +1710,11 @@ Using Datasets:
         fiasco.GauntFactor.free_free: Calculation of :math:`\langle g_{ff}\rangle`.
         fiasco.IonCollection.free_free: Includes abundance and ionization equilibrium.
         """
-        prefactor = (const.c / 3. / const.m_e * (const.alpha * const.h / np.pi)**3
+        prefactor = (4 * np.pi * const.c / 3. / const.m_e * (const.alpha * const.h / np.pi)**3
                      * np.sqrt(2. * np.pi / 3. / const.m_e))
         tmp = np.outer(self.thermal_energy, wavelength)
         exp_factor = np.exp(-const.h * const.c / tmp) / (wavelength**2)
-        gf = self.gaunt_factor.free_free(self.temperature, wavelength, self.atomic_number, self.charge_state, )
-
+        gf = self.gaunt_factor.free_free(self.temperature, wavelength, self.atomic_number, self.charge_state)
         return (prefactor * self.charge_state**2 * exp_factor * gf
                 / np.sqrt(self.thermal_energy)[:, np.newaxis])
 
