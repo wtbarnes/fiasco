@@ -7,6 +7,7 @@ import pathlib
 import plasmapy.particles
 import sys
 
+from functools import cache, lru_cache
 from packaging.version import Version
 from plasmapy.utils import roman
 
@@ -14,6 +15,19 @@ FIASCO_HOME = pathlib.Path.home() / '.fiasco'
 FIASCO_RC = FIASCO_HOME / 'fiascorc'
 
 __all__ = ['setup_paths', 'get_chianti_catalog', 'read_chianti_version', 'parse_ion_name']
+
+
+@lru_cache(maxsize=None, typed=True)
+def _atomic_number(element):
+    # Memoized version of plasmapy.particles.atomic_number as constructing
+    # a plasmapy Particle on every call is comparatively expensive.
+    return plasmapy.particles.atomic_number(element)
+
+
+@cache
+def _atomic_symbol(atomic_number):
+    # Memoized version of plasmapy.particles.atomic_symbol (see _atomic_number).
+    return plasmapy.particles.atomic_symbol(atomic_number)
 
 
 def parse_ion_name(ion_name):
@@ -40,7 +54,7 @@ def parse_ion_name(ion_name):
     # Parse element string
     if isinstance(element, str):
         element = element.capitalize()
-    element = plasmapy.particles.atomic_number(element)
+    element = _atomic_number(element)
     # Parse ion string
     if isinstance(ion, str):
         if '+' in ion:

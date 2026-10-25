@@ -3,7 +3,6 @@ Package-level functions.
 """
 import astropy.units as u
 import numpy as np
-import plasmapy.particles
 
 from plasmapy.particles.exceptions import InvalidParticleError
 from scipy.interpolate import interp1d
@@ -12,6 +11,7 @@ import fiasco
 
 from fiasco.io import DataIndexer
 from fiasco.util import parse_ion_name
+from fiasco.util.util import _atomic_number, _atomic_symbol
 
 __all__ = [
     'list_elements',
@@ -40,11 +40,11 @@ def list_elements(hdf5_dbase_root=None, sort=True):
     root = DataIndexer.create_indexer(hdf5_dbase_root, '/')
     for f in root.fields:
         try:
-            elements.append(plasmapy.particles.atomic_symbol(f.capitalize()))
+            elements.append(_atomic_symbol(f.capitalize()))
         except InvalidParticleError:
             continue
     if sort:
-        elements = sorted(elements, key=lambda x: plasmapy.particles.atomic_number(x))
+        elements = sorted(elements, key=lambda x: _atomic_number(x))
     return elements
 
 
@@ -73,7 +73,7 @@ def list_ions(hdf5_dbase_root=None, sort=True, base_rep=False):
         ions = []
         for f in root.fields:
             try:
-                el = plasmapy.particles.atomic_symbol(f.capitalize())
+                el = _atomic_symbol(f.capitalize())
                 for i in root[f].fields:
                     if f == i.split('_')[0]:
                         ions.append(f"{el} {i.split('_')[1]}")
@@ -81,7 +81,7 @@ def list_ions(hdf5_dbase_root=None, sort=True, base_rep=False):
                 continue
     # Optional because adds significant overhead
     if sort:
-        ions = sorted(ions, key=lambda x: (plasmapy.particles.atomic_number(x.split()[0]),
+        ions = sorted(ions, key=lambda x: (_atomic_number(x.split()[0]),
                                            int(x.split()[1])))
     # NOTE: when grabbing straight from the index and not sorting, the result will be
     # a numpy array. Cast to a list to make sure the return type is consistent for
@@ -90,7 +90,7 @@ def list_ions(hdf5_dbase_root=None, sort=True, base_rep=False):
     if base_rep:
         # NOTE: Explicitly not using parse_ion_name here as it can be slow.
         elements = list_elements(hdf5_dbase_root=hdf5_dbase_root, sort=False)
-        el_map = {el: plasmapy.particles.atomic_number(el) for el in elements}
+        el_map = {el: _atomic_number(el) for el in elements}
         ion_list = [(el_map[el], int(ion)) for el, ion in map(lambda x: x.split(), ion_list)]
     return ion_list
 
@@ -140,7 +140,7 @@ def get_isoelectronic_sequence(element, hdf5_dbase_root=None):
     hdf5_dbase_root: path-like, optional
         If not specified, will default to that specified in ``fiasco.defaults``.
     """
-    Z_iso = plasmapy.particles.atomic_number(element)
+    Z_iso = _atomic_number(element)
     all_ions = list_ions(hdf5_dbase_root=hdf5_dbase_root)
 
     def _is_in_sequence(ion):
