@@ -225,15 +225,13 @@ class AdvancedModelListParser(GenericParser):
 
 class ModelAtmosphereParser(GenericParser):
     filetype = 'model_atmospheres'
-    dtypes = 8*[float]
+    dtypes = 6*[float]
     units = [
         u.K,
         u.cm**(-3),
         u.km,
         u.K*u.cm**(-3),
         u.cm**(-3),
-        u.dimensionless_unscaled,
-        u.dimensionless_unscaled,
         u.dimensionless_unscaled,
     ]
     headings = [
@@ -243,8 +241,6 @@ class ModelAtmosphereParser(GenericParser):
         'pressure',
         'density_H',
         'fraction_H_1',
-        'fraction_He_1',
-        'fraction_He_2',
     ]
     descriptions = [
         'temperature',
@@ -253,10 +249,8 @@ class ModelAtmosphereParser(GenericParser):
         'pressure',
         'total hydrogen number density',
         'ionization fraction of neutral hydrogen',
-        'ionization fraction of neutral helium',
-        'ionization fraction of singly-ionized helium',
     ]
-    fformat = fortranformat.FortranRecordReader('(E9.3,7E12.3)')
+    fformat = fortranformat.FortranRecordReader('(E9.3,5E12.3)')
 
     def __init__(self, filename, **kwargs):
         super().__init__(filename, **kwargs)
