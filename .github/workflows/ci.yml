@@ -165,7 +165,7 @@ jobs:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/publish_pure_python.yml@main
     with:
       test_extras: 'dev'
-      test_command: 'pytest -p no:warnings --doctest-rst --pyargs fiasco'
+      test_command: 'pytest -p no:warnings --doctest-rst --ascii-dbase-root ~/.chianti --pyargs fiasco'
       submodules: false
       python-version: '3.13'
     secrets:
