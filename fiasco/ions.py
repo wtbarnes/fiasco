@@ -12,7 +12,12 @@ import warnings
 
 from astropy.utils.data import get_pkg_data_path
 from functools import cached_property
-from scipy.interpolate import CubicSpline, interp1d, PchipInterpolator
+from scipy.interpolate import (
+    Akima1DInterpolator,
+    CubicSpline,
+    interp1d,
+    PchipInterpolator,
+)
 
 from fiasco import proton_electron_ratio
 from fiasco.base import IonBase
@@ -305,8 +310,8 @@ Using Datasets:
 
         .. note::
 
-            The cubic interpolation is performed in log-log space using a Piecewise Cubic Hermite
-            Interpolating Polynomial with `~scipy.interpolate.PchipInterpolator`. This helps to
+            The cubic interpolation is performed in log-log space using a piecewise cubic
+            polynomials with `~scipy.interpolate.Akima1DInterpolator`. This helps to
             ensure smoothness while reducing oscillations in the interpolated ionization fractions.
 
         Parameters
@@ -328,9 +333,10 @@ Using Datasets:
         # Perform PCHIP interpolation in log-space on only the non-zero ionization fractions.
         # See https://github.com/wtbarnes/fiasco/pull/223 for additional discussion.
         is_nonzero = ionization_data > 0.0
-        f_interp = PchipInterpolator(np.log10(temperature_data[is_nonzero]),
-                                     np.log10(ionization_data[is_nonzero]),
-                                     extrapolate=False)
+        f_interp = Akima1DInterpolator(np.log10(temperature_data[is_nonzero]),
+                                       np.log10(ionization_data[is_nonzero]),
+                                       method='makima',
+                                       extrapolate=False)
         ionization_fraction = f_interp(np.log10(temperature))
         ionization_fraction = 10**ionization_fraction
         # This sets all entries that would have interpolated to zero ionization fraction to zero
