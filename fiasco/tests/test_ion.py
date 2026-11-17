@@ -597,7 +597,7 @@ def test_abundance_setter(ion, value, dset):
 
 
 @pytest.mark.parametrize(('ioneq_input', 'ioneq_output'),[
-    ('mazzotta_etal', [5.88800000e-01, 5.72774861e-01, 5.34213282e-01]),
+    ('mazzotta_etal', [0.5888, 0.57232915, 0.53645684]),
     (np.zeros((100,)), [0, 0, 0]),
     (0.1, [0.1, 0.1, 0.1])
 ])

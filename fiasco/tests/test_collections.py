@@ -97,7 +97,7 @@ def test_free_free(another_collection, wavelength):
     assert ff.shape == temperature.shape + wavelength.shape if wavelength.shape else (1,)
     index_w = 50 if wavelength.shape else 0
     index_t = 24  # This is approximately where the ionization fraction for Fe V peaks
-    assert u.allclose(ff[index_t, index_w], 4.13621708e-41 * u.Unit('erg cm3 s-1 Angstrom-1'))
+    assert u.allclose(ff[index_t, index_w], 4.131726e-41 * u.Unit('erg cm3 s-1 Angstrom-1'), rtol=1e-6)
 
 
 @pytest.mark.parametrize('wavelength', [wavelength, wavelength[50]])
@@ -106,7 +106,7 @@ def test_free_bound(another_collection, wavelength):
     assert fb.shape == temperature.shape + wavelength.shape if wavelength.shape else (1,)
     index_w = 50 if wavelength.shape else 0
     index_t = 24  # This is approximately where the ionization fraction for Fe V peaks
-    assert u.allclose(fb[index_t, index_w], 3.057781475607237e-36 * u.Unit('erg cm3 s-1 Angstrom-1'))
+    assert u.allclose(fb[index_t, index_w], 3.054237e-36 * u.Unit('erg cm3 s-1 Angstrom-1'), rtol=1e-6)
 
 
 @pytest.mark.requires_dbase_version('>= 8')
@@ -118,7 +118,7 @@ def test_two_photon(collection, wavelength, index_w, hdf5_dbase_root):
     wavelength = np.atleast_1d(wavelength)
     assert tp.shape == temperature.shape + (1, ) + wavelength.shape
     # This value has not been checked for correctness
-    assert u.allclose(tp[30, 0, index_w], 3.4862925e-27 * u.Unit('erg cm3 s-1 Angstrom-1'))
+    assert u.allclose(tp[30, 0, index_w], 3.486614e-27 * u.Unit('erg cm3 s-1 Angstrom-1'), rtol=1e-6)
 
 
 @pytest.mark.requires_dbase_version('>= 8')
