@@ -84,7 +84,13 @@ docs =[
 dev = ["fiasco[test,docs]"]
 
 [tool.setuptools]
-packages = ["fiasco"]
+packages = [
+  "fiasco",
+  "fiasco.data",
+  "fiasco.io",
+  "fiasco.tests",
+  "fiasco.util"
+]
 
 [tool.setuptools_scm]
 write_to = "fiasco/version.py"
