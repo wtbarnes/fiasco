@@ -224,10 +224,10 @@ def test_abundance(ion):
 @pytest.mark.requires_dbase_version('>= 8')
 def test_proton_collision(fe10):
     rate = fe10.proton_collision_excitation_rate
-    assert u.allclose(rate[0, 0], 4.69587161e-13 * u.cm**3 / u.s)
+    assert u.allclose(rate[0, 0], 5.79655635e-13 * u.cm**3 / u.s)
 
     rate = fe10.proton_collision_deexcitation_rate
-    assert u.allclose(rate[0, 0], 1.17688025e-12 * u.cm**3 / u.s)
+    assert u.allclose(rate[0, 0], 1.45273408e-12 * u.cm**3 / u.s)
 
 
 def test_missing_abundance(hdf5_dbase_root):
@@ -255,7 +255,7 @@ def test_level_populations(ion):
     pop = ion.level_populations(1e8 * u.cm**-3)
     assert pop.shape == ion.temperature.shape + (1,) + ion._elvlc['level'].shape
     # This value has not been checked for correctness
-    assert u.allclose(pop[0, 0, 0], 0.0111401417)
+    assert u.allclose(pop[0, 0, 0], 0.0111415407)
     # Check that the total populations are normalized to 1 for all temperatures
     assert u.allclose(pop.squeeze().sum(axis=1), 1, atol=None, rtol=1e-10)
 
@@ -288,7 +288,7 @@ def test_contribution_function(ion):
     wvl_bb = ion.transitions.wavelength[ion.transitions.is_bound_bound]
     assert cont_func.shape == ion.temperature.shape + (1, ) + wvl_bb.shape
     # This value has not been tested for correctness
-    assert u.allclose(cont_func[0, 0, 0], 2.44349045e-30 * u.cm**3 * u.erg / u.s)
+    assert u.allclose(cont_func[0, 0, 0], 2.44371120e-30 * u.cm**3 * u.erg / u.s)
 
 
 @pytest.mark.requires_dbase_version('>= 8')
@@ -374,7 +374,7 @@ def test_emissivity(ion):
     wvl_bb = ion.transitions.wavelength[ion.transitions.is_bound_bound]
     assert emm.shape == ion.temperature.shape + (1, ) + wvl_bb.shape
     # This value has not been tested for correctness
-    assert u.allclose(emm[0, 0, 0], 2.11879311e-16 * u.erg / u.cm**3 / u.s)
+    assert u.allclose(emm[0, 0, 0], 2.11898452e-16 * u.erg / u.cm**3 / u.s)
 
 
 @pytest.mark.requires_dbase_version('>= 8')
@@ -401,7 +401,7 @@ def test_intensity(ion, em):
     # NOTE: The expected values have not been tested for correctness and
     # are only meant to indicate whether a value has changed or not.
     ('direct_ionization_rate', 9.362601290430508e-13*u.cm**3 / u.s),
-    ('excitation_autoionization_rate', 1.14821255e-12 * u.cm**3 / u.s),
+    ('excitation_autoionization_rate', 1.15276786e-12 * u.cm**3 / u.s),
     ('dielectronic_recombination_rate', 1.60593802e-11 * u.cm**3 / u.s),
     ('radiative_recombination_rate', 1.6221634159408823e-12*u.cm**3 / u.s),
 ])
@@ -490,7 +490,7 @@ def test_free_bound_radiative_loss(ion, h1):
         'c5', False, 4.08382025e-25 * u.cm**3 * u.erg / u.Angstrom / u.s,
         marks=pytest.mark.requires_dbase_version('>= 8', '<= 8.0.7')
     ),
-    ('c6', False, 8.23471268e-26 * u.cm**3 * u.erg / u.Angstrom / u.s),
+    ('c6', False, 8.23092940e-26 * u.cm**3 * u.erg / u.Angstrom / u.s),
 ])
 def test_two_photon(request, ion_fixture_name, include_protons, expected):
     ion = request.getfixturevalue(ion_fixture_name)
