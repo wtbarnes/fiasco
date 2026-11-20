@@ -89,7 +89,11 @@ def test_idl_compare_radiative_decay_matrices(ion, idl_result):
 
 
 def test_idl_compare_collisional_electron_rate_matrices(ion, idl_result):
+    # NOTE: IDL interpolates the scaled collision strengths in single precision. At high
+    # temperatures, where the interpolated value can be many orders of magnitude smaller
+    # than the spline nodes, this gives errors of a few percent in rates that are too small
+    # to matter (the largest difference seen across all ions is 5e-18 cm3 s-1).
     assert u.allclose(ion._rate_matrix_collisional_electron,
                       idl_result['elec_collision_rates'],
                       rtol=0.01,
-                      atol=1e-20*u.cm**3/u.s)
+                      atol=1e-16*u.cm**3/u.s)
