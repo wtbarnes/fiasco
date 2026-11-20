@@ -8,17 +8,28 @@ import pytest
 import fiasco
 
 from fiasco.tests.idl.helpers import run_idl_script
-from fiasco.util import parse_ion_name
 
 
-@pytest.fixture(params=['fe_23', 'ca_18'])
-def idl_two_ion_model(request, idl_env, dbase_version, chianti_idl_version):
-    ion_name = request.param
-    temperature = np.logspace(5.5, 7.5, 10) * u.K
-    abundance = 'sun_coronal_1992_feldman_ext'
-    ionization_fraction = 'chianti'
+@pytest.fixture
+def density():
+    return 1e11 * u.cm**(-3)
+
+
+# These ions are chosen specifically as their level populations have previously
+# shown large differences compared to the IDL results.
+@pytest.fixture(params=['C IV', 'Cr XXII', 'Na II', 'Si IV', 'O III', 'Ne IX', 'Mg VII'])
+def ion(request, hdf5_dbase_root):
+    temperature = 10**np.arange(4, 9, 0.1)*u.K
+    return fiasco.Ion(request.param,
+                      temperature,
+                      abundance='sun_coronal_1992_feldman_ext',
+                      ionization_fraction='chianti',
+                      hdf5_dbase_root=hdf5_dbase_root)
+
+
+@pytest.fixture
+def idl_result(ion, density, idl_env, dbase_version, chianti_idl_version):
     script = """
-    temp = {{ temperature | to_unit('K') | force_double_precision }}
     {% if database_version | version_check('>=', '10.1') %}
     abundance_subdirs = ['abundance', 'archive']
     {% else %}
@@ -26,53 +37,36 @@ def idl_two_ion_model(request, idl_env, dbase_version, chianti_idl_version):
     {% endif %}
     abund_file = FILEPATH('{{abundance}}.abund', ROOT_DIR=!xuvtop, SUBDIR=abundance_subdirs)
     ioneq_file = FILEPATH('{{ionization_fraction}}.ioneq', ROOT_DIR=!xuvtop, SUBDIR='ioneq')
-
-    ion_1 = ch_load_ion_rates('{{ ion_name }}',$
-                              temp,$
-                              abund_file=abund_file,$
-                              ioneq_file=ioneq_file,$
-                              /verbose)
-    ion_2 = ch_load_ion_rates('{{ next_ion_name }}',$
-                              temp,$
-                              abund_file=abund_file,$
-                              ioneq_file=ioneq_file,$
-                              /verbose)
-    two_ion = ch_load_2ion_rates(ion_1,ion_2)
-
-    ionization = two_ion.ioniz
-    radiative_recombination = two_ion.rr
-    autoionization = two_ion.ai
-    dielectronic_capture = two_ion.dc
-    dielectronic_recombination = two_ion.dr
+    {% if chianti_idl_version | version_check('>=', 9) %}
+    ; Set ioneq_file this way to get around a bug that always causes the GUI picker to pop up
+    ; even when the file is specified. Seems to only happen in v9.
+    defsysv,'!ioneq_file',ioneq_file
+    {% endif %}
+    density = {{ density | to_unit('cm-3') | force_double_precision }}
+    temperature = {{ temperature | to_unit('K') | force_double_precision }}
+    ion_obj = ch_setup_ion('{{ion_name}}', ioneq_file=ioneq_file, abund_file=abund_file, /noprot)
+    pop_solver, ion_obj, temperature, density, pops, /no_auto, /noionrec, out_rates=rates
+    elec_collision_rates = rates.qq
+    rad_decay_rates = rates.aa
     """
-    Z, iz = parse_ion_name(ion_name)
-    next_ion_name = f'{ion_name.split("_")[0]}_{iz+1}'
-    input_args = {
-        'ion_name': ion_name,
-        'next_ion_name': next_ion_name,
-        'temperature': temperature,
-        'abundance': abundance,
-        'ionization_fraction': ionization_fraction,
+    input_args={
+        'density': density,
+        'temperature': ion.temperature,
+        'abundance': ion._dset_names['abundance'],
+        'ionization_fraction': ion._dset_names['ionization_fraction'],
+        'ion_name': ion._ion_name,
     }
-    outputs = [
-        'ionization',
-        'radiative_recombination',
-        'autoionization',
-        'dielectronic_capture',
-        'dielectronic_recombination',
-    ]
+    outputs = ['pops', 'elec_collision_rates', 'rad_decay_rates']
     formatters = {
-        'ionization': lambda x: u.Quantity(np.swapaxes(x.T, 1, 2), 'cm3 s-1'),
-        'radiative_recombination': lambda x: u.Quantity(np.swapaxes(x.T, 1, 2), 'cm3 s-1'),
-        'autoionization': lambda x: u.Quantity(x, 's-1'),
-        'dielectronic_capture': lambda x: u.Quantity(np.swapaxes(x.T, 1, 2), 'cm3 s-1'),
-        'dielectronic_recombination': lambda x: u.Quantity(np.swapaxes(x.T, 1, 2), 'cm3 s-1'),
+        'pops': lambda x: u.Quantity(x.squeeze().T),
+        'elec_collision_rates': lambda x: u.Quantity(np.swapaxes(x.T, 1, 2), 'cm3 s-1'),
+        'rad_decay_rates': lambda x: u.Quantity(x, 's-1'),
     }
     idl_result = run_idl_script(idl_env,
                                 script,
                                 input_args,
                                 outputs,
-                                f'two_ion_rate_matrices_{Z}_{iz}',
+                                f'level_populations_{ion.atomic_number}_{ion.ionization_stage}',
                                 dbase_version,
                                 chianti_idl_version,
                                 format_func=formatters,
@@ -80,45 +74,28 @@ def idl_two_ion_model(request, idl_env, dbase_version, chianti_idl_version):
     return idl_result
 
 
-@pytest.fixture
-def ion(idl_two_ion_model, hdf5_dbase_root):
-    return fiasco.Ion(idl_two_ion_model['ion_name'],
-                      idl_two_ion_model['temperature'],
-                      abundance=idl_two_ion_model['abundance'],
-                      ionization_fraction=idl_two_ion_model['ionization_fraction'],
-                      hdf5_dbase_root=hdf5_dbase_root)
+def test_idl_compare_level_populations(ion, density, idl_result):
+    level_pops = ion.level_populations(density,
+                                       include_level_resolved_rate_correction=False,
+                                       use_two_ion_model=False,
+                                       include_protons=False).squeeze()
+    # Apply thresholds such that comparisons are focused around the relevant temperature range.
+    ionfrac_threshold = 1e-10
+    level_threshold = 1e-15
+    above_pops_thresh = idl_result['pops'].max(axis=0) > level_threshold
+    above_ionfrac_thresh = ion.ionization_fraction > ionfrac_threshold
+    idl_pops = idl_result['pops'][above_ionfrac_thresh][:, above_pops_thresh]
+    fiasco_pops = level_pops[above_ionfrac_thresh][:, above_pops_thresh]
+    assert u.allclose(idl_pops, fiasco_pops, rtol=0.01)
 
 
-@pytest.mark.requires_dbase_version('>= 9')
-def test_idl_compare_rate_matrix_ionization(ion, idl_two_ion_model):
-    assert u.allclose(ion._rate_matrix_ionization,
-                      idl_two_ion_model['ionization'],
-                      rtol=0.05)
-
-
-@pytest.mark.requires_dbase_version('>= 9')
-def test_idl_compare_rate_matrix_radiative_recombination(ion, idl_two_ion_model):
-    assert u.allclose(ion._rate_matrix_radiative_recombination,
-                      idl_two_ion_model['radiative_recombination'],
-                      rtol=1e-5)
-
-
-@pytest.mark.requires_dbase_version('>= 9')
-def test_idl_compare_rate_matrix_autoionization(ion, idl_two_ion_model):
-    assert u.allclose(ion._rate_matrix_autoionization,
-                      idl_two_ion_model['autoionization'],
+def test_idl_compare_radiative_decay_matrices(ion, idl_result):
+    assert u.allclose(ion._rate_matrix_radiative_decay,
+                      idl_result['rad_decay_rates'],
                       rtol=1e-7)
 
 
-@pytest.mark.requires_dbase_version('>= 9')
-def test_idl_compare_rate_matrix_dielectronic_capture(ion, idl_two_ion_model):
-    assert u.allclose(ion._rate_matrix_dielectronic_capture,
-                      idl_two_ion_model['dielectronic_capture'],
-                      rtol=2e-4)
-
-
-@pytest.mark.requires_dbase_version('>= 9')
-def test_idl_compare_rate_matrix_dielectronic_recombination(ion, idl_two_ion_model):
-    assert u.allclose(ion._rate_matrix_dielectronic_recombination,
-                      idl_two_ion_model['dielectronic_recombination'],
-                      rtol=2e-3)
+def test_idl_compare_collisional_electron_rate_matrices(ion, idl_result):
+    assert u.allclose(ion._rate_matrix_collisional_electron,
+                      idl_result['elec_collision_rates'],
+                      rtol=0.01)
