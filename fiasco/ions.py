@@ -674,7 +674,13 @@ Using Datasets:
             else:
                 c_matrix = self._build_coefficient_matrix(d, include_protons=include_protons)
             # Invert matrix
-            c_matrix[:, -1, :] = 1.*c_matrix.unit
+            # NOTE: One of the equations is redundant and is replaced in order to normalize the
+            # populations. As in the IDL code, this is done by setting the population of the ground
+            # level to 1 and normalizing afterwards. Requiring instead that the populations sum to 1
+            # gives every population the same absolute error such that small populations are lost
+            # to roundoff error.
+            c_matrix[:, 0, :] = 0.*c_matrix.unit
+            c_matrix[:, 0, 0] = 1.*c_matrix.unit
             # NOTE: c_matrix is a stack of matrices, one per temperature, with shape
             # (n_temperature, n_levels, n_levels). Give the right-hand side an explicit
             # trailing axis, shape (n_temperature, n_levels, 1), so that np.linalg.solve
@@ -682,7 +688,7 @@ Using Datasets:
             # numpy>=2. A 1D right-hand side is only broadcast over the stack by numpy>=2,
             # and raises on numpy<2 (see gh#447).
             b = np.zeros(c_matrix.shape[:-1] + (1,))
-            b[..., -1, 0] = 1.0
+            b[..., 0, 0] = 1.0
             pop = np.linalg.solve(c_matrix.value, b)[..., 0]
             pop[pop<0] = 0.0
             np.divide(pop, pop.sum(axis=1)[:, np.newaxis], out=pop)

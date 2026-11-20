@@ -111,7 +111,7 @@ def test_idl_compare_level_populations(ion, density, idl_level_populations):
                                        include_level_resolved_rate_correction=False,
                                        use_two_ion_model=False,
                                        include_protons=False).squeeze()
-    assert u.allclose(level_pops, idl_level_populations['pops'], atol=1e-15, rtol=0.01)
+    assert u.allclose(level_pops, idl_level_populations['pops'], atol=1e-30, rtol=0.01)
 
 
 def test_idl_compare_radiative_decay_matrices(ion, idl_rate_matrices):
