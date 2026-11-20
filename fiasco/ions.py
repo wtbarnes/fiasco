@@ -1035,7 +1035,8 @@ Using Datasets:
         # a linear extrapolation. For the ionization rates, the rates should be
         # zero above the temperature range and below the temperature range, the
         # last two points should be used. Thus, we need to perform two interpolations
-        # for each level.
+        # for each level. In the IDL code, these extrapolations are linear in the logarithm
+        # of the temperature and the rate, i.e. ``log_space=True``.
         # NOTE: In the case of the level-resolved radiative recombination rates in the
         # rrlvl files, we choose to fill the values outside of the interpolation range
         # using the minimum and maximum data values as appropriate.
@@ -1051,6 +1052,13 @@ Using Datasets:
             temperature = np.log10(temperature)
             temperature_table = np.log10(temperature_table)
             rate_table = np.log10(rate_table)
+            # NOTE: The fill values are rates and so have to be transformed as well. A rate
+            # of zero is -inf in log space, which is transformed back to zero below.
+            with np.errstate(divide='ignore'):
+                fill_above, fill_below = (
+                    fill if fill is None or fill == 'extrapolate' else np.log10(fill)
+                    for fill in (fill_above, fill_below)
+                )
         rates = []
         for t, r in zip(temperature_table, rate_table):
             # NOTE: Values outside of the temperature data range are set to NaN
@@ -1089,6 +1097,7 @@ Using Datasets:
         ionization_rates = self._level_resolved_rates_interpolation(
             self._cilvl['temperature'],
             self._cilvl['ionization_rate'],
+            log_space=True,
             fill_below='extrapolate',
             fill_above=0.0,
         )
@@ -1101,9 +1110,17 @@ Using Datasets:
         recombination_rates = self._level_resolved_rates_interpolation(
             self._reclvl['temperature'],
             self._reclvl['recombination_rate'],
+            log_space=True,
             fill_below=0.0,
             fill_above='extrapolate',
         )
+        # NOTE: As in the IDL code, the extrapolated rate is not allowed to exceed the last
+        # value in the data.
+        last_temperature = self._reclvl['temperature'][:, -1]
+        last_rate = self._reclvl['recombination_rate'][:, -1]
+        recombination_rates = np.where(self.temperature[:, np.newaxis] > last_temperature,
+                                       np.minimum(recombination_rates, last_rate),
+                                       recombination_rates)
         return self._reclvl['upper_level'], recombination_rates
 
     @u.quantity_input

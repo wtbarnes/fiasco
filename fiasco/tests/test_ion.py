@@ -371,6 +371,33 @@ def test_level_populations_correction(fe20, pops_no_correction, pops_with_correc
                       atol=0.0, rtol=1e-5)
 
 
+@pytest.mark.requires_dbase_version('>= 8')
+def test_level_resolved_ionization_rate_extrapolation(fe20):
+    # As in the IDL code, the ionization rate is extrapolated below the temperature range of
+    # the data as a power law through the first two points and is zero above it.
+    temperature_data = fe20._cilvl['temperature'][0]
+    rate_data = fe20._cilvl['ionization_rate'][0]
+    _, rate = fe20._level_resolved_ionization_rate
+    index = np.log(rate_data[1]/rate_data[0]) / np.log(temperature_data[1]/temperature_data[0])
+    is_below = fe20.temperature < temperature_data[0]
+    assert u.allclose(rate[is_below, 0],
+                      rate_data[0] * (fe20.temperature[is_below]/temperature_data[0])**index)
+    assert (rate[fe20.temperature > temperature_data[-1], 0] == 0).all()
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_level_resolved_recombination_rate_extrapolation(c6):
+    # As in the IDL code, the recombination rate is extrapolated above the temperature range
+    # of the data as a power law through the last two points.
+    temperature_data = c6._reclvl['temperature'][0]
+    rate_data = c6._reclvl['recombination_rate'][0]
+    _, rate = c6._level_resolved_recombination_rate
+    index = np.log(rate_data[-1]/rate_data[-2]) / np.log(temperature_data[-1]/temperature_data[-2])
+    is_above = c6.temperature > temperature_data[-1]
+    assert u.allclose(rate[is_above, 0],
+                      rate_data[-1] * (c6.temperature[is_above]/temperature_data[-1])**index)
+
+
 @pytest.mark.requires_dbase_version('>= 9')
 def test_two_ion_model_couple_density_temperature(fe20):
     # This is a smoke test to ensure that the temperature-density coupling keyword argument

@@ -27,7 +27,7 @@ defsysv,'!ioneq_file',ioneq_file
 density = {{ density | to_unit('cm-3') | force_double_precision }}
 temperature = {{ temperature | to_unit('K') | force_double_precision }}
 ion_obj = ch_setup_ion('{{ion_name}}', ioneq_file=ioneq_file, abund_file=abund_file, /noprot)
-pop_solver, ion_obj, temperature, density, pops, /no_auto, /noionrec, out_rates=rates
+pop_solver, ion_obj, temperature, density, pops, /no_auto, noionrec={{ noionrec }}, out_rates=rates
 elec_collision_rates = rates.qq
 rad_decay_rates = rates.aa
 """
@@ -62,13 +62,15 @@ def ion(request, temperature, hdf5_dbase_root):
     return ion
 
 
-def run_pop_solver(ion, density, name, outputs, idl_env, dbase_version, chianti_idl_version, **kwargs):
+def run_pop_solver(ion, density, name, outputs, idl_env, dbase_version, chianti_idl_version,
+                   include_level_resolved_rate_correction=False, **kwargs):
     input_args = {
         'density': density,
         'temperature': ion.temperature,
         'abundance': ion._dset_names['abundance'],
         'ionization_fraction': ion._dset_names['ionization_fraction'],
         'ion_name': ion._ion_name,
+        'noionrec': int(not include_level_resolved_rate_correction),
     }
     return run_idl_script(idl_env,
                           POP_SOLVER_SCRIPT,
@@ -112,6 +114,30 @@ def test_idl_compare_level_populations(ion, density, idl_level_populations):
                                        use_two_ion_model=False,
                                        include_protons=False).squeeze()
     assert u.allclose(level_pops, idl_level_populations['pops'], atol=1e-30, rtol=0.01)
+
+
+# C VI and Fe XX have level-resolved recombination and ionization rates, respectively
+@pytest.mark.parametrize('ion', ['C VI', 'Fe XX'], indirect=True)
+def test_idl_compare_level_populations_with_level_resolved_rates(ion,
+                                                                density,
+                                                                idl_env,
+                                                                dbase_version,
+                                                                chianti_idl_version):
+    idl_result = run_pop_solver(ion,
+                                density,
+                                'level_populations_with_correction',
+                                ['pops'],
+                                idl_env,
+                                dbase_version,
+                                chianti_idl_version,
+                                include_level_resolved_rate_correction=True)
+    level_pops = ion.level_populations(density,
+                                       use_two_ion_model=False,
+                                       include_protons=False).squeeze()
+    # NOTE: IDL reads the ionization fractions in single precision and does not apply the
+    # correction where the ionization fraction underflows to zero.
+    is_formed = ion.ionization_fraction > 1e-30
+    assert u.allclose(level_pops[is_formed], idl_result['pops'][is_formed], atol=1e-30, rtol=0.01)
 
 
 def test_idl_compare_radiative_decay_matrices(ion, idl_rate_matrices):
