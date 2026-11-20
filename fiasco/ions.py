@@ -1014,7 +1014,8 @@ Using Datasets:
             value. If `None` (default), use the rate at the lower temperature boundary as
             the fill value.
         interpolator: callable, optional
-            Interpolator to use. By default, this is `~scipy.interpolation.PchipInterpolator`.
+            Interpolator to use. By default, this is `~scipy.interpolate.CubicSpline` with natural
+            boundary conditions.
         interpolator_kwargs: `dict`, optional
             Keyword arguments to be passed to ``interpolator``.
 
@@ -1025,9 +1026,9 @@ Using Datasets:
             second axis corresponds to level.
         """
         if interpolator is None:
-            interpolator = PchipInterpolator
+            interpolator = CubicSpline
         if interpolator_kwargs is None:
-            interpolator_kwargs = {'extrapolate': False}
+            interpolator_kwargs = {'bc_type': 'natural', 'extrapolate': False}
         # NOTE: According to CHIANTI Technical Report No. 20, Section 5,
         # the interpolation of the level resolved recombination,
         # the rates should be zero below the temperature range and above
@@ -1040,11 +1041,9 @@ Using Datasets:
         # NOTE: In the case of the level-resolved radiative recombination rates in the
         # rrlvl files, we choose to fill the values outside of the interpolation range
         # using the minimum and maximum data values as appropriate.
-        # NOTE: In the CHIANTI IDL code, the interpolation is done using a cubic spline.
-        # Here, by default, the rates are interpolated using a Piecewise Cubic Hermite Interpolating
-        # Polynomial (PCHIP) which balances smoothness and also reduces the oscillations
-        # that occur with higher order spline fits. This is needed mostly due to the wide
-        # range over which this data is fit.
+        # NOTE: As in the CHIANTI IDL code, the rates are, by default, interpolated using a cubic
+        # spline with natural boundary conditions. This should be done in log space as the rates
+        # vary over many orders of magnitude.
         temperature = self.temperature.to_value('K')
         temperature_table = temperature_table.to_value('K')
         rate_table = rate_table.to_value('cm3 s-1')

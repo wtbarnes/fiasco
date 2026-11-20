@@ -137,7 +137,7 @@ def test_idl_compare_level_populations_with_level_resolved_rates(ion,
     # NOTE: IDL reads the ionization fractions in single precision and does not apply the
     # correction where the ionization fraction underflows to zero.
     is_formed = ion.ionization_fraction > 1e-30
-    assert u.allclose(level_pops[is_formed], idl_result['pops'][is_formed], atol=1e-30, rtol=0.01)
+    assert u.allclose(level_pops[is_formed], idl_result['pops'][is_formed], atol=1e-30, rtol=3e-3)
 
 
 def test_idl_compare_radiative_decay_matrices(ion, idl_rate_matrices):
