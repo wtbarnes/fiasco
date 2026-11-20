@@ -79,14 +79,7 @@ def test_idl_compare_level_populations(ion, density, idl_result):
                                        include_level_resolved_rate_correction=False,
                                        use_two_ion_model=False,
                                        include_protons=False).squeeze()
-    # Apply thresholds such that comparisons are focused around the relevant temperature range.
-    ionfrac_threshold = 1e-10
-    level_threshold = 1e-15
-    above_pops_thresh = idl_result['pops'].max(axis=0) > level_threshold
-    above_ionfrac_thresh = ion.ionization_fraction > ionfrac_threshold
-    idl_pops = idl_result['pops'][above_ionfrac_thresh][:, above_pops_thresh]
-    fiasco_pops = level_pops[above_ionfrac_thresh][:, above_pops_thresh]
-    assert u.allclose(idl_pops, fiasco_pops, rtol=0.01)
+    assert u.allclose(level_pops, idl_result['pops'], atol=1e-15, rtol=0.01)
 
 
 def test_idl_compare_radiative_decay_matrices(ion, idl_result):
@@ -98,4 +91,5 @@ def test_idl_compare_radiative_decay_matrices(ion, idl_result):
 def test_idl_compare_collisional_electron_rate_matrices(ion, idl_result):
     assert u.allclose(ion._rate_matrix_collisional_electron,
                       idl_result['elec_collision_rates'],
-                      rtol=0.01)
+                      rtol=0.01,
+                      atol=1e-20*u.cm**3/u.s)
