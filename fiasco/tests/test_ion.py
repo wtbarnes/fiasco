@@ -269,6 +269,20 @@ def test_level_populations_proton_data_toggle(ion):
 
 
 @pytest.mark.requires_dbase_version('>= 8')
+@pytest.mark.parametrize('ion_fixture_name', ['c5', 'c6'])
+def test_radiative_decay_includes_two_photon_rate_once(request, ion_fixture_name):
+    # In He-like ions, two-photon emission is the only decay from 1s2s 1S0 to the ground level.
+    # In H-like ions, 2s 2S1/2 also decays to the ground level by an M1 transition, which is a
+    # separate entry for the same pair of levels. Each entry should be counted exactly once.
+    ion = request.getfixturevalue(ion_fixture_name)
+    transitions = ion.transitions
+    lower, = transitions.lower_level[transitions.is_twophoton]
+    upper, = transitions.upper_level[transitions.is_twophoton]
+    is_same_levels = np.logical_and(transitions.lower_level == lower, transitions.upper_level == upper)
+    assert u.allclose(ion._rate_matrix_radiative_decay[lower-1, upper-1], transitions.A[is_same_levels].sum())
+
+
+@pytest.mark.requires_dbase_version('>= 8')
 def test_contribution_function(ion):
     cont_func = ion.contribution_function(1e7 * u.cm**-3)
     wvl_bb = ion.transitions.wavelength[ion.transitions.is_bound_bound]

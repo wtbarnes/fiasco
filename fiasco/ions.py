@@ -775,7 +775,7 @@ Using Datasets:
         ] += self.transitions.A[self.transitions._is_inverse]
         # Everything else (avoiding duplicates)
         is_not_auto_or_inverse = ~np.logical_or(self.transitions._is_inverse,
-                                                self.transitions.is_autoionization)
+                                                ~self.transitions.is_bound_bound)
         rate_matrix[
             lower_index[is_not_auto_or_inverse],
             upper_index[is_not_auto_or_inverse]
