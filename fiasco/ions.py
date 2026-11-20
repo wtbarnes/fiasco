@@ -763,11 +763,11 @@ Using Datasets:
         # level indices as compared to the non-autoionization rates, 2) not double count
         # the transitions which have duplicate entries in the database, and 3) appropriately
         # invert the indices for those transitions in which i>j but E_i<E_j.
-        # Autoionization
+        # Autoionization and two-photon
         rate_matrix[
-            lower_index[self.transitions.is_autoionization],
-            upper_index[self.transitions.is_autoionization]
-        ] += self.transitions.A[self.transitions.is_autoionization]
+            lower_index[~self.transitions.is_bound_bound],
+            upper_index[~self.transitions.is_bound_bound]
+        ] += self.transitions.A[~self.transitions.is_bound_bound]
         # Inverse transitions
         rate_matrix[
             upper_index[self.transitions._is_inverse],
