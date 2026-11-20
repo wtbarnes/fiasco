@@ -752,6 +752,11 @@ Using Datasets:
         # Radiative decay into current level from upper levels
         lower_index = self.transitions.lower_level-1
         upper_index = self.transitions.upper_level-1
+        # NOTE: These three cases are broken up into several different logical blocks
+        # in order to 1) not undercount the autoionization rates which can have duplicate
+        # level indices as compared to the non-autoionization rates, 2) not double count
+        # the transitions which have duplicate entries in the database, and 3) appropriately
+        # invert the indices for those transitions in which i>j but E_i<E_j.
         # Autoionization
         rate_matrix[
             lower_index[self.transitions.is_autoionization],
