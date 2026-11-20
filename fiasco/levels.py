@@ -271,3 +271,13 @@ class Transitions:
         indices = np.vstack([vectorize_where(self._levels.level, self.lower_level),
                              vectorize_where(self._levels.level, self.upper_level)])
         return np.diff(self._levels.energy[indices], axis=0).squeeze()
+
+    @property
+    def _is_inverse(self):
+        """
+        True if level :math:`i<j` and :math:`E_i>E_j`.
+
+        .. note:: This is meant for internal use and is mostly used for constructing
+                  the radiative decay rate matrix.
+        """
+        return self.delta_energy < 0

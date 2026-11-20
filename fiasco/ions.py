@@ -752,7 +752,23 @@ Using Datasets:
         # Radiative decay into current level from upper levels
         lower_index = self.transitions.lower_level-1
         upper_index = self.transitions.upper_level-1
-        rate_matrix[lower_index, upper_index] += self.transitions.A
+        # Autoionization
+        rate_matrix[
+            lower_index[self.transitions.is_autoionization],
+            upper_index[self.transitions.is_autoionization]
+        ] += self.transitions.A[self.transitions.is_autoionization]
+        # Inverse transitions
+        rate_matrix[
+            upper_index[self.transitions._is_inverse],
+            lower_index[self.transitions._is_inverse]
+        ] += self.transitions.A[self.transitions._is_inverse]
+        # Everything else (avoiding duplicates)
+        is_not_auto_or_inverse = ~np.logical_or(self.transitions._is_inverse,
+                                                self.transitions.is_autoionization)
+        rate_matrix[
+            lower_index[is_not_auto_or_inverse],
+            upper_index[is_not_auto_or_inverse]
+        ] += self.transitions.A[is_not_auto_or_inverse]
         return rate_matrix
 
     @cached_property
