@@ -761,33 +761,29 @@ Using Datasets:
     @u.quantity_input
     def _rate_matrix_radiative_decay(self) -> u.Unit('s-1'):
         rate_matrix = u.Quantity(np.zeros((self.n_levels, self.n_levels)), 's-1')
+        # NOTE: Each of these is read from the database or searches all levels for every
+        # transition so only evaluate them once.
+        transitions = self.transitions
+        A = transitions.A
+        is_zero_wavelength = ~transitions.is_bound_bound
+        is_inverse = transitions._is_inverse
         # Radiative decay into current level from upper levels
-        lower_index = self.transitions.lower_level-1
-        upper_index = self.transitions.upper_level-1
+        lower_index = transitions.lower_level-1
+        upper_index = transitions.upper_level-1
         # NOTE: These three cases are broken up into several different logical blocks
         # in order to 1) not undercount the autoionization rates which can have duplicate
         # level indices as compared to the non-autoionization rates, 2) not double count
         # the transitions which have duplicate entries in the database, and 3) appropriately
         # invert the indices for those transitions in which i>j but E_i<E_j.
         # Autoionization and two-photon
-        rate_matrix[
-            lower_index[~self.transitions.is_bound_bound],
-            upper_index[~self.transitions.is_bound_bound]
-        ] += self.transitions.A[~self.transitions.is_bound_bound]
+        rate_matrix[lower_index[is_zero_wavelength], upper_index[is_zero_wavelength]] += A[is_zero_wavelength]
         # Inverse transitions
-        rate_matrix[
-            upper_index[self.transitions._is_inverse],
-            lower_index[self.transitions._is_inverse]
-        ] += self.transitions.A[self.transitions._is_inverse]
+        rate_matrix[upper_index[is_inverse], lower_index[is_inverse]] += A[is_inverse]
         # Everything else (avoiding duplicates)
         # NOTE: Some pairs of levels have more than one entry. As in the IDL code, only the last
         # one is used. This relies on "+=" not accumulating over repeated indices (unlike np.add.at).
-        is_not_auto_or_inverse = ~np.logical_or(self.transitions._is_inverse,
-                                                ~self.transitions.is_bound_bound)
-        rate_matrix[
-            lower_index[is_not_auto_or_inverse],
-            upper_index[is_not_auto_or_inverse]
-        ] += self.transitions.A[is_not_auto_or_inverse]
+        is_other = ~np.logical_or(is_zero_wavelength, is_inverse)
+        rate_matrix[lower_index[is_other], upper_index[is_other]] += A[is_other]
         return rate_matrix
 
     @cached_property
