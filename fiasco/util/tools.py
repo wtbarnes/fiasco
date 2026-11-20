@@ -6,7 +6,7 @@ import numpy as np
 import plasmapy.particles
 
 from functools import partial
-from scipy.interpolate import splev, splrep
+from scipy.interpolate import CubicSpline
 
 _MAX_Z = 40
 _ATOMIC_SYMBOL_LOOKUP = {z: plasmapy.particles.atomic_symbol(z) for z in range(1, _MAX_Z+1)}
@@ -195,10 +195,9 @@ def burgess_tully_descale(x, y, energy_ratio, c, scaling_type):
         xnew[idxs, :] = _xnew(energy_ratio[idxs, :], c[idxs], s_type).T
 
     # Use list(map()) here to allow varying shaped inputs for x, y
-    splrep_szero = partial(splrep, s=0)
-    nots = np.array(list(map(splrep_szero, x, y)), dtype=object)
-    splev_derzero = partial(splev, der=0)
-    out = np.array(list(map(splev_derzero, xnew, nots)), dtype=object)
+    cspline = partial(CubicSpline, bc_type='natural', extrapolate=True)
+    cspline_funcs = list(map(cspline, x, y))
+    out = np.array([csf(xn) for csf,xn in zip(cspline_funcs, xnew)], dtype=object)
 
     for s_type in np.unique(scaling_type):
         idxs = scaling_type == s_type

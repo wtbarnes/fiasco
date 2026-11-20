@@ -485,9 +485,14 @@ Using Datasets:
         """
         c = const.h**2 / (2. * np.pi * const.m_e)**(1.5)
         upsilon = self.effective_collision_strength
-        idx = vectorize_where(self.levels.level, self._scups['upper_level'])
-        omega_upper = 2. * self.levels.total_angular_momentum[idx] + 1.
-        return c * upsilon / np.sqrt(self.thermal_energy[:, np.newaxis]) / omega_upper
+        J = self.levels.total_angular_momentum
+        level_upper = vectorize_where(self.levels.level, self._scups['upper_level'])
+        level_lower = vectorize_where(self.levels.level, self._scups['lower_level'])
+        omega_upper = 2. * J[level_upper] + 1.
+        omega_lower = 2. * J[level_lower] + 1.
+        delta_energy = self.levels.energy[level_upper] - self.levels.energy[level_lower]
+        omega = np.where(delta_energy>=0, omega_upper, omega_lower)
+        return c * upsilon / np.sqrt(self.thermal_energy[:, np.newaxis]) / omega
 
     @cached_property
     @needs_dataset('scups')
@@ -521,8 +526,9 @@ Using Datasets:
         omega_upper = 2. * J[level_upper] + 1.
         omega_lower = 2. * J[level_lower] + 1.
         delta_energy = self.levels.energy[level_upper] - self.levels.energy[level_lower]
-        kBTE = np.outer(1./self.thermal_energy, delta_energy)
-        return omega_upper / omega_lower * self.electron_collision_deexcitation_rate * np.exp(-kBTE)
+        kBTE = np.outer(1./self.thermal_energy, np.fabs(delta_energy))
+        omega_ratio = np.where(delta_energy>=0, omega_upper/omega_lower, omega_lower/omega_upper)
+        return omega_ratio * self.electron_collision_deexcitation_rate * np.exp(-kBTE)
 
     @cached_property
     @needs_dataset('psplups')
@@ -752,7 +758,28 @@ Using Datasets:
         # Radiative decay into current level from upper levels
         lower_index = self.transitions.lower_level-1
         upper_index = self.transitions.upper_level-1
-        rate_matrix[lower_index, upper_index] += self.transitions.A
+        # NOTE: These three cases are broken up into several different logical blocks
+        # in order to 1) not undercount the autoionization rates which can have duplicate
+        # level indices as compared to the non-autoionization rates, 2) not double count
+        # the transitions which have duplicate entries in the database, and 3) appropriately
+        # invert the indices for those transitions in which i>j but E_i<E_j.
+        # Autoionization and two-photon
+        rate_matrix[
+            lower_index[~self.transitions.is_bound_bound],
+            upper_index[~self.transitions.is_bound_bound]
+        ] += self.transitions.A[~self.transitions.is_bound_bound]
+        # Inverse transitions
+        rate_matrix[
+            upper_index[self.transitions._is_inverse],
+            lower_index[self.transitions._is_inverse]
+        ] += self.transitions.A[self.transitions._is_inverse]
+        # Everything else (avoiding duplicates)
+        is_not_auto_or_inverse = ~np.logical_or(self.transitions._is_inverse,
+                                                self.transitions.is_autoionization)
+        rate_matrix[
+            lower_index[is_not_auto_or_inverse],
+            upper_index[is_not_auto_or_inverse]
+        ] += self.transitions.A[is_not_auto_or_inverse]
         return rate_matrix
 
     @cached_property
@@ -764,12 +791,26 @@ Using Datasets:
         # there are levels in the model.
         idx = np.where(np.logical_and(self._scups['lower_level']<=self.n_levels,
                                       self._scups['upper_level']<=self.n_levels))
-        lower_index = self._scups['lower_level'][idx] - 1
-        upper_index = self._scups['upper_level'][idx] - 1
+        dex_rate = self.electron_collision_deexcitation_rate[..., *idx]
+        ex_rate = self.electron_collision_excitation_rate[..., *idx]
+        lower_level = self._scups['lower_level'][idx]
+        upper_level = self._scups['upper_level'][idx]
+        lower_index = lower_level - 1
+        upper_index = upper_level - 1
+        # NOTE: Have to determine the energy ordering of the levels as it is not guaranteed
+        # that E_lu > E_ll.
+        upper_index_elvlc = vectorize_where(self.levels.level, upper_level)
+        lower_index_elvlc = vectorize_where(self.levels.level, lower_level)
+        delta_energy = self.levels.energy[upper_index_elvlc] - self.levels.energy[lower_index_elvlc]
+        # NOTE: This purposefully excludes cases where there is no energy spacing
+        is_inverted = delta_energy < 0
+        is_not_inverted = delta_energy > 0
         # De-excitation from upper states
-        rate_matrix[:, lower_index, upper_index] += self.electron_collision_deexcitation_rate[..., *idx]
+        rate_matrix[:, lower_index[is_not_inverted], upper_index[is_not_inverted]] += dex_rate[..., is_not_inverted]
+        rate_matrix[:, lower_index[is_inverted], upper_index[is_inverted]] += ex_rate[..., is_inverted]
         # Excitation from lower states
-        rate_matrix[:, upper_index, lower_index] += self.electron_collision_excitation_rate[..., *idx]
+        rate_matrix[:, upper_index[is_not_inverted], lower_index[is_not_inverted]] += ex_rate[..., is_not_inverted]
+        rate_matrix[:, upper_index[is_inverted], lower_index[is_inverted]] += dex_rate[..., is_inverted]
         return rate_matrix
 
     @cached_property
