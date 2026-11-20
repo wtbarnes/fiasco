@@ -283,6 +283,19 @@ def test_radiative_decay_includes_two_photon_rate_once(request, ion_fixture_name
 
 
 @pytest.mark.requires_dbase_version('>= 8')
+def test_radiative_decay_uses_last_of_repeated_transitions(c5):
+    # Some pairs of levels in He-like ions are listed more than once. As in the IDL code,
+    # only the last entry, rather than the sum, is used when computing the level populations.
+    level_pairs = np.stack([c5.transitions.lower_level, c5.transitions.upper_level], axis=1)
+    unique_level_pairs, counts = np.unique(level_pairs, axis=0, return_counts=True)
+    if not (counts > 1).any():
+        pytest.skip('No repeated transitions in this version of the database.')
+    lower, upper = unique_level_pairs[counts > 1][0]
+    is_repeated = np.all(level_pairs == [lower, upper], axis=1)
+    assert u.allclose(c5._rate_matrix_radiative_decay[lower-1, upper-1], c5.transitions.A[is_repeated][-1])
+
+
+@pytest.mark.requires_dbase_version('>= 8')
 def test_contribution_function(ion):
     cont_func = ion.contribution_function(1e7 * u.cm**-3)
     wvl_bb = ion.transitions.wavelength[ion.transitions.is_bound_bound]

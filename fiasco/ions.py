@@ -780,6 +780,8 @@ Using Datasets:
             lower_index[self.transitions._is_inverse]
         ] += self.transitions.A[self.transitions._is_inverse]
         # Everything else (avoiding duplicates)
+        # NOTE: Some pairs of levels have more than one entry. As in the IDL code, only the last
+        # one is used. This relies on "+=" not accumulating over repeated indices (unlike np.add.at).
         is_not_auto_or_inverse = ~np.logical_or(self.transitions._is_inverse,
                                                 ~self.transitions.is_bound_bound)
         rate_matrix[
