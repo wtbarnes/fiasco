@@ -674,7 +674,13 @@ Using Datasets:
             else:
                 c_matrix = self._build_coefficient_matrix(d, include_protons=include_protons)
             # Invert matrix
-            c_matrix[:, -1, :] = 1.*c_matrix.unit
+            # NOTE: One of the equations is redundant and is replaced in order to normalize the
+            # populations. As in the IDL code, this is done by setting the population of the ground
+            # level to 1 and normalizing afterwards. Requiring instead that the populations sum to 1
+            # gives every population the same absolute error such that small populations are lost
+            # to roundoff error.
+            c_matrix[:, 0, :] = 0.*c_matrix.unit
+            c_matrix[:, 0, 0] = 1.*c_matrix.unit
             # NOTE: c_matrix is a stack of matrices, one per temperature, with shape
             # (n_temperature, n_levels, n_levels). Give the right-hand side an explicit
             # trailing axis, shape (n_temperature, n_levels, 1), so that np.linalg.solve
@@ -682,7 +688,7 @@ Using Datasets:
             # numpy>=2. A 1D right-hand side is only broadcast over the stack by numpy>=2,
             # and raises on numpy<2 (see gh#447).
             b = np.zeros(c_matrix.shape[:-1] + (1,))
-            b[..., -1, 0] = 1.0
+            b[..., 0, 0] = 1.0
             pop = np.linalg.solve(c_matrix.value, b)[..., 0]
             pop[pop<0] = 0.0
             np.divide(pop, pop.sum(axis=1)[:, np.newaxis], out=pop)
@@ -755,31 +761,29 @@ Using Datasets:
     @u.quantity_input
     def _rate_matrix_radiative_decay(self) -> u.Unit('s-1'):
         rate_matrix = u.Quantity(np.zeros((self.n_levels, self.n_levels)), 's-1')
+        # NOTE: Each of these is read from the database or searches all levels for every
+        # transition so only evaluate them once.
+        transitions = self.transitions
+        A = transitions.A
+        is_zero_wavelength = ~transitions.is_bound_bound
+        is_inverse = transitions._is_inverse
         # Radiative decay into current level from upper levels
-        lower_index = self.transitions.lower_level-1
-        upper_index = self.transitions.upper_level-1
+        lower_index = transitions.lower_level-1
+        upper_index = transitions.upper_level-1
         # NOTE: These three cases are broken up into several different logical blocks
         # in order to 1) not undercount the autoionization rates which can have duplicate
         # level indices as compared to the non-autoionization rates, 2) not double count
         # the transitions which have duplicate entries in the database, and 3) appropriately
         # invert the indices for those transitions in which i>j but E_i<E_j.
         # Autoionization and two-photon
-        rate_matrix[
-            lower_index[~self.transitions.is_bound_bound],
-            upper_index[~self.transitions.is_bound_bound]
-        ] += self.transitions.A[~self.transitions.is_bound_bound]
+        rate_matrix[lower_index[is_zero_wavelength], upper_index[is_zero_wavelength]] += A[is_zero_wavelength]
         # Inverse transitions
-        rate_matrix[
-            upper_index[self.transitions._is_inverse],
-            lower_index[self.transitions._is_inverse]
-        ] += self.transitions.A[self.transitions._is_inverse]
+        rate_matrix[upper_index[is_inverse], lower_index[is_inverse]] += A[is_inverse]
         # Everything else (avoiding duplicates)
-        is_not_auto_or_inverse = ~np.logical_or(self.transitions._is_inverse,
-                                                self.transitions.is_autoionization)
-        rate_matrix[
-            lower_index[is_not_auto_or_inverse],
-            upper_index[is_not_auto_or_inverse]
-        ] += self.transitions.A[is_not_auto_or_inverse]
+        # NOTE: Some pairs of levels have more than one entry. As in the IDL code, only the last
+        # one is used. This relies on "+=" not accumulating over repeated indices (unlike np.add.at).
+        is_other = ~np.logical_or(is_zero_wavelength, is_inverse)
+        rate_matrix[lower_index[is_other], upper_index[is_other]] += A[is_other]
         return rate_matrix
 
     @cached_property
@@ -1010,7 +1014,8 @@ Using Datasets:
             value. If `None` (default), use the rate at the lower temperature boundary as
             the fill value.
         interpolator: callable, optional
-            Interpolator to use. By default, this is `~scipy.interpolation.PchipInterpolator`.
+            Interpolator to use. By default, this is `~scipy.interpolate.CubicSpline` with natural
+            boundary conditions.
         interpolator_kwargs: `dict`, optional
             Keyword arguments to be passed to ``interpolator``.
 
@@ -1021,9 +1026,9 @@ Using Datasets:
             second axis corresponds to level.
         """
         if interpolator is None:
-            interpolator = PchipInterpolator
+            interpolator = CubicSpline
         if interpolator_kwargs is None:
-            interpolator_kwargs = {'extrapolate': False}
+            interpolator_kwargs = {'bc_type': 'natural', 'extrapolate': False}
         # NOTE: According to CHIANTI Technical Report No. 20, Section 5,
         # the interpolation of the level resolved recombination,
         # the rates should be zero below the temperature range and above
@@ -1031,15 +1036,14 @@ Using Datasets:
         # a linear extrapolation. For the ionization rates, the rates should be
         # zero above the temperature range and below the temperature range, the
         # last two points should be used. Thus, we need to perform two interpolations
-        # for each level.
+        # for each level. In the IDL code, these extrapolations are linear in the logarithm
+        # of the temperature and the rate, i.e. ``log_space=True``.
         # NOTE: In the case of the level-resolved radiative recombination rates in the
         # rrlvl files, we choose to fill the values outside of the interpolation range
         # using the minimum and maximum data values as appropriate.
-        # NOTE: In the CHIANTI IDL code, the interpolation is done using a cubic spline.
-        # Here, by default, the rates are interpolated using a Piecewise Cubic Hermite Interpolating
-        # Polynomial (PCHIP) which balances smoothness and also reduces the oscillations
-        # that occur with higher order spline fits. This is needed mostly due to the wide
-        # range over which this data is fit.
+        # NOTE: As in the CHIANTI IDL code, the rates are, by default, interpolated using a cubic
+        # spline with natural boundary conditions. This should be done in log space as the rates
+        # vary over many orders of magnitude.
         temperature = self.temperature.to_value('K')
         temperature_table = temperature_table.to_value('K')
         rate_table = rate_table.to_value('cm3 s-1')
@@ -1047,6 +1051,13 @@ Using Datasets:
             temperature = np.log10(temperature)
             temperature_table = np.log10(temperature_table)
             rate_table = np.log10(rate_table)
+            # NOTE: The fill values are rates and so have to be transformed as well. A rate
+            # of zero is -inf in log space, which is transformed back to zero below.
+            with np.errstate(divide='ignore'):
+                fill_above, fill_below = (
+                    fill if fill is None or fill == 'extrapolate' else np.log10(fill)
+                    for fill in (fill_above, fill_below)
+                )
         rates = []
         for t, r in zip(temperature_table, rate_table):
             # NOTE: Values outside of the temperature data range are set to NaN
@@ -1085,6 +1096,7 @@ Using Datasets:
         ionization_rates = self._level_resolved_rates_interpolation(
             self._cilvl['temperature'],
             self._cilvl['ionization_rate'],
+            log_space=True,
             fill_below='extrapolate',
             fill_above=0.0,
         )
@@ -1097,9 +1109,17 @@ Using Datasets:
         recombination_rates = self._level_resolved_rates_interpolation(
             self._reclvl['temperature'],
             self._reclvl['recombination_rate'],
+            log_space=True,
             fill_below=0.0,
             fill_above='extrapolate',
         )
+        # NOTE: As in the IDL code, the extrapolated rate is not allowed to exceed the last
+        # value in the data.
+        last_temperature = self._reclvl['temperature'][:, -1]
+        last_rate = self._reclvl['recombination_rate'][:, -1]
+        recombination_rates = np.where(self.temperature[:, np.newaxis] > last_temperature,
+                                       np.minimum(recombination_rates, last_rate),
+                                       recombination_rates)
         return self._reclvl['upper_level'], recombination_rates
 
     @u.quantity_input

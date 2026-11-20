@@ -224,10 +224,10 @@ def test_abundance(ion):
 @pytest.mark.requires_dbase_version('>= 8')
 def test_proton_collision(fe10):
     rate = fe10.proton_collision_excitation_rate
-    assert u.allclose(rate[0, 0], 4.69587161e-13 * u.cm**3 / u.s)
+    assert u.allclose(rate[0, 0], 5.79655635e-13 * u.cm**3 / u.s)
 
     rate = fe10.proton_collision_deexcitation_rate
-    assert u.allclose(rate[0, 0], 1.17688025e-12 * u.cm**3 / u.s)
+    assert u.allclose(rate[0, 0], 1.45273408e-12 * u.cm**3 / u.s)
 
 
 def test_missing_abundance(hdf5_dbase_root):
@@ -255,7 +255,7 @@ def test_level_populations(ion):
     pop = ion.level_populations(1e8 * u.cm**-3)
     assert pop.shape == ion.temperature.shape + (1,) + ion._elvlc['level'].shape
     # This value has not been checked for correctness
-    assert u.allclose(pop[0, 0, 0], 0.0111401417)
+    assert u.allclose(pop[0, 0, 0], 0.0111415407)
     # Check that the total populations are normalized to 1 for all temperatures
     assert u.allclose(pop.squeeze().sum(axis=1), 1, atol=None, rtol=1e-10)
 
@@ -269,12 +269,39 @@ def test_level_populations_proton_data_toggle(ion):
 
 
 @pytest.mark.requires_dbase_version('>= 8')
+@pytest.mark.parametrize('ion_fixture_name', ['c5', 'c6'])
+def test_radiative_decay_includes_two_photon_rate_once(request, ion_fixture_name):
+    # In He-like ions, two-photon emission is the only decay from 1s2s 1S0 to the ground level.
+    # In H-like ions, 2s 2S1/2 also decays to the ground level by an M1 transition, which is a
+    # separate entry for the same pair of levels. Each entry should be counted exactly once.
+    ion = request.getfixturevalue(ion_fixture_name)
+    transitions = ion.transitions
+    lower, = transitions.lower_level[transitions.is_twophoton]
+    upper, = transitions.upper_level[transitions.is_twophoton]
+    is_same_levels = np.logical_and(transitions.lower_level == lower, transitions.upper_level == upper)
+    assert u.allclose(ion._rate_matrix_radiative_decay[lower-1, upper-1], transitions.A[is_same_levels].sum())
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_radiative_decay_uses_last_of_repeated_transitions(c5):
+    # Some pairs of levels in He-like ions are listed more than once. As in the IDL code,
+    # only the last entry, rather than the sum, is used when computing the level populations.
+    level_pairs = np.stack([c5.transitions.lower_level, c5.transitions.upper_level], axis=1)
+    unique_level_pairs, counts = np.unique(level_pairs, axis=0, return_counts=True)
+    if not (counts > 1).any():
+        pytest.skip('No repeated transitions in this version of the database.')
+    lower, upper = unique_level_pairs[counts > 1][0]
+    is_repeated = np.all(level_pairs == [lower, upper], axis=1)
+    assert u.allclose(c5._rate_matrix_radiative_decay[lower-1, upper-1], c5.transitions.A[is_repeated][-1])
+
+
+@pytest.mark.requires_dbase_version('>= 8')
 def test_contribution_function(ion):
     cont_func = ion.contribution_function(1e7 * u.cm**-3)
     wvl_bb = ion.transitions.wavelength[ion.transitions.is_bound_bound]
     assert cont_func.shape == ion.temperature.shape + (1, ) + wvl_bb.shape
     # This value has not been tested for correctness
-    assert u.allclose(cont_func[0, 0, 0], 2.44349045e-30 * u.cm**3 * u.erg / u.s)
+    assert u.allclose(cont_func[0, 0, 0], 2.44371120e-30 * u.cm**3 * u.erg / u.s)
 
 
 @pytest.mark.requires_dbase_version('>= 8')
@@ -344,6 +371,33 @@ def test_level_populations_correction(fe20, pops_no_correction, pops_with_correc
                       atol=0.0, rtol=1e-5)
 
 
+@pytest.mark.requires_dbase_version('>= 8')
+def test_level_resolved_ionization_rate_extrapolation(fe20):
+    # As in the IDL code, the ionization rate is extrapolated below the temperature range of
+    # the data as a power law through the first two points and is zero above it.
+    temperature_data = fe20._cilvl['temperature'][0]
+    rate_data = fe20._cilvl['ionization_rate'][0]
+    _, rate = fe20._level_resolved_ionization_rate
+    index = np.log(rate_data[1]/rate_data[0]) / np.log(temperature_data[1]/temperature_data[0])
+    is_below = fe20.temperature < temperature_data[0]
+    assert u.allclose(rate[is_below, 0],
+                      rate_data[0] * (fe20.temperature[is_below]/temperature_data[0])**index)
+    assert (rate[fe20.temperature > temperature_data[-1], 0] == 0).all()
+
+
+@pytest.mark.requires_dbase_version('>= 8')
+def test_level_resolved_recombination_rate_extrapolation(c6):
+    # As in the IDL code, the recombination rate is extrapolated above the temperature range
+    # of the data as a power law through the last two points.
+    temperature_data = c6._reclvl['temperature'][0]
+    rate_data = c6._reclvl['recombination_rate'][0]
+    _, rate = c6._level_resolved_recombination_rate
+    index = np.log(rate_data[-1]/rate_data[-2]) / np.log(temperature_data[-1]/temperature_data[-2])
+    is_above = c6.temperature > temperature_data[-1]
+    assert u.allclose(rate[is_above, 0],
+                      rate_data[-1] * (c6.temperature[is_above]/temperature_data[-1])**index)
+
+
 @pytest.mark.requires_dbase_version('>= 9')
 def test_two_ion_model_couple_density_temperature(fe20):
     # This is a smoke test to ensure that the temperature-density coupling keyword argument
@@ -360,7 +414,7 @@ def test_emissivity(ion):
     wvl_bb = ion.transitions.wavelength[ion.transitions.is_bound_bound]
     assert emm.shape == ion.temperature.shape + (1, ) + wvl_bb.shape
     # This value has not been tested for correctness
-    assert u.allclose(emm[0, 0, 0], 2.11879311e-16 * u.erg / u.cm**3 / u.s)
+    assert u.allclose(emm[0, 0, 0], 2.11898452e-16 * u.erg / u.cm**3 / u.s)
 
 
 @pytest.mark.requires_dbase_version('>= 8')
@@ -387,7 +441,7 @@ def test_intensity(ion, em):
     # NOTE: The expected values have not been tested for correctness and
     # are only meant to indicate whether a value has changed or not.
     ('direct_ionization_rate', 9.362601290430508e-13*u.cm**3 / u.s),
-    ('excitation_autoionization_rate', 1.14821255e-12 * u.cm**3 / u.s),
+    ('excitation_autoionization_rate', 1.15276786e-12 * u.cm**3 / u.s),
     ('dielectronic_recombination_rate', 1.60593802e-11 * u.cm**3 / u.s),
     ('radiative_recombination_rate', 1.6221634159408823e-12*u.cm**3 / u.s),
 ])
@@ -476,7 +530,7 @@ def test_free_bound_radiative_loss(ion, h1):
         'c5', False, 4.08382025e-25 * u.cm**3 * u.erg / u.Angstrom / u.s,
         marks=pytest.mark.requires_dbase_version('>= 8', '<= 8.0.7')
     ),
-    ('c6', False, 8.23471268e-26 * u.cm**3 * u.erg / u.Angstrom / u.s),
+    ('c6', False, 8.23092940e-26 * u.cm**3 * u.erg / u.Angstrom / u.s),
 ])
 def test_two_photon(request, ion_fixture_name, include_protons, expected):
     ion = request.getfixturevalue(ion_fixture_name)

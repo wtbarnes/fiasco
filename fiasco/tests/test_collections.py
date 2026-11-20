@@ -118,7 +118,7 @@ def test_two_photon(collection, wavelength, index_w, hdf5_dbase_root):
     wavelength = np.atleast_1d(wavelength)
     assert tp.shape == temperature.shape + (1, ) + wavelength.shape
     # This value has not been checked for correctness
-    assert u.allclose(tp[30, 0, index_w], 3.486614e-27 * u.Unit('erg cm3 s-1 Angstrom-1'), rtol=1e-6)
+    assert u.allclose(tp[30, 0, index_w], 3.482749e-27 * u.Unit('erg cm3 s-1 Angstrom-1'), rtol=1e-6)
 
 
 @pytest.mark.requires_dbase_version('>= 8')
